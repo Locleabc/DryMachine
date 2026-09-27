@@ -1,9 +1,34 @@
 #!/bin/sh
-# Kiểm tra cú pháp App/ bằng gcc trên PC với HAL giả lập.
-# Chạy: sh tools/host_check/check.sh   (từ thư mục gốc repo)
+# Kiểm tra App/ trên PC (không cần board, không cần Keil):
+#   1. Biên dịch cú pháp toàn bộ App/ với HAL giả lập (-Wall -Wextra)
+#   2. Kiểm tra quy tắc phụ thuộc giữa các tầng (docs/ARCHITECTURE.md)
+#   3. Chạy test logic control/dryer_ctrl (không cần HAL)
+# Chạy từ thư mục gốc repo:  sh tools/host_check/check.sh
 set -e
-for f in App/Src/*.c; do
-  gcc -std=c11 -Wall -Wextra -Wno-unused-parameter -fsyntax-only \
-      -Itools/host_check -IApp/Inc "$f"
+OUT=tools/build; mkdir -p "$OUT"
+INC="-Itools/host_check -IApp -IApp/board -IApp/control -IApp/services -IApp/ui"
+for d in App/drivers/*/; do INC="$INC -I$d"; done
+
+echo "== 1. Syntax =="
+for f in $(find App -name '*.c'); do
+  gcc -std=c11 -Wall -Wextra -Wno-unused-parameter -fsyntax-only $INC "$f"
 done
-echo "App/: syntax OK"
+echo "   OK"
+
+echo "== 2. Quy tac phu thuoc =="
+fail=0
+bad() { echo "   VI PHAM: $1"; fail=1; }
+grep -rn '#include "' App/drivers  | grep -v 'stm32f1xx_hal.h\|font5x7.h' \
+  | awk -F: '{split($1,a,"/"); f=a[length(a)]; sub(/\.[ch]$/,"",f); if ($0 !~ "\""f".h\"") print}' \
+  | while read l; do echo "   VI PHAM drivers: $l"; done | tee "$OUT/dep.txt"
+[ -s "$OUT/dep.txt" ] && fail=1
+grep -rln '#include "\(stm32\|main\|board\|sensors\|settings\|ui\|relay\|button\)' App/control && bad "control phai thuan C"
+grep -rln '#include "\(main\|board\|ui\)\.h"' App/services && bad "services khong duoc include main/board/ui"
+grep -rln '#include "\(main\|board\|dryer_ctrl\|sensors\|settings\|button\|relay\)\.h"' App/ui && bad "ui chi duoc dung ili9341 + util_fmt"
+grep -rln '#include "main.h"' App --include=*.c --include=*.h | grep -v 'App/board/board.c' && bad "chi board.c duoc include main.h"
+[ $fail = 0 ] && echo "   OK"
+
+echo "== 3. Test logic dieu khien =="
+gcc -std=c11 -Wall -IApp/control tools/host_check/test_ctrl.c App/control/dryer_ctrl.c -o "$OUT/test_ctrl"
+"$OUT/test_ctrl" | tail -1
+exit $fail
