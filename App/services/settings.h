@@ -11,11 +11,19 @@
 
 #include "dryer_ctrl.h"
 #include "flash_store.h"
+#include "presets.h"
 #include <stdbool.h>
 #include <stdint.h>
 
-#define SETTINGS_MAGIC     0x44525932UL   /* "DRY2" */
-#define SETTINGS_VERSION   2
+#define SETTINGS_MAGIC     0x44525933UL   /* "DRY3" */
+#define SETTINGS_VERSION   3
+
+/* Giới hạn điểm đặt (áp dụng cho cả chế độ đặt sẵn và tự do) */
+#define SETTINGS_TEMP_MIN  30.0f
+#define SETTINGS_TEMP_MAX  75.0f
+#define SETTINGS_HUM_MIN   5.0f
+#define SETTINGS_HUM_MAX   80.0f
+#define SETTINGS_DRY_MAX_MIN  (99u * 60u + 59u)   /* 99:59 */
 
 typedef struct {
     uint32_t       magic;
@@ -24,6 +32,10 @@ typedef struct {
     dryer_params_t ctrl;          /* thông số điều khiển */
     float          temp_offset;   /* °C  bù PT100 */
     float          hum_offset;    /* %RH bù SHT45 */
+    uint8_t        preset;        /* chế độ đang dùng: 0..PRESET_CUSTOM */
+    uint8_t        reserved[3];
+    float          preset_temp[PRESET_COUNT];   /* giá trị từng chế độ (sửa được) */
+    float          preset_hum[PRESET_COUNT];
     uint32_t       crc;
 } settings_t;
 
@@ -40,6 +52,13 @@ void    Settings_Default(void);
 bool    Settings_Save(void);
 const settings_t *Settings_Get(void);
 
+/* ---- Chế độ sấy & điểm đặt ---- */
+void    Settings_SelectPreset(uint8_t idx);                        /* chép giá trị chế độ → điểm đặt */
+bool    Settings_SetPresetValues(uint8_t idx, float temp, float hum); /* false nếu phải kẹp giới hạn */
+void    Settings_SetDryTimeMin(uint16_t minutes);                  /* 0 = không giới hạn */
+uint16_t Settings_DryTimeMin(void);
+
+/* ---- Thông số kỹ thuật (menu ẩn) ---- */
 uint8_t Settings_ParamCount(void);
 const settings_param_t *Settings_Param(uint8_t idx);
 float   Settings_GetValue(uint8_t idx);

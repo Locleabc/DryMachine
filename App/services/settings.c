@@ -9,9 +9,7 @@
     { name, unit, (uint16_t)offsetof(settings_t, field), mn, mx, st, dc }
 
 static const settings_param_t s_params[] = {
-    P(ctrl.temp_set,      "Nhiet do dat",  "C",   30.0f,  75.0f, 0.5f,  1),
     P(ctrl.temp_hyst,     "Tre nhiet",     "C",    0.5f,  10.0f, 0.5f,  1),
-    P(ctrl.hum_set,       "Do am dat",     "%",    5.0f,  80.0f, 1.0f,  0),
     P(ctrl.hum_hyst,      "Tre am",        "%",    1.0f,  20.0f, 1.0f,  0),
     P(ctrl.temp_max,      "Qua nhiet",     "C",   50.0f,  95.0f, 1.0f,  0),
     P(ctrl.p_high,        "Ap cao ngat",   "bar",  5.0f,  45.0f, 0.5f,  1),
@@ -21,7 +19,6 @@ static const settings_param_t s_params[] = {
     P(ctrl.comp_min_on,   "MN chay min",   "s",   10.0f, 600.0f, 10.0f, 0),
     P(ctrl.start_delay,   "Tre khoi dong", "s",    0.0f, 120.0f, 5.0f,  0),
     P(ctrl.fan_post,      "Quat chay them","s",    0.0f, 300.0f, 5.0f,  0),
-    P(ctrl.dry_time_h,    "Thoi gian say", "h",    0.0f,  72.0f, 0.5f,  1),
     P(ctrl.cond_fan_mode, "Quat nong mode","",     0.0f,   1.0f, 1.0f,  0),
     P(temp_offset,        "Bu nhiet PT100","C",   -5.0f,   5.0f, 0.1f,  1),
     P(hum_offset,         "Bu do am",      "%",  -10.0f,  10.0f, 0.5f,  1),
@@ -61,6 +58,11 @@ void Settings_Default(void)
     DryerCtrl_DefaultParams(&s_set.ctrl);
     s_set.temp_offset = 0.0f;
     s_set.hum_offset  = 0.0f;
+    for (uint8_t i = 0; i < PRESET_COUNT; i++) {
+        s_set.preset_temp[i] = g_preset_defs[i].temp;
+        s_set.preset_hum[i]  = g_preset_defs[i].hum;
+    }
+    Settings_SelectPreset(PRESET_CUSTOM);
     stamp(&s_set);
 }
 
@@ -76,6 +78,9 @@ void Settings_Init(const flash_store_cfg_t *store)
         Settings_Default();
     }
     for (uint8_t i = 0; i < PARAM_COUNT; i++) Settings_SetValue(i, Settings_GetValue(i));  /* kẹp giới hạn */
+    for (uint8_t i = 0; i < PRESET_COUNT; i++) Settings_SetPresetValues(i, s_set.preset_temp[i], s_set.preset_hum[i]);
+    if (s_set.preset >= PRESET_COUNT) s_set.preset = PRESET_CUSTOM;
+    Settings_SelectPreset(s_set.preset);
 }
 
 bool Settings_Save(void)
@@ -87,6 +92,42 @@ bool Settings_Save(void)
 const settings_t *Settings_Get(void)
 {
     return &s_set;
+}
+
+static float clampf(float v, float lo, float hi, bool *clamped)
+{
+    if (v < lo) { *clamped = true; return lo; }
+    if (v > hi) { *clamped = true; return hi; }
+    return v;
+}
+
+void Settings_SelectPreset(uint8_t idx)
+{
+    if (idx >= PRESET_COUNT) return;
+    s_set.preset = idx;
+    s_set.ctrl.temp_set = s_set.preset_temp[idx];
+    s_set.ctrl.hum_set  = s_set.preset_hum[idx];
+}
+
+bool Settings_SetPresetValues(uint8_t idx, float temp, float hum)
+{
+    bool clamped = false;
+    if (idx >= PRESET_COUNT) return false;
+    s_set.preset_temp[idx] = clampf(temp, SETTINGS_TEMP_MIN, SETTINGS_TEMP_MAX, &clamped);
+    s_set.preset_hum[idx]  = clampf(hum,  SETTINGS_HUM_MIN,  SETTINGS_HUM_MAX,  &clamped);
+    if (idx == s_set.preset) Settings_SelectPreset(idx);   /* đang dùng → áp dụng ngay */
+    return !clamped;
+}
+
+void Settings_SetDryTimeMin(uint16_t minutes)
+{
+    if (minutes > SETTINGS_DRY_MAX_MIN) minutes = SETTINGS_DRY_MAX_MIN;
+    s_set.ctrl.dry_time_h = (float)minutes / 60.0f;
+}
+
+uint16_t Settings_DryTimeMin(void)
+{
+    return (uint16_t)(s_set.ctrl.dry_time_h * 60.0f + 0.5f);
 }
 
 uint8_t Settings_ParamCount(void)

@@ -98,7 +98,7 @@ void DryerCtrl_Step(dryer_ctrl_t *c, const dryer_params_t *p, const dryer_input_
 void DryerCtrl_GetStatus(const dryer_ctrl_t *c, dryer_status_t *st);
 
 const char *DryerCtrl_StateName(dryer_state_t s);
-const char *DryerCtrl_FaultText(uint16_t faults);    /* "" nếu không lỗi */
+const char *DryerCtrl_FaultText(uint16_t faults);    /* tên lỗi ưu tiên cao nhất, "" nếu không lỗi */
 void DryerCtrl_DefaultParams(dryer_params_t *p);
 
 #endif

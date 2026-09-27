@@ -17,7 +17,7 @@
 #define BUTTON_SCAN_MS         10
 #endif
 #define BUTTON_DEBOUNCE_MS     30
-#define BUTTON_LONG_MS         1000
+#define BUTTON_LONG_MS         3000     /* giữ 3 s: vào cài đặt, chạy menu ẩn */
 #define BUTTON_REPEAT_START_MS 500
 #define BUTTON_REPEAT_MS       150
 #define BUTTON_MAX             8
