@@ -1,22 +1,28 @@
-# STM32CubeIDE build output
-Debug/
-Release/
+# ---- Keil MDK-ARM build output ----
+MDK-ARM/*/
+!MDK-ARM/RTE/
+MDK-ARM/*.uvguix.*
+MDK-ARM/*.bak
+MDK-ARM/JLinkLog.txt
+MDK-ARM/EventRecorderStub.scvd
 *.o
 *.d
-*.su
-*.elf
+*.crf
+*.axf
 *.hex
 *.bin
 *.map
-*.list
-*.cyclo
+*.lst
+*.lnp
+*.htm
+*.build_log.htm
+*.dep
+*.iex
 
-# IDE / OS
-.metadata/
-*.launch.bak
+# ---- IDE / OS ----
 *.swp
 Thumbs.db
 .DS_Store
 
-# local test build
+# ---- local test build ----
 tools/build/
