@@ -27,10 +27,16 @@ extern const sht4x_cfg_t        board_sht45;
 extern const press_analog_cfg_t board_press;
 extern const ili9341_cfg_t      board_lcd;
 extern const flash_store_cfg_t  board_settings_flash;
+extern const flash_store_cfg_t  board_faultlog_flash;
 
 uint32_t Board_Millis(void);
 void     Board_LedToggle(void);
 void     Board_LogWrite(const char *data, uint16_t len);
 void     Board_I2cRecover(void);        /* gỡ treo bus I2C của SHT45 */
+
+/* Đồng hồ thời gian thực (RTC nội, thạch anh 32.768 kHz, pin CR2032 ở VBAT) */
+void     Board_RtcInit(void);
+bool     Board_RtcRead(uint32_t *seconds);  /* false nếu chưa từng chỉnh giờ */
+void     Board_RtcWrite(uint32_t seconds);
 
 #endif

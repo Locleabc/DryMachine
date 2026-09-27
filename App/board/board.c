@@ -52,7 +52,9 @@ const ili9341_cfg_t board_lcd = {
     .rst_port = TFT_RST_GPIO_Port, .rst_pin = TFT_RST_Pin,
 };
 
-/* ---------------- Flash lưu thông số: page 63 (Keil IROM1 size = 0xFC00) ---------------- */
+/* ---------------- Flash: page 62 = lịch sử lỗi, page 63 = thông số ----------------
+ * Keil: Options for Target → Target → IROM1 Size = 0xF800 (chừa 2 page cuối) */
+const flash_store_cfg_t board_faultlog_flash = { .addr = 0x0800F800UL, .size = 0x400 };
 const flash_store_cfg_t board_settings_flash = { .addr = 0x0800FC00UL, .size = 0x400 };
 
 /* ---------------- Tiện ích board ---------------- */
@@ -101,4 +103,44 @@ void Board_I2cRecover(void)
     __HAL_RCC_I2C2_FORCE_RESET();
     __HAL_RCC_I2C2_RELEASE_RESET();
     HAL_I2C_Init(&hi2c2);                           /* MspInit cấu hình lại chân AF */
+}
+
+/* ---------------- RTC ----------------
+ * Dùng thẳng bộ đếm 32 bit RTC_CNT (1 tick = 1 s, prescaler do MX_RTC_Init đặt).
+ * Không dùng HAL_RTC_GetDate của dòng F1 vì HAL F1 không giữ ngày qua reset.
+ * BKP_DR1 = RTC_MAGIC đánh dấu đã chỉnh giờ (giữ nhờ pin VBAT). */
+#define RTC_MAGIC   0xA5A5U
+
+void Board_RtcInit(void)
+{
+    __HAL_RCC_PWR_CLK_ENABLE();
+    __HAL_RCC_BKP_CLK_ENABLE();
+    HAL_PWR_EnableBkUpAccess();
+}
+
+bool Board_RtcRead(uint32_t *seconds)
+{
+    uint16_t hi1 = (uint16_t)RTC->CNTH;
+    uint16_t lo  = (uint16_t)RTC->CNTL;
+    uint16_t hi2 = (uint16_t)RTC->CNTH;
+    if (hi1 != hi2) lo = (uint16_t)RTC->CNTL;        /* CNTL vừa tràn giữa 2 lần đọc */
+    *seconds = ((uint32_t)hi2 << 16) | lo;
+    return (BKP->DR1 & 0xFFFFU) == RTC_MAGIC;
+}
+
+static void rtc_wait_ready(void)
+{
+    uint32_t t0 = HAL_GetTick();
+    while (!(RTC->CRL & RTC_CRL_RTOFF) && (HAL_GetTick() - t0) < 10) { }
+}
+
+void Board_RtcWrite(uint32_t seconds)
+{
+    rtc_wait_ready();
+    RTC->CRL |= RTC_CRL_CNF;                          /* vào chế độ cấu hình */
+    RTC->CNTH = seconds >> 16;
+    RTC->CNTL = seconds & 0xFFFFU;
+    RTC->CRL &= ~RTC_CRL_CNF;
+    rtc_wait_ready();
+    BKP->DR1 = RTC_MAGIC;
 }
