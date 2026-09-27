@@ -18,7 +18,7 @@ typedef enum {
 } btn_id_t;
 
 typedef enum {
-    BTN_EVT_CLICK = 0,  /* vừa nhấn xuống (sau chống dội)       */
+    BTN_EVT_CLICK = 0,  /* UP/DOWN: khi nhấn; ENTER/EXIT: khi nhả (nhấn ngắn) */
     BTN_EVT_LONG,       /* giữ >= BTN_LONG_MS (phát 1 lần)       */
     BTN_EVT_REPEAT,     /* giữ lâu, phát lặp (chỉ UP/DOWN)       */
 } btn_evt_type_t;

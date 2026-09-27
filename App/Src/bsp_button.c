@@ -62,9 +62,15 @@ void Button_Scan(void)
             if (++b->cnt >= BTN_DEBOUNCE_TICKS) {
                 b->cnt = 0;
                 b->stable = raw;
+                if (s_hw[i].repeat) {
+                    /* UP/DOWN: CLICK ngay khi nhấn để phản hồi nhanh */
+                    if (raw) push_event((btn_id_t)i, BTN_EVT_CLICK);
+                } else if (!raw && !b->long_sent) {
+                    /* ENTER/EXIT: CLICK khi nhả (nếu chưa phát LONG) để phân biệt nhấn ngắn / giữ */
+                    push_event((btn_id_t)i, BTN_EVT_CLICK);
+                }
                 b->hold = 0;
                 b->long_sent = false;
-                if (raw) push_event((btn_id_t)i, BTN_EVT_CLICK);
             }
         } else {
             b->cnt = 0;
