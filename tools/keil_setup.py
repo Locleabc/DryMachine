@@ -12,6 +12,9 @@ Việc script làm:
      - IROM1 Size = 0xF800 (chừa 2 page Flash cuối cho lịch sử lỗi + thông số)
      - bật MicroLIB, ngôn ngữ C = gnu11 (nếu dùng Arm Compiler 6)
   2. Core/Src/main.c: chèn #include "app.h", App_Init(), App_Loop() vào vùng USER CODE
+  3. Core/Src/rtc.c: CubeMX luôn sinh HAL_RTC_SetTime(00:00) trong MX_RTC_Init → mỗi lần cấp điện
+     sẽ xoá giờ. Chèn vào vùng USER CODE Check_RTC_BKUP: nếu đã chỉnh giờ (BKP_DR1 = 0xA5A5,
+     khớp RTC_MAGIC trong board.c) thì return, giữ nguyên bộ đếm RTC.
 Trước khi sửa, bản gốc được lưu thành *.bak.
 """
 import os
@@ -23,6 +26,7 @@ import xml.etree.ElementTree as ET
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT = os.path.join(ROOT, "MDK-ARM", "DryMachine.uvprojx")
 MAIN_C = os.path.join(ROOT, "Core", "Src", "main.c")
+RTC_C = os.path.join(ROOT, "Core", "Src", "rtc.c")
 APP = os.path.join(ROOT, "App")
 IROM_SIZE = "0xF800"
 GROUP_PREFIX = "App/"
@@ -157,7 +161,31 @@ def patch_main():
         print("main.c: da co san, khong doi")
 
 
+RTC_GUARD = "  if (HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) == 0xA5A5U) return;   /* da chinh gio -> giu nguyen RTC */"
+
+
+def patch_rtc():
+    if not os.path.exists(RTC_C):
+        print("rtc.c: khong co (RTC chua bat trong CubeMX?)")
+        return
+    src = open(RTC_C, encoding="utf-8", errors="surrogateescape").read()
+    marker = "/* USER CODE BEGIN Check_RTC_BKUP */"
+    if marker not in src:
+        print("rtc.c: khong thay vung Check_RTC_BKUP, bo qua")
+        return
+    block = src[src.index(marker):src.index("/* USER CODE END Check_RTC_BKUP */")]
+    if "RTC_BKP_DR1" in block:
+        print("rtc.c: da co san, khong doi")
+        return
+    nl = "\r\n" if "\r\n" in src else "\n"
+    shutil.copyfile(RTC_C, RTC_C + ".bak")
+    src = src.replace(marker, marker + nl + RTC_GUARD, 1)
+    open(RTC_C, "w", encoding="utf-8", errors="surrogateescape", newline="").write(src)
+    print("rtc.c: da chan HAL_RTC_SetTime khi da chinh gio")
+
+
 if __name__ == "__main__":
     patch_project()
     patch_main()
+    patch_rtc()
     print("Xong. Mo MDK-ARM/DryMachine.uvprojx bang Keil va bam Build (F7).")
