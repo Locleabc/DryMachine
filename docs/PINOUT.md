@@ -1,5 +1,14 @@
 # Sơ đồ chân STM32F103C8T6
 
+Sơ đồ đấu dây trực quan (mở bằng trình duyệt): [wiring.html](wiring.html)
+
+## Nguồn
+
+220VAC → CB 10A + cầu chì → nguồn tổ ong 12V → buck 5V (≥ 2A) → chân 5V Blue Pill, JD-VCC relay,
+VCC TFT, nguồn cảm biến áp. 3.3V lấy từ LDO trên Blue Pill cho MAX31865, SHT45, VCC opto relay.
+
+## Gán chân
+
 | Chân | CubeMX mode | User Label | Nối tới |
 |------|-------------|------------|---------|
 | PA0  | ADC1_IN0 | PRESS_ADC | Cảm biến áp suất qua phân áp (xem dưới) |
@@ -17,9 +26,9 @@
 | PB1  | GPIO_Output | TFT_RST | TFT RESET |
 | PB10 | I2C2_SCL | – | SHT45 SCL (pull-up 4.7 kΩ lên 3.3 V) |
 | PB11 | I2C2_SDA | – | SHT45 SDA (pull-up 4.7 kΩ lên 3.3 V) |
-| PB5  | GPIO_Output | RLY_COMP | Relay máy nén |
-| PB6  | GPIO_Output | RLY_FAN_COND | Relay quạt dàn nóng |
-| PB7  | GPIO_Output | RLY_FAN_EVAP | Relay quạt dàn lạnh |
+| PB5  | GPIO_Output (High) | RLY_COMP | Relay IN1 – máy nén (qua contactor) |
+| PB6  | GPIO_Output (High) | RLY_FAN_COND | Relay IN2 – quạt dàn nóng |
+| PB7  | GPIO_Output (High) | RLY_FAN_EVAP | Relay IN3 – quạt dàn lạnh |
 | PB8  | GPIO_Input (Pull-up) | BTN_UP | Nút UP → GND |
 | PB9  | GPIO_Input (Pull-up) | BTN_DOWN | Nút DOWN → GND |
 | PB12 | GPIO_Output | MAX_CS | MAX31865 CS |
@@ -28,7 +37,7 @@
 | PB15 | SPI2_MOSI | – | MAX31865 SDI |
 | PC13 | GPIO_Output | LED_RUN | LED trên board (nhấp nháy = chương trình đang chạy) |
 
-Mức khởi động của các chân Output: **CS = High, RELAY = mức OFF**.
+Mức khởi động của các chân Output: **CS = High, RELAY (PB5–PB7) = High (relay kích mức thấp → nhả)**.
 
 Chân trống dự phòng: PA1, PA2, PA3 (USART2 nếu sau này cần RS485), PB3, PB4.
 
@@ -36,8 +45,9 @@ Chân trống dự phòng: PA1, PA2, PA3 (USART2 nếu sau này cần RS485), PB
 
 * **Áp suất 0.5–4.5 V**: ADC STM32 chỉ chịu 3.3 V. Dùng phân áp R1 = 10 kΩ (nối tín hiệu) –
   R2 = 20 kΩ (xuống GND) → hệ số 1.5 (`PRESS_DIVIDER_RATIO`). Thêm tụ 100 nF tại PA0.
-* **Relay**: Mặc định kích mức cao (`RELAY_ACTIVE_LEVEL` trong `app_config.h`). Module relay
-  opto kích mức thấp thì đổi thành `GPIO_PIN_RESET`. Máy nén nên đóng qua contactor.
+* **Relay**: module 5V opto kích mức THẤP. Tháo jumper VCC–JD-VCC: VCC (phía opto) nối 3.3V
+  Blue Pill, JD-VCC nối 5V buck. K1 chỉ đóng cuộn contactor, contactor mới cấp cho máy nén.
+  Đấu RC snubber / varistor song song cuộn contactor và quạt.
 * **MAX31865**: điện trở tham chiếu module thường là 430 Ω (PT100). Chọn 2/3/4 dây bằng
   `MAX31865_WIRES` và hàn jumper trên module tương ứng.
 * **Nút bấm**: nối chân → nút → GND, dùng pull-up nội. PA15 chỉ dùng được khi tắt JTAG

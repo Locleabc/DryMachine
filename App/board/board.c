@@ -7,11 +7,13 @@
 #include "main.h"
 
 /* ---------------- Relay ----------------
- * Module relay kích mức cao: GPIO_PIN_SET. Module opto kích mức thấp: GPIO_PIN_RESET */
+ * Module relay 5V opto, kích mức THẤP: VCC (opto) = 3.3V, JD-VCC = 5V buck, tháo jumper.
+ * CubeMX: đặt mức khởi động PB5/PB6/PB7 = High để relay nhả khi cấp điện.
+ * Nếu đổi sang module kích mức cao: sửa thành GPIO_PIN_SET và mức khởi động = Low. */
 const relay_hw_t board_relays[RLY_ID_COUNT] = {
-    [RLY_ID_COMP]     = { RLY_COMP_GPIO_Port,     RLY_COMP_Pin,     GPIO_PIN_SET },
-    [RLY_ID_FAN_COND] = { RLY_FAN_COND_GPIO_Port, RLY_FAN_COND_Pin, GPIO_PIN_SET },
-    [RLY_ID_FAN_EVAP] = { RLY_FAN_EVAP_GPIO_Port, RLY_FAN_EVAP_Pin, GPIO_PIN_SET },
+    [RLY_ID_COMP]     = { RLY_COMP_GPIO_Port,     RLY_COMP_Pin,     GPIO_PIN_RESET },
+    [RLY_ID_FAN_COND] = { RLY_FAN_COND_GPIO_Port, RLY_FAN_COND_Pin, GPIO_PIN_RESET },
+    [RLY_ID_FAN_EVAP] = { RLY_FAN_EVAP_GPIO_Port, RLY_FAN_EVAP_Pin, GPIO_PIN_RESET },
 };
 
 /* ---------------- Nút bấm (pull-up nội, nhấn = GND) ---------------- */

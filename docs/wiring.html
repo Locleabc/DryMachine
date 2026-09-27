@@ -1,0 +1,563 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0">
+<title>DryMachine Wiring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;700;800&family=Chivo+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#f3f5f3; --surface:#ffffff; --ink:#17211d; --muted:#5d6a64; --line:#d3dbd6;
+  --board:#1f4f8f; --board-ink:#dce6f5; --chip:#15191c; --usb:#9aa3a8;
+  --c-pwr:#c2362b; --c-gnd:#2b302e; --c-tft:#2360b5; --c-max:#0d8577; --c-i2c:#7646bf;
+  --c-adc:#c8680f; --c-rly:#2c8537; --c-btn:#a67c00; --c-dbg:#687280; --c-free:#aab3ae;
+  --warn-bg:#fff4e0; --warn-ink:#7a4a00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0e1312; --surface:#151c1a; --ink:#e3eae6; --muted:#98a69f; --line:#2a3531;
+    --board:#24558f; --board-ink:#d6e2f3; --chip:#0a0c0d; --usb:#6d767b;
+    --c-pwr:#f0685c; --c-gnd:#c9d1cd; --c-tft:#6fa3ee; --c-max:#3cc3b3; --c-i2c:#ad88f0;
+    --c-adc:#f0a04d; --c-rly:#5dc46b; --c-btn:#e1b83a; --c-dbg:#9aa3ad; --c-free:#55615b;
+    --warn-bg:#2d2310; --warn-ink:#f2c877;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0e1312; --surface:#151c1a; --ink:#e3eae6; --muted:#98a69f; --line:#2a3531;
+  --board:#24558f; --board-ink:#d6e2f3; --chip:#0a0c0d; --usb:#6d767b;
+  --c-pwr:#f0685c; --c-gnd:#c9d1cd; --c-tft:#6fa3ee; --c-max:#3cc3b3; --c-i2c:#ad88f0;
+  --c-adc:#f0a04d; --c-rly:#5dc46b; --c-btn:#e1b83a; --c-dbg:#9aa3ad; --c-free:#55615b;
+  --warn-bg:#2d2310; --warn-ink:#f2c877;
+}
+body{background:var(--bg);color:var(--ink);font-family:"Chivo",system-ui,sans-serif;font-size:15px;line-height:1.55}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:28px 64px;display:flex;flex-direction:column;gap:36px}
+header{display:flex;flex-direction:column;gap:10px}
+.eyebrow{font-family:"Chivo Mono",ui-monospace,monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:clamp(26px,4vw,38px);line-height:1.15;margin:0;font-weight:800;text-wrap:balance}
+h2{font-size:22px;margin:0;font-weight:700;text-wrap:balance}
+h3{font-size:16px;margin:0 0 10px;font-weight:700;display:flex;align-items:center;gap:8px}
+p{margin:0;max-width:68ch}
+.lead{color:var(--muted);font-size:16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:"Chivo Mono",monospace;font-size:12.5px;border:1px solid var(--line);background:var(--surface);padding:4px 10px;border-radius:999px}
+section.block{display:flex;flex-direction:column;gap:14px}
+figure{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.scroll{overflow-x:auto}
+svg.dia{display:block;width:100%;height:auto;min-width:720px;color:var(--ink)}
+figcaption{color:var(--muted);font-size:13.5px;max-width:80ch}
+.legend{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px}
+.legend li{display:flex;align-items:center;gap:6px}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;flex:none}
+.p-free-dot{border:2px solid var(--c-free)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,480px),1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;letter-spacing:.04em;text-transform:uppercase;padding:6px 10px 6px 0;border-bottom:1px solid var(--line)}
+td{padding:7px 10px 7px 0;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+.mono{font-family:"Chivo Mono",ui-monospace,monospace;font-size:13px;font-variant-numeric:tabular-nums}
+.strong{font-weight:600}
+table.pins td:first-child{white-space:nowrap}
+table.pins .dot{margin-right:8px;vertical-align:-1px}
+.two{display:grid;grid-template-columns:1fr;gap:16px}
+.two svg.dia{max-width:860px}
+.warn{background:var(--warn-bg);color:var(--warn-ink);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.warn strong{font-weight:700}
+ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;max-width:80ch}
+.muted{fill:var(--muted);color:var(--muted)}
+/* svg classes */
+.f-board{fill:var(--board)} .f-usb{fill:var(--usb)} .f-chip{fill:var(--chip)}
+.t-chip{fill:#e7ecef;font:600 12px "Chivo Mono",monospace}
+.t-boardlbl{fill:var(--board-ink);font:12px "Chivo",sans-serif;opacity:.85}
+.t-silk{fill:var(--board-ink);font:600 10.5px "Chivo Mono",monospace}
+.t-fn{font:600 12.5px "Chivo",sans-serif}
+.t-h{fill:var(--ink);font:700 14px "Chivo",sans-serif}
+.t-s{fill:var(--muted);font:12px "Chivo",sans-serif}
+.t-lbl{fill:var(--ink);font:600 12px "Chivo Mono",monospace}
+.bx{fill:var(--surface);stroke-width:1.6}
+.p-free{fill:var(--board);stroke:var(--c-free);stroke-width:2}
+.s-ink{stroke:var(--ink)} .f-ink{fill:var(--ink)} .s-line{stroke:var(--muted)}
+.f-pwr{fill:var(--c-pwr)} .s-pwr{stroke:var(--c-pwr)} .c-pwr{fill:var(--c-pwr);color:var(--c-pwr)} .f-bg-pwr{background:var(--c-pwr)}
+.f-gnd{fill:var(--c-gnd)} .s-gnd{stroke:var(--c-gnd)} .c-gnd{fill:var(--c-gnd);color:var(--c-gnd)} .f-bg-gnd{background:var(--c-gnd)}
+.f-tft{fill:var(--c-tft)} .s-tft{stroke:var(--c-tft)} .c-tft{fill:var(--c-tft);color:var(--c-tft)} .f-bg-tft{background:var(--c-tft)}
+.f-max{fill:var(--c-max)} .s-max{stroke:var(--c-max)} .c-max{fill:var(--c-max);color:var(--c-max)} .f-bg-max{background:var(--c-max)}
+.f-i2c{fill:var(--c-i2c)} .s-i2c{stroke:var(--c-i2c)} .c-i2c{fill:var(--c-i2c);color:var(--c-i2c)} .f-bg-i2c{background:var(--c-i2c)}
+.f-adc{fill:var(--c-adc)} .s-adc{stroke:var(--c-adc)} .c-adc{fill:var(--c-adc);color:var(--c-adc)} .f-bg-adc{background:var(--c-adc)}
+.f-rly{fill:var(--c-rly)} .s-rly{stroke:var(--c-rly)} .c-rly{fill:var(--c-rly);color:var(--c-rly)} .f-bg-rly{background:var(--c-rly)}
+.f-btn{fill:var(--c-btn)} .s-btn{stroke:var(--c-btn)} .c-btn{fill:var(--c-btn);color:var(--c-btn)} .f-bg-btn{background:var(--c-btn)}
+.f-dbg{fill:var(--c-dbg)} .s-dbg{stroke:var(--c-dbg)} .c-dbg{fill:var(--c-dbg);color:var(--c-dbg)} .f-bg-dbg{background:var(--c-dbg)}
+.f-free{fill:var(--c-free)} .s-free{stroke:var(--c-free)} .c-free{fill:var(--c-free);color:var(--c-free)} .f-bg-free{background:var(--c-free)}
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">DryMachine · bộ điều khiển máy sấy tách ẩm</div>
+  <h1>Sơ đồ đấu dây STM32F103C8T6</h1>
+  <p class="lead">Gán chân và cách nối từng module cho bản firmware hiện tại (Keil MDK, SHT45, relay 5V opto, nguồn tổ ong 12V). Tên User Label khớp với <span class="mono">board.c</span> trong repo.</p>
+  <div class="chips"><span class="chip">MCU 3.3V</span><span class="chip">12V → 5V → 3.3V</span><span class="chip">25 chân đã dùng · 5 dự phòng</span><span class="chip">Relay kích mức THẤP</span></div>
+</header>
+
+<section class="block">
+  <h2>Chân trên Blue Pill</h2>
+  <ul class="legend"><li><span class="dot f-bg-pwr"></span>Nguồn</li><li><span class="dot f-bg-gnd"></span>GND</li><li><span class="dot f-bg-tft"></span>TFT · SPI1</li><li><span class="dot f-bg-max"></span>MAX31865 · SPI2</li><li><span class="dot f-bg-i2c"></span>SHT45 · I2C2</li><li><span class="dot f-bg-adc"></span>Áp suất · ADC</li><li><span class="dot f-bg-rly"></span>Relay</li><li><span class="dot f-bg-btn"></span>Nút bấm</li><li><span class="dot f-bg-dbg"></span>Nạp / log</li><li><span class="dot p-free-dot"></span>Trống</li></ul>
+  <figure><div class="scroll"><svg class="dia" viewBox="0 0 1060 470" role="img" aria-label="Sơ đồ chân Blue Pill STM32F103C8T6 và chức năng từng chân trong máy sấy">
+<rect x="205" y="150" width="670" height="150" rx="8" class="f-board"/>
+<rect x="179" y="202" width="30" height="46" rx="4" class="f-usb"/>
+<text x="194" y="280" class="t-s" text-anchor="middle">USB</text>
+<rect x="470" y="192" width="86" height="66" rx="3" class="f-chip"/>
+<text x="513" y="222" class="t-chip" text-anchor="middle">STM32</text>
+<text x="513" y="238" class="t-chip" text-anchor="middle">F103C8T6</text>
+<text x="640" y="230" class="t-boardlbl">Blue Pill · nhìn mặt trên</text>
+<text x="300" y="230" class="t-boardlbl">BOOT0 = 0</text>
+<circle cx="250" cy="168" r="8" class="f-gnd"/>
+<text x="250" y="190" class="t-silk" text-anchor="middle">G</text>
+<line x1="250" y1="160" x2="250" y2="146" class="s-gnd" stroke-width="2"/>
+<text x="250" y="140" transform="rotate(-55 250 140)" class="t-fn c-gnd">GND</text>
+<circle cx="280" cy="168" r="8" class="f-gnd"/>
+<text x="280" y="190" class="t-silk" text-anchor="middle">G</text>
+<line x1="280" y1="160" x2="280" y2="146" class="s-gnd" stroke-width="2"/>
+<text x="280" y="140" transform="rotate(-55 280 140)" class="t-fn c-gnd">GND</text>
+<circle cx="310" cy="168" r="8" class="f-pwr"/>
+<text x="310" y="190" class="t-silk" text-anchor="middle">3.3</text>
+<line x1="310" y1="160" x2="310" y2="146" class="s-pwr" stroke-width="2"/>
+<text x="310" y="140" transform="rotate(-55 310 140)" class="t-fn c-pwr">3.3V → cảm biến</text>
+<circle cx="340" cy="168" r="8" class="p-free"/>
+<text x="340" y="190" class="t-silk" text-anchor="middle">R</text>
+<circle cx="370" cy="168" r="8" class="f-i2c"/>
+<text x="370" y="190" class="t-silk" text-anchor="middle">B11</text>
+<line x1="370" y1="160" x2="370" y2="146" class="s-i2c" stroke-width="2"/>
+<text x="370" y="140" transform="rotate(-55 370 140)" class="t-fn c-i2c">SHT45 SDA</text>
+<circle cx="400" cy="168" r="8" class="f-i2c"/>
+<text x="400" y="190" class="t-silk" text-anchor="middle">B10</text>
+<line x1="400" y1="160" x2="400" y2="146" class="s-i2c" stroke-width="2"/>
+<text x="400" y="140" transform="rotate(-55 400 140)" class="t-fn c-i2c">SHT45 SCL</text>
+<circle cx="430" cy="168" r="8" class="f-tft"/>
+<text x="430" y="190" class="t-silk" text-anchor="middle">B1</text>
+<line x1="430" y1="160" x2="430" y2="146" class="s-tft" stroke-width="2"/>
+<text x="430" y="140" transform="rotate(-55 430 140)" class="t-fn c-tft">TFT RESET</text>
+<circle cx="460" cy="168" r="8" class="f-tft"/>
+<text x="460" y="190" class="t-silk" text-anchor="middle">B0</text>
+<line x1="460" y1="160" x2="460" y2="146" class="s-tft" stroke-width="2"/>
+<text x="460" y="140" transform="rotate(-55 460 140)" class="t-fn c-tft">TFT DC</text>
+<circle cx="490" cy="168" r="8" class="f-tft"/>
+<text x="490" y="190" class="t-silk" text-anchor="middle">A7</text>
+<line x1="490" y1="160" x2="490" y2="146" class="s-tft" stroke-width="2"/>
+<text x="490" y="140" transform="rotate(-55 490 140)" class="t-fn c-tft">TFT SDI (MOSI)</text>
+<circle cx="520" cy="168" r="8" class="f-tft"/>
+<text x="520" y="190" class="t-silk" text-anchor="middle">A6</text>
+<line x1="520" y1="160" x2="520" y2="146" class="s-tft" stroke-width="2"/>
+<text x="520" y="140" transform="rotate(-55 520 140)" class="t-fn c-tft">TFT SDO (MISO)</text>
+<circle cx="550" cy="168" r="8" class="f-tft"/>
+<text x="550" y="190" class="t-silk" text-anchor="middle">A5</text>
+<line x1="550" y1="160" x2="550" y2="146" class="s-tft" stroke-width="2"/>
+<text x="550" y="140" transform="rotate(-55 550 140)" class="t-fn c-tft">TFT SCK</text>
+<circle cx="580" cy="168" r="8" class="f-tft"/>
+<text x="580" y="190" class="t-silk" text-anchor="middle">A4</text>
+<line x1="580" y1="160" x2="580" y2="146" class="s-tft" stroke-width="2"/>
+<text x="580" y="140" transform="rotate(-55 580 140)" class="t-fn c-tft">TFT CS</text>
+<circle cx="610" cy="168" r="8" class="p-free"/>
+<text x="610" y="190" class="t-silk" text-anchor="middle">A3</text>
+<line x1="610" y1="160" x2="610" y2="146" class="s-line" stroke-width="2"/>
+<text x="610" y="140" transform="rotate(-55 610 140)" class="t-fn muted">dự phòng</text>
+<circle cx="640" cy="168" r="8" class="p-free"/>
+<text x="640" y="190" class="t-silk" text-anchor="middle">A2</text>
+<line x1="640" y1="160" x2="640" y2="146" class="s-line" stroke-width="2"/>
+<text x="640" y="140" transform="rotate(-55 640 140)" class="t-fn muted">dự phòng</text>
+<circle cx="670" cy="168" r="8" class="p-free"/>
+<text x="670" y="190" class="t-silk" text-anchor="middle">A1</text>
+<line x1="670" y1="160" x2="670" y2="146" class="s-line" stroke-width="2"/>
+<text x="670" y="140" transform="rotate(-55 670 140)" class="t-fn muted">dự phòng</text>
+<circle cx="700" cy="168" r="8" class="f-adc"/>
+<text x="700" y="190" class="t-silk" text-anchor="middle">A0</text>
+<line x1="700" y1="160" x2="700" y2="146" class="s-adc" stroke-width="2"/>
+<text x="700" y="140" transform="rotate(-55 700 140)" class="t-fn c-adc">Áp suất (ADC)</text>
+<circle cx="730" cy="168" r="8" class="p-free"/>
+<text x="730" y="190" class="t-silk" text-anchor="middle">C15</text>
+<circle cx="760" cy="168" r="8" class="p-free"/>
+<text x="760" y="190" class="t-silk" text-anchor="middle">C14</text>
+<circle cx="790" cy="168" r="8" class="f-dbg"/>
+<text x="790" y="190" class="t-silk" text-anchor="middle">C13</text>
+<line x1="790" y1="160" x2="790" y2="146" class="s-dbg" stroke-width="2"/>
+<text x="790" y="140" transform="rotate(-55 790 140)" class="t-fn c-dbg">LED trên board</text>
+<circle cx="820" cy="168" r="8" class="p-free"/>
+<text x="820" y="190" class="t-silk" text-anchor="middle">VB</text>
+<circle cx="250" cy="282" r="8" class="f-max"/>
+<text x="250" y="268" class="t-silk" text-anchor="middle">B12</text>
+<line x1="250" y1="290" x2="250" y2="304" class="s-max" stroke-width="2"/>
+<text x="250" y="318" transform="rotate(55 250 318)" class="t-fn c-max">MAX31865 CS</text>
+<circle cx="280" cy="282" r="8" class="f-max"/>
+<text x="280" y="268" class="t-silk" text-anchor="middle">B13</text>
+<line x1="280" y1="290" x2="280" y2="304" class="s-max" stroke-width="2"/>
+<text x="280" y="318" transform="rotate(55 280 318)" class="t-fn c-max">MAX31865 CLK</text>
+<circle cx="310" cy="282" r="8" class="f-max"/>
+<text x="310" y="268" class="t-silk" text-anchor="middle">B14</text>
+<line x1="310" y1="290" x2="310" y2="304" class="s-max" stroke-width="2"/>
+<text x="310" y="318" transform="rotate(55 310 318)" class="t-fn c-max">MAX31865 SDO</text>
+<circle cx="340" cy="282" r="8" class="f-max"/>
+<text x="340" y="268" class="t-silk" text-anchor="middle">B15</text>
+<line x1="340" y1="290" x2="340" y2="304" class="s-max" stroke-width="2"/>
+<text x="340" y="318" transform="rotate(55 340 318)" class="t-fn c-max">MAX31865 SDI</text>
+<circle cx="370" cy="282" r="8" class="f-btn"/>
+<text x="370" y="268" class="t-silk" text-anchor="middle">A8</text>
+<line x1="370" y1="290" x2="370" y2="304" class="s-btn" stroke-width="2"/>
+<text x="370" y="318" transform="rotate(55 370 318)" class="t-fn c-btn">Nút ENTER</text>
+<circle cx="400" cy="282" r="8" class="f-dbg"/>
+<text x="400" y="268" class="t-silk" text-anchor="middle">A9</text>
+<line x1="400" y1="290" x2="400" y2="304" class="s-dbg" stroke-width="2"/>
+<text x="400" y="318" transform="rotate(55 400 318)" class="t-fn c-dbg">UART TX (log)</text>
+<circle cx="430" cy="282" r="8" class="f-dbg"/>
+<text x="430" y="268" class="t-silk" text-anchor="middle">A10</text>
+<line x1="430" y1="290" x2="430" y2="304" class="s-dbg" stroke-width="2"/>
+<text x="430" y="318" transform="rotate(55 430 318)" class="t-fn c-dbg">UART RX</text>
+<circle cx="460" cy="282" r="8" class="p-free"/>
+<text x="460" y="268" class="t-silk" text-anchor="middle">A11</text>
+<circle cx="490" cy="282" r="8" class="p-free"/>
+<text x="490" y="268" class="t-silk" text-anchor="middle">A12</text>
+<circle cx="520" cy="282" r="8" class="f-btn"/>
+<text x="520" y="268" class="t-silk" text-anchor="middle">A15</text>
+<line x1="520" y1="290" x2="520" y2="304" class="s-btn" stroke-width="2"/>
+<text x="520" y="318" transform="rotate(55 520 318)" class="t-fn c-btn">Nút EXIT</text>
+<circle cx="550" cy="282" r="8" class="p-free"/>
+<text x="550" y="268" class="t-silk" text-anchor="middle">B3</text>
+<line x1="550" y1="290" x2="550" y2="304" class="s-line" stroke-width="2"/>
+<text x="550" y="318" transform="rotate(55 550 318)" class="t-fn muted">dự phòng</text>
+<circle cx="580" cy="282" r="8" class="p-free"/>
+<text x="580" y="268" class="t-silk" text-anchor="middle">B4</text>
+<line x1="580" y1="290" x2="580" y2="304" class="s-line" stroke-width="2"/>
+<text x="580" y="318" transform="rotate(55 580 318)" class="t-fn muted">dự phòng</text>
+<circle cx="610" cy="282" r="8" class="f-rly"/>
+<text x="610" y="268" class="t-silk" text-anchor="middle">B5</text>
+<line x1="610" y1="290" x2="610" y2="304" class="s-rly" stroke-width="2"/>
+<text x="610" y="318" transform="rotate(55 610 318)" class="t-fn c-rly">Relay MÁY NÉN</text>
+<circle cx="640" cy="282" r="8" class="f-rly"/>
+<text x="640" y="268" class="t-silk" text-anchor="middle">B6</text>
+<line x1="640" y1="290" x2="640" y2="304" class="s-rly" stroke-width="2"/>
+<text x="640" y="318" transform="rotate(55 640 318)" class="t-fn c-rly">Relay QUẠT NÓNG</text>
+<circle cx="670" cy="282" r="8" class="f-rly"/>
+<text x="670" y="268" class="t-silk" text-anchor="middle">B7</text>
+<line x1="670" y1="290" x2="670" y2="304" class="s-rly" stroke-width="2"/>
+<text x="670" y="318" transform="rotate(55 670 318)" class="t-fn c-rly">Relay QUẠT LẠNH</text>
+<circle cx="700" cy="282" r="8" class="f-btn"/>
+<text x="700" y="268" class="t-silk" text-anchor="middle">B8</text>
+<line x1="700" y1="290" x2="700" y2="304" class="s-btn" stroke-width="2"/>
+<text x="700" y="318" transform="rotate(55 700 318)" class="t-fn c-btn">Nút UP</text>
+<circle cx="730" cy="282" r="8" class="f-btn"/>
+<text x="730" y="268" class="t-silk" text-anchor="middle">B9</text>
+<line x1="730" y1="290" x2="730" y2="304" class="s-btn" stroke-width="2"/>
+<text x="730" y="318" transform="rotate(55 730 318)" class="t-fn c-btn">Nút DOWN</text>
+<circle cx="760" cy="282" r="8" class="f-pwr"/>
+<text x="760" y="268" class="t-silk" text-anchor="middle">5V</text>
+<line x1="760" y1="290" x2="760" y2="304" class="s-pwr" stroke-width="2"/>
+<text x="760" y="318" transform="rotate(55 760 318)" class="t-fn c-pwr">5V vào (từ buck)</text>
+<circle cx="790" cy="282" r="8" class="f-gnd"/>
+<text x="790" y="268" class="t-silk" text-anchor="middle">G</text>
+<line x1="790" y1="290" x2="790" y2="304" class="s-gnd" stroke-width="2"/>
+<text x="790" y="318" transform="rotate(55 790 318)" class="t-fn c-gnd">GND</text>
+<circle cx="820" cy="282" r="8" class="p-free"/>
+<text x="820" y="268" class="t-silk" text-anchor="middle">3.3</text>
+<circle cx="853" cy="195" r="7" class="f-pwr"/>
+<text x="839" y="199" class="t-silk" text-anchor="end">3.3</text>
+<text x="889" y="199" class="t-fn c-pwr">3.3V</text>
+<circle cx="853" cy="217" r="7" class="f-dbg"/>
+<text x="839" y="221" class="t-silk" text-anchor="end">IO</text>
+<text x="889" y="221" class="t-fn c-dbg">SWDIO · PA13</text>
+<circle cx="853" cy="239" r="7" class="f-dbg"/>
+<text x="839" y="243" class="t-silk" text-anchor="end">CLK</text>
+<text x="889" y="243" class="t-fn c-dbg">SWCLK · PA14</text>
+<circle cx="853" cy="261" r="7" class="f-gnd"/>
+<text x="839" y="265" class="t-silk" text-anchor="end">G</text>
+<text x="889" y="265" class="t-fn c-gnd">GND</text>
+<text x="889" y="180" class="t-s">Header SWD → ST-Link</text>
+</svg></div>
+  <figcaption>Nhìn mặt linh kiện, cổng USB bên trái. Thứ tự in trên các bản clone có thể khác, hãy đối chiếu chữ in trên board trước khi hàn. Chân viền xám là chân trống; PA11/PA12 để trống vì dính USB, PA12 có sẵn điện trở kéo lên 1.5kΩ.</figcaption></figure>
+</section>
+
+<section class="block">
+  <h2>Sơ đồ khối hệ thống</h2>
+  <figure><div class="scroll"><svg class="dia" viewBox="0 0 1000 620" role="img" aria-label="Sơ đồ khối: nguồn 220V qua nguồn 12V và buck 5V cấp cho Blue Pill; Blue Pill nối TFT, MAX31865, SHT45, cảm biến áp, nút bấm, relay điều khiển máy nén và quạt">
+<defs><marker id="ah-pwr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-pwr"/></marker><marker id="as-pwr" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-pwr"/></marker><marker id="ah-gnd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-gnd"/></marker><marker id="as-gnd" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-gnd"/></marker><marker id="ah-tft" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-tft"/></marker><marker id="as-tft" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-tft"/></marker><marker id="ah-max" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-max"/></marker><marker id="as-max" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-max"/></marker><marker id="ah-i2c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-i2c"/></marker><marker id="as-i2c" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-i2c"/></marker><marker id="ah-adc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-adc"/></marker><marker id="as-adc" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-adc"/></marker><marker id="ah-rly" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-rly"/></marker><marker id="as-rly" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-rly"/></marker><marker id="ah-btn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-btn"/></marker><marker id="as-btn" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-btn"/></marker><marker id="ah-dbg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-dbg"/></marker><marker id="as-dbg" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-dbg"/></marker></defs>
+<rect x="20" y="30" width="200" height="58" rx="6" class="bx s-pwr"/>
+<rect x="20" y="30" width="6" height="58" rx="2" class="f-pwr"/>
+<text x="36" y="53" class="t-h">Lưới 220VAC</text>
+<text x="36" y="72" class="t-s">CB 10A + cầu chì</text>
+<rect x="20" y="130" width="200" height="58" rx="6" class="bx s-pwr"/>
+<rect x="20" y="130" width="6" height="58" rx="2" class="f-pwr"/>
+<text x="36" y="153" class="t-h">Nguồn tổ ong 12V</text>
+<text x="36" y="172" class="t-s">≥ 2A</text>
+<rect x="20" y="230" width="200" height="58" rx="6" class="bx s-pwr"/>
+<rect x="20" y="230" width="6" height="58" rx="2" class="f-pwr"/>
+<text x="36" y="253" class="t-h">Buck 12V → 5V</text>
+<text x="36" y="272" class="t-s">LM2596 / MP1584, ≥ 2A</text>
+<rect x="20" y="336" width="200" height="58" rx="6" class="bx s-btn"/>
+<rect x="20" y="336" width="6" height="58" rx="2" class="f-btn"/>
+<text x="36" y="359" class="t-h">4 nút bấm</text>
+<text x="36" y="378" class="t-s">UP · DOWN · ENTER · EXIT</text>
+<rect x="20" y="440" width="200" height="58" rx="6" class="bx s-dbg"/>
+<rect x="20" y="440" width="6" height="58" rx="2" class="f-dbg"/>
+<text x="36" y="463" class="t-h">ST-Link + USB-UART</text>
+<text x="36" y="482" class="t-s">nạp code · log 115200</text>
+<rect x="400" y="30" width="200" height="470" rx="6" class="bx s-tft"/>
+<rect x="400" y="30" width="6" height="470" rx="2" class="f-tft"/>
+<text x="416" y="53" class="t-h">STM32F103C8T6</text>
+<text x="416" y="72" class="t-s">Blue Pill</text>
+<text x="416" y="92" class="t-s"></text>
+<text x="416" y="110" class="t-s">5V vào chân 5V</text>
+<text x="416" y="128" class="t-s">LDO onboard → 3.3V</text>
+<text x="416" y="146" class="t-s">3.3V ra: MAX31865,</text>
+<text x="416" y="164" class="t-s">SHT45, VCC opto relay</text>
+<text x="416" y="182" class="t-s"></text>
+<text x="416" y="200" class="t-s">BOOT0 = 0</text>
+<text x="416" y="218" class="t-s">SWD: PA13 / PA14</text>
+<rect x="780" y="30" width="200" height="58" rx="6" class="bx s-tft"/>
+<rect x="780" y="30" width="6" height="58" rx="2" class="f-tft"/>
+<text x="796" y="53" class="t-h">TFT 3.2&quot; ILI9341</text>
+<text x="796" y="72" class="t-s">SPI1 · VCC 5V</text>
+<rect x="780" y="130" width="200" height="58" rx="6" class="bx s-max"/>
+<rect x="780" y="130" width="6" height="58" rx="2" class="f-max"/>
+<text x="796" y="153" class="t-h">MAX31865</text>
+<text x="796" y="172" class="t-s">SPI2 · PT100 3 dây</text>
+<rect x="780" y="230" width="200" height="58" rx="6" class="bx s-i2c"/>
+<rect x="780" y="230" width="6" height="58" rx="2" class="f-i2c"/>
+<text x="796" y="253" class="t-h">SHT45</text>
+<text x="796" y="272" class="t-s">I2C2 · 3.3V</text>
+<rect x="780" y="330" width="200" height="58" rx="6" class="bx s-adc"/>
+<rect x="780" y="330" width="6" height="58" rx="2" class="f-adc"/>
+<text x="796" y="353" class="t-h">Cảm biến áp suất</text>
+<text x="796" y="372" class="t-s">nguồn 5V · 0.5–4.5V</text>
+<rect x="400" y="530" width="200" height="76" rx="6" class="bx s-rly"/>
+<rect x="400" y="530" width="6" height="76" rx="2" class="f-rly"/>
+<text x="416" y="553" class="t-h">Relay 3 kênh 5V opto</text>
+<text x="416" y="572" class="t-s">kích mức THẤP</text>
+<text x="416" y="592" class="t-s">JD-VCC ← 5V buck</text>
+<rect x="780" y="450" width="200" height="156" rx="6" class="bx s-rly"/>
+<rect x="780" y="450" width="6" height="156" rx="2" class="f-rly"/>
+<text x="796" y="473" class="t-h">Tải 220V</text>
+<text x="796" y="492" class="t-s">qua tiếp điểm NO</text>
+<text x="796" y="512" class="t-s">K1 → cuộn contactor</text>
+<text x="796" y="530" class="t-s">     → MÁY NÉN</text>
+<text x="796" y="548" class="t-s">K2 → Quạt dàn nóng</text>
+<text x="796" y="566" class="t-s">K3 → Quạt dàn lạnh</text>
+<polyline points="120,88 120,128" fill="none" class="s-pwr" stroke-width="2.2" marker-end="url(#ah-pwr)"/><text x="130" y="112" class="t-lbl c-pwr" text-anchor="start">220V</text>
+<polyline points="120,188 120,228" fill="none" class="s-pwr" stroke-width="2.2" marker-end="url(#ah-pwr)"/><text x="130" y="212" class="t-lbl c-pwr" text-anchor="start">12V</text>
+<polyline points="220,259 398,259" fill="none" class="s-pwr" stroke-width="2.2" marker-end="url(#ah-pwr)"/><text x="309" y="251" class="t-lbl c-pwr" text-anchor="middle">5V → chân 5V</text>
+<polyline points="398,365 222,365" fill="none" class="s-btn" stroke-width="2.2" marker-end="url(#ah-btn)"/><text x="309" y="357" class="t-lbl c-btn" text-anchor="middle">PA8 · PA15 · PB8 · PB9</text>
+<polyline points="222,469 398,469" fill="none" class="s-dbg" stroke-width="2.2" marker-end="url(#ah-dbg)" marker-start="url(#as-dbg)"/><text x="309" y="461" class="t-lbl c-dbg" text-anchor="middle">SWD · PA9/PA10</text>
+<polyline points="602,59 778,59" fill="none" class="s-tft" stroke-width="2.2" marker-end="url(#ah-tft)"/><text x="690" y="51" class="t-lbl c-tft" text-anchor="middle">PA4–PA7 · PB0 · PB1</text>
+<polyline points="602,159 778,159" fill="none" class="s-max" stroke-width="2.2" marker-end="url(#ah-max)" marker-start="url(#as-max)"/><text x="690" y="151" class="t-lbl c-max" text-anchor="middle">PB12–PB15</text>
+<polyline points="602,259 778,259" fill="none" class="s-i2c" stroke-width="2.2" marker-end="url(#ah-i2c)" marker-start="url(#as-i2c)"/><text x="690" y="251" class="t-lbl c-i2c" text-anchor="middle">PB10 SCL · PB11 SDA</text>
+<polyline points="778,359 602,359" fill="none" class="s-adc" stroke-width="2.2" marker-end="url(#ah-adc)"/><text x="690" y="351" class="t-lbl c-adc" text-anchor="middle">PA0 (qua phân áp)</text>
+<polyline points="500,500 500,528" fill="none" class="s-rly" stroke-width="2.2" marker-end="url(#ah-rly)"/><text x="510" y="519" class="t-lbl c-rly" text-anchor="start">PB5 · PB6 · PB7</text>
+<polyline points="600,568 778,568" fill="none" class="s-rly" stroke-width="2.2" marker-end="url(#ah-rly)"/><text x="690" y="560" class="t-lbl c-rly" text-anchor="middle">K1 · K2 · K3</text>
+</svg></div>
+  <figcaption>Nguồn đi từ trái sang, tín hiệu cảm biến vào bên phải, lệnh relay đi xuống dưới. Ray 5V từ buck cấp cho chân 5V Blue Pill, JD-VCC module relay, VCC màn hình TFT và cảm biến áp; ray 3.3V lấy từ LDO trên Blue Pill.</figcaption></figure>
+</section>
+
+<section class="block">
+  <h2>Hai chỗ dễ đấu sai</h2>
+  <div class="two">
+    <figure><div class="scroll"><svg class="dia" viewBox="0 0 600 250" role="img" aria-label="Mạch phân áp: tín hiệu cảm biến qua R1 10k tới PA0, R2 20k và tụ 100nF xuống GND">
+<rect x="20" y="50" width="130" height="120" rx="6" class="bx s-adc"/>
+<text x="85" y="40" class="t-h" text-anchor="middle">Cảm biến áp</text>
+<text x="138" y="84" class="t-s" text-anchor="end">5V</text>
+<text x="138" y="114" class="t-s" text-anchor="end">OUT</text>
+<text x="138" y="144" class="t-s" text-anchor="end">GND</text>
+<line x1="150" y1="80" x2="200" y2="80" class="s-pwr" stroke-width="2"/><text x="205" y="84" class="t-lbl c-pwr">5V từ buck</text>
+<line x1="150" y1="110" x2="200" y2="110" class="s-ink" stroke-width="2"/>
+<rect x="200" y="101" width="60" height="18" class="bx s-ink"/><text x="230" y="138" class="t-s" text-anchor="middle">R1 10kΩ</text>
+<line x1="260" y1="110" x2="520" y2="110" class="s-adc" stroke-width="2"/>
+<circle cx="320" cy="110" r="4" class="f-ink"/><circle cx="420" cy="110" r="4" class="f-ink"/>
+<text x="525" y="114" class="t-h c-adc">PA0</text>
+<line x1="320" y1="110" x2="320" y2="135" class="s-ink" stroke-width="2"/>
+<rect x="311" y="135" width="18" height="50" class="bx s-ink"/><text x="300" y="165" class="t-s" text-anchor="end">R2 20kΩ</text>
+<line x1="320" y1="185" x2="320" y2="205" class="s-ink" stroke-width="2"/><line x1="308" y1="205" x2="332" y2="205" class="s-ink" stroke-width="2"/><line x1="313" y1="210" x2="327" y2="210" class="s-ink" stroke-width="2"/><line x1="317" y1="215" x2="323" y2="215" class="s-ink" stroke-width="2"/>
+<line x1="420" y1="110" x2="420" y2="152" class="s-ink" stroke-width="2"/>
+<line x1="405" y1="152" x2="435" y2="152" class="s-ink" stroke-width="3"/><line x1="405" y1="160" x2="435" y2="160" class="s-ink" stroke-width="3"/>
+<line x1="420" y1="160" x2="420" y2="205" class="s-ink" stroke-width="2"/><line x1="408" y1="205" x2="432" y2="205" class="s-ink" stroke-width="2"/><line x1="413" y1="210" x2="427" y2="210" class="s-ink" stroke-width="2"/><line x1="417" y1="215" x2="423" y2="215" class="s-ink" stroke-width="2"/>
+<text x="445" y="160" class="t-s">100nF</text>
+<line x1="150" y1="140" x2="180" y2="140" class="s-ink" stroke-width="2"/><line x1="180" y1="140" x2="180" y2="205" class="s-ink" stroke-width="2"/><line x1="168" y1="205" x2="192" y2="205" class="s-ink" stroke-width="2"/><line x1="173" y1="210" x2="187" y2="210" class="s-ink" stroke-width="2"/><line x1="177" y1="215" x2="183" y2="215" class="s-ink" stroke-width="2"/>
+<text x="300" y="60" class="t-s">V(PA0) = V(OUT) × 20 / (10 + 20)</text>
+<text x="300" y="78" class="t-s">4.5V → 3.0V · 0.5V → 0.33V</text>
+</svg></div>
+    <figcaption>Cảm biến ra tối đa 4.5V nhưng chân ADC chỉ chịu 3.3V. Phân áp 10k/20k đưa 4.5V về 3.0V. Firmware đã tính hệ số 1.5 (<span class="mono">board_press.divider</span>).</figcaption></figure>
+    <figure><div class="scroll"><svg class="dia" viewBox="0 0 960 330" role="img" aria-label="Đấu module relay: VCC 3.3V, IN1-3 tới PB5-PB7, JD-VCC 5V; phía 220V: K1 đóng cuộn contactor cấp máy nén, K2 quạt dàn nóng, K3 quạt dàn lạnh">
+<text x="20" y="40" class="t-h">Blue Pill</text>
+<rect x="170" y="50" width="200" height="200" rx="6" class="bx s-rly"/>
+<text x="270" y="40" class="t-h" text-anchor="middle">Module relay 3 kênh</text>
+<text x="20" y="79" class="t-lbl c-pwr">3.3V</text>
+<line x1="70" y1="75" x2="170" y2="75" class="s-pwr" stroke-width="2"/>
+<text x="180" y="79" class="t-s">VCC</text>
+<text x="20" y="109" class="t-lbl c-rly">PB5</text>
+<line x1="70" y1="105" x2="170" y2="105" class="s-rly" stroke-width="2"/>
+<text x="180" y="109" class="t-s">IN1</text>
+<text x="20" y="139" class="t-lbl c-rly">PB6</text>
+<line x1="70" y1="135" x2="170" y2="135" class="s-rly" stroke-width="2"/>
+<text x="180" y="139" class="t-s">IN2</text>
+<text x="20" y="169" class="t-lbl c-rly">PB7</text>
+<line x1="70" y1="165" x2="170" y2="165" class="s-rly" stroke-width="2"/>
+<text x="180" y="169" class="t-s">IN3</text>
+<text x="20" y="199" class="t-lbl c-gnd">GND</text>
+<line x1="70" y1="195" x2="170" y2="195" class="s-gnd" stroke-width="2"/>
+<text x="180" y="199" class="t-s">GND</text>
+<rect x="290" y="95" width="60" height="20" rx="3" class="bx s-line"/><text x="320" y="109" class="t-s" text-anchor="middle">K1</text>
+<rect x="290" y="125" width="60" height="20" rx="3" class="bx s-line"/><text x="320" y="139" class="t-s" text-anchor="middle">K2</text>
+<rect x="290" y="155" width="60" height="20" rx="3" class="bx s-line"/><text x="320" y="169" class="t-s" text-anchor="middle">K3</text>
+<text x="195" y="238" class="t-s">JD-VCC</text><text x="300" y="238" class="t-s">GND</text>
+<line x1="220" y1="250" x2="220" y2="285" class="s-pwr" stroke-width="2"/><text x="220" y="300" class="t-lbl c-pwr" text-anchor="middle">5V buck</text>
+<line x1="315" y1="250" x2="315" y2="285" class="s-gnd" stroke-width="2"/><text x="315" y="300" class="t-lbl c-gnd" text-anchor="middle">GND buck</text>
+<text x="270" y="322" class="t-s muted" text-anchor="middle">Tháo jumper VCC–JD-VCC</text>
+<line x1="470" y1="50" x2="470" y2="300" class="s-pwr" stroke-width="3"/><text x="470" y="40" class="t-h c-pwr" text-anchor="middle">L</text>
+<line x1="930" y1="50" x2="930" y2="300" class="s-ink" stroke-width="3"/><text x="930" y="40" class="t-h" text-anchor="middle">N</text>
+<line x1="470" y1="90" x2="560" y2="90" class="s-ink" stroke-width="2"/>
+<line x1="560" y1="78" x2="560" y2="102" class="s-ink" stroke-width="3"/><line x1="576" y1="78" x2="576" y2="102" class="s-ink" stroke-width="3"/>
+<text x="568" y="72" class="t-lbl" text-anchor="middle">K1</text>
+<line x1="576" y1="90" x2="700" y2="90" class="s-ink" stroke-width="2"/>
+<circle cx="716" cy="90" r="16" class="bx s-rly"/>
+<text x="716" y="95" class="t-lbl" text-anchor="middle">KM</text>
+<line x1="732" y1="90" x2="930" y2="90" class="s-ink" stroke-width="2"/>
+<text x="750" y="82" class="t-s">Cuộn contactor KM</text>
+<circle cx="470" cy="90" r="3.5" class="f-pwr"/><circle cx="930" cy="90" r="3.5" class="f-ink"/>
+<line x1="470" y1="150" x2="560" y2="150" class="s-ink" stroke-width="2"/>
+<line x1="560" y1="138" x2="560" y2="162" class="s-ink" stroke-width="3"/><line x1="576" y1="138" x2="576" y2="162" class="s-ink" stroke-width="3"/>
+<text x="568" y="132" class="t-lbl" text-anchor="middle">K2</text>
+<line x1="576" y1="150" x2="700" y2="150" class="s-ink" stroke-width="2"/>
+<circle cx="716" cy="150" r="16" class="bx s-ink"/>
+<text x="716" y="155" class="t-lbl" text-anchor="middle">M</text>
+<line x1="732" y1="150" x2="930" y2="150" class="s-ink" stroke-width="2"/>
+<text x="750" y="142" class="t-s">Quạt dàn nóng</text>
+<circle cx="470" cy="150" r="3.5" class="f-pwr"/><circle cx="930" cy="150" r="3.5" class="f-ink"/>
+<line x1="470" y1="210" x2="560" y2="210" class="s-ink" stroke-width="2"/>
+<line x1="560" y1="198" x2="560" y2="222" class="s-ink" stroke-width="3"/><line x1="576" y1="198" x2="576" y2="222" class="s-ink" stroke-width="3"/>
+<text x="568" y="192" class="t-lbl" text-anchor="middle">K3</text>
+<line x1="576" y1="210" x2="700" y2="210" class="s-ink" stroke-width="2"/>
+<circle cx="716" cy="210" r="16" class="bx s-ink"/>
+<text x="716" y="215" class="t-lbl" text-anchor="middle">M</text>
+<line x1="732" y1="210" x2="930" y2="210" class="s-ink" stroke-width="2"/>
+<text x="750" y="202" class="t-s">Quạt dàn lạnh</text>
+<circle cx="470" cy="210" r="3.5" class="f-pwr"/><circle cx="930" cy="210" r="3.5" class="f-ink"/>
+<line x1="470" y1="270" x2="560" y2="270" class="s-ink" stroke-width="2"/>
+<line x1="560" y1="258" x2="560" y2="282" class="s-ink" stroke-width="3"/><line x1="576" y1="258" x2="576" y2="282" class="s-ink" stroke-width="3"/>
+<text x="568" y="252" class="t-lbl" text-anchor="middle">KM</text>
+<line x1="576" y1="270" x2="700" y2="270" class="s-ink" stroke-width="2"/>
+<circle cx="716" cy="270" r="16" class="bx s-ink"/>
+<text x="716" y="275" class="t-lbl" text-anchor="middle">M</text>
+<line x1="732" y1="270" x2="930" y2="270" class="s-ink" stroke-width="2"/>
+<text x="750" y="262" class="t-s">Máy nén (OLR + tụ gốc)</text>
+<circle cx="470" cy="270" r="3.5" class="f-pwr"/><circle cx="930" cy="270" r="3.5" class="f-ink"/>
+<line x1="716" y1="106" x2="716" y2="254" class="s-rly" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="700" y="245" class="t-s c-rly" text-anchor="end">KM hút</text>
+</svg></div>
+    <figcaption>Tháo jumper VCC–JD-VCC để cách ly: phía opto nuôi 3.3V từ Blue Pill, cuộn relay nuôi 5V từ buck. Máy nén không đi thẳng qua relay module: K1 chỉ đóng cuộn contactor KM, tiếp điểm chính của KM mới cấp cho máy nén (giữ nguyên rơ-le nhiệt OLR và tụ đề của điều hoà).</figcaption></figure>
+  </div>
+</section>
+
+<section class="block">
+  <h2>Bảng nối dây từng module</h2>
+  <div class="grid"><section class="card"><h3><span class="dot f-bg-pwr"></span>Nguồn</h3><div class="tw"><table><thead><tr><th>Chân module</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
+<tr><td class="mono">Nguồn tổ ong V+ 12V</td><td class="mono strong">Buck IN+</td><td>CB 10A + cầu chì 1A phía 220V</td></tr>
+<tr><td class="mono">Buck OUT+ 5V</td><td class="mono strong">Blue Pill 5V · relay JD-VCC · TFT VCC · cảm biến áp 5V</td><td>Chỉnh buck đúng 5.0V trước khi nối</td></tr>
+<tr><td class="mono">Buck OUT− / 12V V−</td><td class="mono strong">GND chung toàn mạch</td><td>Nối sao về một điểm</td></tr>
+<tr><td class="mono">Blue Pill 3.3</td><td class="mono strong">MAX31865 VIN · SHT45 VDD · relay VCC (opto)</td><td>LDO onboard ~300 mA, đủ cho tải này</td></tr>
+</tbody></table></div></section>
+<section class="card"><h3><span class="dot f-bg-tft"></span>TFT 3.2&quot; ILI9341 (SPI1)</h3><div class="tw"><table><thead><tr><th>Chân module</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
+<tr><td class="mono">VCC</td><td class="mono strong">5V</td><td>Module có LDO 3.3V riêng</td></tr>
+<tr><td class="mono">GND</td><td class="mono strong">GND</td><td></td></tr>
+<tr><td class="mono">CS</td><td class="mono strong">PA4</td><td></td></tr>
+<tr><td class="mono">RESET</td><td class="mono strong">PB1</td><td></td></tr>
+<tr><td class="mono">DC/RS</td><td class="mono strong">PB0</td><td></td></tr>
+<tr><td class="mono">SDI (MOSI)</td><td class="mono strong">PA7</td><td></td></tr>
+<tr><td class="mono">SCK</td><td class="mono strong">PA5</td><td></td></tr>
+<tr><td class="mono">SDO (MISO)</td><td class="mono strong">PA6</td><td>Không bắt buộc</td></tr>
+<tr><td class="mono">LED</td><td class="mono strong">3.3V</td><td>Đèn nền sáng liên tục</td></tr>
+<tr><td class="mono">T_CLK … T_IRQ</td><td class="mono strong">để trống</td><td>Cảm ứng chưa dùng</td></tr>
+</tbody></table></div></section>
+<section class="card"><h3><span class="dot f-bg-max"></span>MAX31865 + PT100 (SPI2)</h3><div class="tw"><table><thead><tr><th>Chân module</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
+<tr><td class="mono">VIN</td><td class="mono strong">3.3V</td><td></td></tr>
+<tr><td class="mono">GND</td><td class="mono strong">GND</td><td></td></tr>
+<tr><td class="mono">CS</td><td class="mono strong">PB12</td><td></td></tr>
+<tr><td class="mono">CLK</td><td class="mono strong">PB13</td><td></td></tr>
+<tr><td class="mono">SDO</td><td class="mono strong">PB14</td><td></td></tr>
+<tr><td class="mono">SDI</td><td class="mono strong">PB15</td><td></td></tr>
+<tr><td class="mono">RTD+ / RTD− / F−</td><td class="mono strong">PT100 3 dây</td><td>Hàn jumper 2/3 WIRE + 3 WIRE trên module</td></tr>
+</tbody></table></div></section>
+<section class="card"><h3><span class="dot f-bg-i2c"></span>SHT45 (I2C2)</h3><div class="tw"><table><thead><tr><th>Chân module</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
+<tr><td class="mono">VDD</td><td class="mono strong">3.3V</td><td>Tụ 100nF sát cảm biến</td></tr>
+<tr><td class="mono">GND</td><td class="mono strong">GND</td><td></td></tr>
+<tr><td class="mono">SCL</td><td class="mono strong">PB10</td><td>Pull-up 4.7kΩ lên 3.3V nếu module chưa có</td></tr>
+<tr><td class="mono">SDA</td><td class="mono strong">PB11</td><td>Pull-up 4.7kΩ lên 3.3V; dây ≤ 1 m, cáp xoắn</td></tr>
+</tbody></table></div></section>
+<section class="card"><h3><span class="dot f-bg-adc"></span>Cảm biến áp suất 0.5–4.5V</h3><div class="tw"><table><thead><tr><th>Chân module</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
+<tr><td class="mono">Đỏ (V+)</td><td class="mono strong">5V</td><td></td></tr>
+<tr><td class="mono">Đen (GND)</td><td class="mono strong">GND</td><td></td></tr>
+<tr><td class="mono">Tín hiệu</td><td class="mono strong">R1 10kΩ → PA0</td><td>R2 20kΩ + tụ 100nF từ PA0 xuống GND</td></tr>
+</tbody></table></div></section>
+<section class="card"><h3><span class="dot f-bg-rly"></span>Module relay 3 kênh 5V opto</h3><div class="tw"><table><thead><tr><th>Chân module</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
+<tr><td class="mono">VCC</td><td class="mono strong">3.3V</td><td>Nuôi opto bằng 3.3V để tắt dứt khoát</td></tr>
+<tr><td class="mono">GND</td><td class="mono strong">GND</td><td></td></tr>
+<tr><td class="mono">IN1</td><td class="mono strong">PB5</td><td>Máy nén (qua contactor)</td></tr>
+<tr><td class="mono">IN2</td><td class="mono strong">PB6</td><td>Quạt dàn nóng</td></tr>
+<tr><td class="mono">IN3</td><td class="mono strong">PB7</td><td>Quạt dàn lạnh</td></tr>
+<tr><td class="mono">JD-VCC</td><td class="mono strong">5V buck</td><td>Tháo jumper VCC–JD-VCC</td></tr>
+<tr><td class="mono">GND (cạnh JD-VCC)</td><td class="mono strong">GND buck</td><td></td></tr>
+</tbody></table></div></section>
+<section class="card"><h3><span class="dot f-bg-btn"></span>Nút bấm (pull-up nội)</h3><div class="tw"><table><thead><tr><th>Chân module</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
+<tr><td class="mono">UP</td><td class="mono strong">PB8 ↔ GND</td><td></td></tr>
+<tr><td class="mono">DOWN</td><td class="mono strong">PB9 ↔ GND</td><td></td></tr>
+<tr><td class="mono">ENTER</td><td class="mono strong">PA8 ↔ GND</td><td></td></tr>
+<tr><td class="mono">EXIT</td><td class="mono strong">PA15 ↔ GND</td><td>Cần SYS Debug = Serial Wire</td></tr>
+</tbody></table></div></section>
+<section class="card"><h3><span class="dot f-bg-dbg"></span>Nạp code &amp; log</h3><div class="tw"><table><thead><tr><th>Chân module</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
+<tr><td class="mono">ST-Link SWDIO / SWCLK</td><td class="mono strong">Header SWD (PA13 / PA14)</td><td>Kèm GND, 3.3V</td></tr>
+<tr><td class="mono">USB-UART RX</td><td class="mono strong">PA9 (TX)</td><td>115200 8N1</td></tr>
+<tr><td class="mono">USB-UART TX</td><td class="mono strong">PA10 (RX)</td><td></td></tr>
+<tr><td class="mono">USB-UART GND</td><td class="mono strong">GND</td><td>Không nối 5V của USB-UART khi board đã có nguồn</td></tr>
+</tbody></table></div></section></div>
+</section>
+
+<section class="block">
+  <h2>Cấu hình chân trong CubeMX</h2>
+  <p class="lead">Đặt đúng User Label để <span class="mono">main.h</span> sinh ra các macro mà <span class="mono">board.c</span> dùng. SYS → Debug = Serial Wire (giải phóng PA15, PB3, PB4). Chân dự phòng: PA1, PA2, PA3, PB3, PB4.</p>
+  <div class="card"><div class="tw"><table class="pins"><thead><tr><th>Chân</th><th>Chức năng</th><th>CubeMX mode</th><th>User Label</th><th>Mức khởi động</th></tr></thead><tbody>
+<tr><td class="mono strong"><span class="dot f-bg-adc"></span>PA0</td><td>Áp suất gas</td><td class="mono">ADC1_IN0</td><td class="mono">PRESS_ADC</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-tft"></span>PA4</td><td>TFT CS</td><td class="mono">GPIO_Output</td><td class="mono">TFT_CS</td><td class="mono">High</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-tft"></span>PA5</td><td>TFT SCK</td><td class="mono">SPI1_SCK</td><td class="mono">–</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-tft"></span>PA6</td><td>TFT SDO</td><td class="mono">SPI1_MISO</td><td class="mono">–</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-tft"></span>PA7</td><td>TFT SDI</td><td class="mono">SPI1_MOSI</td><td class="mono">–</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-btn"></span>PA8</td><td>Nút ENTER</td><td class="mono">GPIO_Input, Pull-up</td><td class="mono">BTN_ENTER</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-dbg"></span>PA9</td><td>Log TX</td><td class="mono">USART1_TX</td><td class="mono">–</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-dbg"></span>PA10</td><td>Log RX</td><td class="mono">USART1_RX</td><td class="mono">–</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-dbg"></span>PA13</td><td>SWDIO</td><td class="mono">SYS_JTMS-SWDIO</td><td class="mono">–</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-dbg"></span>PA14</td><td>SWCLK</td><td class="mono">SYS_JTCK-SWCLK</td><td class="mono">–</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-btn"></span>PA15</td><td>Nút EXIT</td><td class="mono">GPIO_Input, Pull-up</td><td class="mono">BTN_EXIT</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-tft"></span>PB0</td><td>TFT DC</td><td class="mono">GPIO_Output</td><td class="mono">TFT_DC</td><td class="mono">Low</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-tft"></span>PB1</td><td>TFT RESET</td><td class="mono">GPIO_Output</td><td class="mono">TFT_RST</td><td class="mono">High</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-rly"></span>PB5</td><td>Relay máy nén</td><td class="mono">GPIO_Output</td><td class="mono">RLY_COMP</td><td class="mono">High (= OFF)</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-rly"></span>PB6</td><td>Relay quạt dàn nóng</td><td class="mono">GPIO_Output</td><td class="mono">RLY_FAN_COND</td><td class="mono">High (= OFF)</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-rly"></span>PB7</td><td>Relay quạt dàn lạnh</td><td class="mono">GPIO_Output</td><td class="mono">RLY_FAN_EVAP</td><td class="mono">High (= OFF)</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-btn"></span>PB8</td><td>Nút UP</td><td class="mono">GPIO_Input, Pull-up</td><td class="mono">BTN_UP</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-btn"></span>PB9</td><td>Nút DOWN</td><td class="mono">GPIO_Input, Pull-up</td><td class="mono">BTN_DOWN</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-i2c"></span>PB10</td><td>SHT45 SCL</td><td class="mono">I2C2_SCL</td><td class="mono">–</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-i2c"></span>PB11</td><td>SHT45 SDA</td><td class="mono">I2C2_SDA</td><td class="mono">–</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-max"></span>PB12</td><td>MAX31865 CS</td><td class="mono">GPIO_Output</td><td class="mono">MAX_CS</td><td class="mono">High</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-max"></span>PB13</td><td>MAX31865 CLK</td><td class="mono">SPI2_SCK</td><td class="mono">–</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-max"></span>PB14</td><td>MAX31865 SDO</td><td class="mono">SPI2_MISO</td><td class="mono">–</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-max"></span>PB15</td><td>MAX31865 SDI</td><td class="mono">SPI2_MOSI</td><td class="mono">–</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-dbg"></span>PC13</td><td>LED chạy</td><td class="mono">GPIO_Output</td><td class="mono">LED_RUN</td><td class="mono">High (LED tắt)</td></tr>
+</tbody></table></div></div>
+</section>
+
+<section class="block">
+  <h2>Trước khi cấp điện 220V</h2>
+  <div class="warn"><strong>An toàn điện</strong><span>Tách riêng máng dây 220V và dây tín hiệu. Vỏ tủ, dàn và máy nén phải nối đất. Đấu RC snubber (100Ω + 0.1µF X2) hoặc varistor song song cuộn contactor và quạt để relay không đánh lửa làm treo MCU.</span></div>
+  <ol class="check">
+    <li>Chỉnh buck ra đúng 5.0V khi chưa nối tải.</li>
+    <li>Cấp 12V, đo chân 3.3 của Blue Pill được 3.25–3.35V.</li>
+    <li>Tháo jumper VCC–JD-VCC; VCC module relay nối 3.3V, JD-VCC nối 5V.</li>
+    <li>Chưa nối tải 220V, nạp firmware: cả 3 relay phải nhả khi khởi động (chân PB5–PB7 ở mức High).</li>
+    <li>Đo PA0 khi cảm biến áp ở 0 bar: khoảng 0.33V.</li>
+    <li>Log UART hiện nhiệt độ PT100 hợp lý và SHT45 không báo lỗi (SHTerr đứng yên).</li>
+    <li>Thử bảo vệ: rút dây PT100 phải báo LOI CAM BIEN NHIET và cắt relay.</li>
+    <li>Sau cùng mới đấu contactor, quạt, máy nén.</li>
+  </ol>
+</section>
+</div>
+</body></html>
