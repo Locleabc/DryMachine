@@ -53,4 +53,14 @@ void HAL_GPIO_Init(GPIO_TypeDef*, GPIO_InitTypeDef*);
 #define GPIO_PIN_10 0x0400
 #define GPIO_PIN_11 0x0800
 #define GPIO_MODE_AF_OD 0x12
+typedef struct { volatile uint32_t CRH, CRL, PRLH, PRLL, DIVH, DIVL, CNTH, CNTL, ALRH, ALRL; } RTC_TypeDef;
+typedef struct { volatile uint32_t RESERVED0, DR1, DR2; } BKP_TypeDef;
+extern RTC_TypeDef RTC_s; extern BKP_TypeDef BKP_s;
+#define RTC (&RTC_s)
+#define BKP (&BKP_s)
+#define RTC_CRL_RTOFF 0x20U
+#define RTC_CRL_CNF   0x10U
+#define __HAL_RCC_PWR_CLK_ENABLE() ((void)0)
+#define __HAL_RCC_BKP_CLK_ENABLE() ((void)0)
+void HAL_PWR_EnableBkUpAccess(void);
 #endif

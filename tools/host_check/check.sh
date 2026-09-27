@@ -3,6 +3,8 @@
 #   1. Biên dịch cú pháp toàn bộ App/ với HAL giả lập (-Wall -Wextra)
 #   2. Kiểm tra quy tắc phụ thuộc giữa các tầng (docs/ARCHITECTURE.md)
 #   3. Chạy test logic control/dryer_ctrl (không cần HAL)
+#   4. Mô phỏng giao diện: chạy nguyên App/ui với màn hình giả lập, bấm phím theo kịch bản,
+#      lưu ảnh từng màn hình vào tools/build/ui/*.ppm
 # Chạy từ thư mục gốc repo:  sh tools/host_check/check.sh
 set -e
 OUT=tools/build; mkdir -p "$OUT"
@@ -31,4 +33,10 @@ grep -rln '#include "main.h"' App --include=*.c --include=*.h | grep -v 'App/boa
 echo "== 3. Test logic dieu khien =="
 gcc -std=c11 -Wall -IApp/control tools/host_check/test_ctrl.c App/control/dryer_ctrl.c -o "$OUT/test_ctrl"
 "$OUT/test_ctrl" | tail -1
+
+echo "== 4. Mo phong giao dien =="
+mkdir -p "$OUT/ui"
+gcc -std=c11 -Wall -Wno-unused-parameter -Itools/host_check -IApp/ui -IApp/drivers/ili9341 -IApp/services \
+    App/ui/*.c App/drivers/ili9341/font5x7.c App/services/util_fmt.c tools/host_check/ui_sim/*.c -o "$OUT/ui_sim"
+"$OUT/ui_sim" "$OUT/ui" | tail -1
 exit $fail
