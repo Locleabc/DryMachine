@@ -26,3 +26,7 @@ Thumbs.db
 
 # ---- local test build ----
 tools/build/
+
+# backup do tools/keil_setup.py tao
+*.bak
+Claude outputs/
