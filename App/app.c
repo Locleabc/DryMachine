@@ -211,7 +211,8 @@ static void build_view(ui_view_t *v)
         if (e.time) {
             datetime_t dt;
             DateTime_FromEpoch(e.time, &dt);
-            snprintf(v->hist[i].when, sizeof(v->hist[i].when), "%02u/%02u %02u:%02u", dt.day, dt.mon, dt.hour, dt.min);
+            snprintf(v->hist[i].when, sizeof(v->hist[i].when), "%02u/%02u %02u:%02u",
+                     (unsigned)(dt.day % 100u), (unsigned)(dt.mon % 100u), (unsigned)(dt.hour % 100u), (unsigned)(dt.min % 100u));
         } else {
             snprintf(v->hist[i].when, sizeof(v->hist[i].when), "--/-- --:--");
         }

@@ -6,6 +6,13 @@
 #include "board.h"
 #include "main.h"
 
+/* Handle ngoại vi do CubeMX định nghĩa (spi.c, i2c.c, adc.c, usart.c hoặc main.c).
+ * Khai báo extern tại đây để không phụ thuộc tuỳ chọn "pair .c/.h" của CubeMX. */
+extern SPI_HandleTypeDef  hspi1, hspi2;
+extern I2C_HandleTypeDef  hi2c2;
+extern ADC_HandleTypeDef  hadc1;
+extern UART_HandleTypeDef huart1;
+
 /* ---------------- Relay ----------------
  * Module relay 5V opto, kích mức THẤP: VCC (opto) = 3.3V, JD-VCC = 5V buck, tháo jumper.
  * CubeMX: đặt mức khởi động PB5/PB6/PB7 = High để relay nhả khi cấp điện.
