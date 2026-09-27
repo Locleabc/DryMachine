@@ -35,6 +35,8 @@ VCC TFT, nguồn cảm biến áp. 3.3V lấy từ LDO trên Blue Pill cho MAX31
 | PB13 | SPI2_SCK | – | MAX31865 CLK |
 | PB14 | SPI2_MISO | – | MAX31865 SDO |
 | PB15 | SPI2_MOSI | – | MAX31865 SDI |
+| PC14 / PC15 | RCC_OSC32_IN / OUT | – | Thạch anh 32.768 kHz có sẵn trên Blue Pill (RTC) |
+| VBAT (VB) | – | – | Pin CR2032 (+) để giữ giờ khi mất điện; (−) nối GND |
 | PC13 | GPIO_Output | LED_RUN | LED trên board (nhấp nháy = chương trình đang chạy) |
 
 Mức khởi động của các chân Output: **CS = High, RELAY (PB5–PB7) = High (relay kích mức thấp → nhả)**.

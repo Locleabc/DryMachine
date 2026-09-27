@@ -18,6 +18,8 @@ MCU: **STM32F103C8T6** (72 MHz, 64 KB Flash) – IDE: **Keil MDK-ARM (AC6)** + S
 * Sơ đồ chân: [docs/PINOUT.md](docs/PINOUT.md)
 * Tạo project Keil: [docs/KEIL_SETUP.md](docs/KEIL_SETUP.md)
 * Kiến trúc & quy tắc phụ thuộc: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+* Giao diện & cách dùng nút: [docs/UI.md](docs/UI.md)
+* Sơ đồ đấu dây: [docs/wiring.html](docs/wiring.html)
 
 ## Cấu trúc thư mục
 
@@ -27,9 +29,9 @@ App/
  ├─ board/                Gán chân, handle HAL, bảng phần cứng (chỉ file này include main.h)
  ├─ drivers/              Driver thiết bị – mỗi driver 1 thư mục, chỉ phụ thuộc HAL
  │   ├─ button/  relay/  max31865/  sht4x/  press_analog/  ili9341/  flash_store/
- ├─ services/             sensors (đọc + lọc), settings (thông số + lưu), log, sched, util_fmt
+ ├─ services/             sensors, settings, presets, fault_log, datetime, log, sched, util_fmt
  ├─ control/              dryer_ctrl – logic điều khiển THUẦN C, không HAL (test được trên PC)
- └─ ui/                   Giao diện TFT – chỉ nhận ui_view_t, trả lệnh qua callback
+ └─ ui/                   Giao diện TFT – mỗi màn hình 1 file, nhận ui_view_t, trả lệnh qua callback
 Core/, Drivers/, MDK-ARM/ Do CubeMX sinh ra
 tools/host_check/         Biên dịch thử + test logic trên PC
 ```

@@ -49,3 +49,20 @@ Hệ quả:
 1. Thêm field vào `dryer_params_t` (hoặc `settings_t`)
 2. Thêm 1 dòng vào bảng `s_params[]` trong `services/settings.c`, giá trị mặc định trong `Settings_Default()`
 3. Tăng `SETTINGS_VERSION` (Flash cũ tự bị bỏ, nạp mặc định)
+
+## Giao diện (ui/)
+
+Mỗi màn hình là một `ui_screen_t` trong một file riêng, `ui_core.c` lo header/footer/chuyển màn hình:
+
+| File | Màn hình |
+|------|----------|
+| `ui_page_main.c` | Trang 1 – nhiệt độ, độ ẩm, điểm đặt, chế độ, trạng thái |
+| `ui_page_run.c` | Trang 2 – chạy / dừng |
+| `ui_page_timer.c` | Trang 3 – thời gian sấy |
+| `ui_page_faults.c` | Trang 4 – lỗi hiện tại + lịch sử |
+| `ui_menu_preset.c` | Menu chế độ sấy (giữ ENTER 3 s) + chỉnh đồng hồ |
+| `ui_edit.c` | Nhập số từng chữ số (dùng chung) |
+| `ui_menu_tech.c` | Menu kỹ thuật ẩn (giữ EXIT 3 s ở trang chính) |
+
+Thêm trang mới: tạo file `ui_page_xxx.c` với một `ui_screen_t`, thêm vào `ui_scr_t` và bảng `s_screens[]`.
+Ảnh chụp từ bộ mô phỏng: [UI.md](UI.md).

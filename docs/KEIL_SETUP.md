@@ -5,7 +5,9 @@
 1. New Project → **STM32F103C8Tx** → lưu file `DryMachine.ioc` vào **thư mục gốc repo**.
 2. Cấu hình:
    * **SYS**: Debug = *Serial Wire*, Timebase = SysTick
-   * **RCC**: HSE = Crystal/Ceramic Resonator
+   * **RCC**: HSE = Crystal/Ceramic Resonator, **LSE = Crystal/Ceramic Resonator** (thạch anh 32.768 kHz trên Blue Pill)
+   * **RTC**: tick *Activate Clock Source*, **không** tick *Activate Calendar* (firmware tự đọc bộ đếm RTC);
+     Clock Configuration → RTC Clock Mux = **LSE**
    * **Clock**: HSE 8 MHz → PLL x9 → SYSCLK 72 MHz, APB1 36 MHz, APB2 72 MHz, ADC /6 (12 MHz)
    * **SPI1** (TFT): Transmit Only Master (hoặc Full-Duplex), 8 bit, CPOL Low, CPHA 1 Edge, NSS Software, Prescaler 4
    * **SPI2** (MAX31865): Full-Duplex Master, 8 bit, **CPOL Low, CPHA 2 Edge**, NSS Software, Prescaler 16
@@ -41,7 +43,7 @@ Mở `MDK-ARM/DryMachine.uvprojx`.
 
 **Options for Target**:
 * *Target*: ARM Compiler = **Use default compiler version 6** (AC6); tick **Use MicroLIB**
-* *Target*: **IROM1 Size = 0xFC00** (63 KB) – page cuối 0x0800FC00 dành cho lưu thông số
+* *Target*: **IROM1 Size = 0xF800** (62 KB) – 2 page cuối dành cho lịch sử lỗi (0x0800F800) và thông số (0x0800FC00)
 * *C/C++ (AC6)*: Language C = **c11** (hoặc gnu11), Optimization **-Os balanced** nếu thiếu Flash
 * *Debug*: ST-Link Debugger → Settings → Port **SW**; *Utilities*: tick *Use Debug Driver*
 
