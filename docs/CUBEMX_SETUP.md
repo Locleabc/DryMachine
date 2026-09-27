@@ -42,7 +42,18 @@
   /* USER CODE END 3 */
 ```
 
-6. Build (Ctrl+B) → Flash qua ST-Link.
+6. **Dành page Flash cuối cho thông số**: mở `STM32F103C8TX_FLASH.ld`, sửa
+   `FLASH (rx) : ORIGIN = 0x8000000, LENGTH = 64K` → `LENGTH = 63K`
+   (page 0x0800FC00 dùng cho `settings.c`, tránh code ghi đè).
+7. Build (Ctrl+B) → Flash qua ST-Link.
 
 > Nếu Flash không đủ khi build Debug (-O0), vào Properties → C/C++ Build → Settings →
 > MCU GCC Compiler → Optimization chọn **-Os**.
+
+## Kiểm tra nhanh trên PC (không cần board)
+
+```sh
+sh tools/host_check/check.sh                     # kiểm tra cú pháp toàn bộ App/
+gcc -std=c11 -Itools/host_check -IApp/Inc tools/host_check/test_ctrl.c \
+    App/Src/ctrl_dryer.c App/Src/settings.c App/Src/bsp_relay.c -lm -o test_ctrl && ./test_ctrl
+```
