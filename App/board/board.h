@@ -1,0 +1,36 @@
+/**
+ * @file    board.h
+ * @brief   Mô tả phần cứng board: gán chân, handle HAL, hằng số hiệu chuẩn.
+ *          Đây là nơi DUY NHẤT biết tên chân CubeMX (main.h). Đổi phần cứng → sửa board.c.
+ */
+#ifndef BOARD_H
+#define BOARD_H
+
+#include "relay.h"
+#include "button.h"
+#include "max31865.h"
+#include "sht4x.h"
+#include "press_analog.h"
+#include "ili9341.h"
+#include "flash_store.h"
+
+/* Chỉ số relay trong board_relays[] */
+enum { RLY_ID_COMP = 0, RLY_ID_FAN_COND, RLY_ID_FAN_EVAP, RLY_ID_COUNT };
+
+/* Chỉ số nút trong board_buttons[] */
+enum { BTN_ID_UP = 0, BTN_ID_DOWN, BTN_ID_ENTER, BTN_ID_EXIT, BTN_ID_COUNT };
+
+extern const relay_hw_t         board_relays[RLY_ID_COUNT];
+extern const button_hw_t        board_buttons[BTN_ID_COUNT];
+extern const max31865_cfg_t     board_pt100;
+extern const sht4x_cfg_t        board_sht45;
+extern const press_analog_cfg_t board_press;
+extern const ili9341_cfg_t      board_lcd;
+extern const flash_store_cfg_t  board_settings_flash;
+
+uint32_t Board_Millis(void);
+void     Board_LedToggle(void);
+void     Board_LogWrite(const char *data, uint16_t len);
+void     Board_I2cRecover(void);        /* gỡ treo bus I2C của SHT45 */
+
+#endif
