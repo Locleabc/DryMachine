@@ -1,11 +1,20 @@
 /**
- * @file    drv_ili9341.h
+ * @file    ili9341.h
  * @brief   Driver TFT ILI9341 qua SPI (RGB565), hướng ngang 320x240.
+ *          Chân và SPI truyền vào qua ili9341_cfg_t lúc Init.
  */
-#ifndef DRV_ILI9341_H
-#define DRV_ILI9341_H
+#ifndef ILI9341_H
+#define ILI9341_H
 
+#include "stm32f1xx_hal.h"
 #include <stdint.h>
+
+typedef struct {
+    SPI_HandleTypeDef *hspi;
+    GPIO_TypeDef *cs_port;  uint16_t cs_pin;
+    GPIO_TypeDef *dc_port;  uint16_t dc_pin;
+    GPIO_TypeDef *rst_port; uint16_t rst_pin;
+} ili9341_cfg_t;
 
 #define TFT_WIDTH    320
 #define TFT_HEIGHT   240
@@ -24,7 +33,7 @@
 #define C_DARKGRAY   0x39E7
 #define C_NAVY       0x000F
 
-void ILI9341_Init(void);
+void ILI9341_Init(const ili9341_cfg_t *cfg);
 void ILI9341_SetRotation(uint8_t rot);           /* 0..3; 1 = ngang */
 void ILI9341_FillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
 void ILI9341_FillScreen(uint16_t color);

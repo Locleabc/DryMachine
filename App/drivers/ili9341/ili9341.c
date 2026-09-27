@@ -1,20 +1,22 @@
 /**
- * @file    drv_ili9341.c
+ * @file    ili9341.c
  */
-#include "drv_ili9341.h"
+#include "ili9341.h"
 #include "font5x7.h"
-#include "app_config.h"
 #include <stdbool.h>
 
 #define SPI_TIMEOUT   100
 #define LINE_BUF_PX   64
 
+static const ili9341_cfg_t *s_cfg;
 static uint16_t s_w = TFT_WIDTH, s_h = TFT_HEIGHT;
 
-static inline void cs_low(void)  { HAL_GPIO_WritePin(TFT_CS_GPIO_Port,  TFT_CS_Pin,  GPIO_PIN_RESET); }
-static inline void cs_high(void) { HAL_GPIO_WritePin(TFT_CS_GPIO_Port,  TFT_CS_Pin,  GPIO_PIN_SET); }
-static inline void dc_cmd(void)  { HAL_GPIO_WritePin(TFT_DC_GPIO_Port,  TFT_DC_Pin,  GPIO_PIN_RESET); }
-static inline void dc_data(void) { HAL_GPIO_WritePin(TFT_DC_GPIO_Port,  TFT_DC_Pin,  GPIO_PIN_SET); }
+#define TFT_SPI  (s_cfg->hspi)
+
+static inline void cs_low(void)  { HAL_GPIO_WritePin(s_cfg->cs_port, s_cfg->cs_pin, GPIO_PIN_RESET); }
+static inline void cs_high(void) { HAL_GPIO_WritePin(s_cfg->cs_port, s_cfg->cs_pin, GPIO_PIN_SET); }
+static inline void dc_cmd(void)  { HAL_GPIO_WritePin(s_cfg->dc_port, s_cfg->dc_pin, GPIO_PIN_RESET); }
+static inline void dc_data(void) { HAL_GPIO_WritePin(s_cfg->dc_port, s_cfg->dc_pin, GPIO_PIN_SET); }
 
 static void write_cmd(uint8_t cmd)
 {
@@ -71,12 +73,13 @@ static const uint8_t s_init[] = {
     0x00
 };
 
-void ILI9341_Init(void)
+void ILI9341_Init(const ili9341_cfg_t *cfg)
 {
+    s_cfg = cfg;
     cs_high();
-    HAL_GPIO_WritePin(TFT_RST_GPIO_Port, TFT_RST_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(cfg->rst_port, cfg->rst_pin, GPIO_PIN_RESET);
     HAL_Delay(20);
-    HAL_GPIO_WritePin(TFT_RST_GPIO_Port, TFT_RST_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(cfg->rst_port, cfg->rst_pin, GPIO_PIN_SET);
     HAL_Delay(150);
 
     const uint8_t *p = s_init;
