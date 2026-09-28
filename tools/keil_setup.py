@@ -11,6 +11,7 @@ Việc script làm:
      - thêm Include Paths của App/
      - IROM1 Size = 0xF800 (chừa 2 page Flash cuối cho lịch sử lỗi + thông số)
      - bật MicroLIB, ngôn ngữ C = gnu11 (nếu dùng Arm Compiler 6)
+     - ARMCC 5: thêm --no_multibyte_chars (chuỗi tiếng Việt UTF-8)
   2. Core/Src/main.c: chèn #include "app.h", App_Init(), App_Loop() vào vùng USER CODE
   3. Core/Src/rtc.c: CubeMX luôn sinh HAL_RTC_SetTime(00:00) trong MX_RTC_Init → mỗi lần cấp điện
      sẽ xoá giờ. Chèn vào vùng USER CODE Check_RTC_BKUP: nếu đã chỉnh giờ (BKP_DR1 = 0xA5A5,
@@ -106,9 +107,15 @@ def patch_project():
                 if p not in cur:
                     cur.append(p)
             inc_el.text = ";".join(cur)
-            common = opt.find("TargetCommonOption")
-            if common is not None and common.findtext("uAC6") == "1":
-                set_text(cads, "v6Lang", "6")          # gnu11
+            common = target.find("uAC6")
+            if common is None:
+                common = opt.find("TargetCommonOption/uAC6")
+            if common is not None and common.text == "1":
+                set_text(cads, "v6Lang", "6")          # gnu11 (Arm Compiler 6)
+            # ARMCC 5: chuỗi UTF-8 tiếng Việt → tắt xử lý ký tự đa byte (tránh cảnh báo #870-D)
+            misc = cads.find("VariousControls/MiscControls")
+            if misc is not None and "--no_multibyte_chars" not in (misc.text or ""):
+                misc.text = ((misc.text or "") + " --no_multibyte_chars").strip()
 
         # 4. Groups
         groups = target.find("Groups")

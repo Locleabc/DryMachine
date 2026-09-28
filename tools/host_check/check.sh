@@ -20,9 +20,16 @@ echo "   OK"
 echo "== 2. Quy tac phu thuoc =="
 fail=0
 bad() { echo "   VI PHAM: $1"; fail=1; }
-grep -rn '#include "' App/drivers  | grep -v 'stm32f1xx_hal.h\|font5x7.h' \
-  | awk -F: '{split($1,a,"/"); f=a[length(a)]; sub(/\.[ch]$/,"",f); if ($0 !~ "\""f".h\"") print}' \
-  | while read l; do echo "   VI PHAM drivers: $l"; done | tee "$OUT/dep.txt"
+# driver chỉ được include HAL, thư viện chuẩn, và header nằm CÙNG thư mục driver đó
+: > "$OUT/dep.txt"
+for f in App/drivers/*/*.[ch]; do
+  d=$(dirname "$f")
+  grep -o '#include "[^"]*"' "$f" | sed 's/#include "\(.*\)"/\1/' | while read h; do
+    [ "$h" = "stm32f1xx_hal.h" ] && continue
+    [ -f "$d/$h" ] && continue
+    echo "   VI PHAM drivers: $f include \"$h\"" | tee -a "$OUT/dep.txt"
+  done
+done
 [ -s "$OUT/dep.txt" ] && fail=1
 grep -rln '#include "\(stm32\|main\|board\|sensors\|settings\|ui\|relay\|button\)' App/control && bad "control phai thuan C"
 grep -rln '#include "\(main\|board\|ui\)\.h"' App/services && bad "services khong duoc include main/board/ui"
@@ -37,6 +44,7 @@ gcc -std=c11 -Wall -IApp/control tools/host_check/test_ctrl.c App/control/dryer_
 echo "== 4. Mo phong giao dien =="
 mkdir -p "$OUT/ui"
 gcc -std=c11 -Wall -Wno-unused-parameter -Itools/host_check -IApp/ui -IApp/drivers/ili9341 -IApp/services \
-    App/ui/*.c App/drivers/ili9341/font5x7.c App/services/util_fmt.c tools/host_check/ui_sim/*.c -o "$OUT/ui_sim"
+    App/ui/*.c App/drivers/ili9341/font5x7.c App/drivers/ili9341/fonts_vn.c App/drivers/ili9341/ili9341_text.c \
+    App/services/util_fmt.c tools/host_check/ui_sim/*.c -o "$OUT/ui_sim"
 "$OUT/ui_sim" "$OUT/ui" | tail -1
 exit $fail

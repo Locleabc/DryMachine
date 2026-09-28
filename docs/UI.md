@@ -1,7 +1,21 @@
 # Giao diện TFT & cách dùng nút
 
 Ảnh dưới đây chụp từ bộ mô phỏng trên PC (`sh tools/host_check/check.sh`), chạy nguyên code `App/ui`.
-Font 5x7 chỉ có chữ không dấu.
+
+## Font tiếng Việt
+
+Giao diện dùng font **Be Vietnam Pro** (SIL Open Font License 1.1) chuyển thành bitmap anti-alias 2 bit/pixel:
+
+| Font | Dùng cho | Ký tự | Flash |
+|------|----------|-------|-------|
+| `font_vn16` (15 px, cao dòng 23 px) | mọi chữ | ASCII + 134 chữ cái có dấu + `° · • – …` | ~9.5 KB |
+| `font_num` (46 px, cao 35 px) | số lớn | `0-9 . - : % ° C` | ~3.8 KB |
+
+* Chuỗi viết thẳng tiếng Việt trong code (file lưu **UTF-8**), ví dụ `"Nhiệt độ"`. Ký tự thiếu trong font hiện `?`.
+* Đổi cỡ chữ / thêm ký tự: sửa bảng `FONTS` trong `tools/fontgen/fontgen.py` rồi chạy
+  `python tools/fontgen/fontgen.py` (cần `pip install pillow`) → sinh lại `App/drivers/ili9341/fonts_vn.c`.
+* Keil ARMCC 5: cần option `--no_multibyte_chars` (C/C++ → Misc Controls) – `tools/keil_setup.py` tự thêm.
+* Toàn bộ firmware hiện ~52 KB / 62 KB Flash.
 
 ## 4 trang chính – chuyển bằng UP / DOWN
 
@@ -20,13 +34,13 @@ Header luôn hiện đồng hồ HH:MM:SS; footer hiện gợi ý phím, thông 
 
 ## Menu chế độ sấy (giữ ENTER 3 s)
 
-6 chế độ đặt sẵn + *Tu do* + *Chinh dong ho*. Dấu `*` là chế độ đang dùng.
+6 chế độ đặt sẵn + *Tự do* + *Chỉnh đồng hồ*. Dấu `*` là chế độ đang dùng.
 
 * UP / DOWN: chọn dòng · EXIT: thoát
 * ENTER trên chế độ đặt sẵn: áp dụng ngay, lưu Flash
 * **Giữ ENTER 3 s** trên chế độ đặt sẵn: sửa nhiệt độ / độ ẩm của chế độ đó
-* ENTER trên *Tu do*: nhập nhiệt độ, độ ẩm rồi áp dụng
-* ENTER trên *Chinh dong ho*: nhập ngày / tháng / năm giờ : phút
+* ENTER trên *Tự do*: nhập nhiệt độ, độ ẩm rồi áp dụng
+* ENTER trên *Chỉnh đồng hồ*: nhập ngày / tháng / năm giờ : phút
 
 ![Menu chế độ](ui/05_preset_menu.png)
 
@@ -34,7 +48,7 @@ Header luôn hiện đồng hồ HH:MM:SS; footer hiện gợi ý phím, thông 
 
 Chữ số đang chỉnh có nền cam + gạch chân. UP / DOWN: tăng / giảm (0–9 vòng tròn, giữ để lặp).
 ENTER: sang chữ số bên phải; ENTER ở chữ số cuối: **lưu**. EXIT: huỷ.
-Nhiệt độ được giới hạn 30–75 °C, độ ẩm 5–80 %RH (ngoài khoảng sẽ bị kẹp và báo *DA GIOI HAN*).
+Nhiệt độ được giới hạn 30–75 °C, độ ẩm 5–80 %RH (ngoài khoảng sẽ bị kẹp và báo *Đã giới hạn*).
 
 ![Nhập chế độ tự do](ui/07_edit_custom.png) ![Chỉnh đồng hồ](ui/09_edit_clock.png)
 
@@ -54,3 +68,4 @@ trong Flash (settings), không mất khi mất điện.
 
 RTC nội STM32 + thạch anh 32.768 kHz có sẵn trên Blue Pill. Cắm pin CR2032 vào chân VB để giữ giờ khi
 mất điện. Chưa chỉnh giờ thì đồng hồ hiện `--:--:--` và lịch sử lỗi ghi `--/-- --:--`.
+Khi chỉnh giờ, ngày nhập dạng `ngày-tháng-năm` (dòng trên) và `giờ:phút` (dòng dưới).

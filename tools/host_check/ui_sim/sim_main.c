@@ -8,7 +8,7 @@
 void Sim_Save(const char *path);
 int  Sim_Overflow(void);
 
-static const char *names[7] = { "Rau thom", "Rau cu", "Trai cay", "Nam", "Thit - Ca", "Hat - Nong", "Tu do" };
+static const char *names[7] = { "Rau thơm", "Rau củ", "Trái cây", "Nấm", "Thịt – Cá", "Hạt – Nông sản", "Tự do" };
 static const float dt[7] = { 40, 50, 55, 50, 60, 45, 50 }, dh[7] = { 20, 15, 15, 18, 12, 12, 15 };
 
 static ui_view_t v;
@@ -20,7 +20,7 @@ static const char *outdir = ".";
 /* ---- menu kỹ thuật giả ---- */
 static float tech_val[3] = { 2.0f, 30.0f, 180.0f };
 static const ui_param_desc_t tech_desc[3] = {
-    { "Tre nhiet", "C", 0.5f, 10, 0.5f, 1 }, { "Ap cao ngat", "bar", 5, 45, 0.5f, 1 }, { "MN nghi min", "s", 30, 600, 10, 0 } };
+    { "Trễ nhiệt", "°C", 0.5f, 10, 0.5f, 1 }, { "Ngắt áp cao", "bar", 5, 45, 0.5f, 1 }, { "Máy nén nghỉ min", "s", 30, 600, 10, 0 } };
 static uint8_t t_count(void) { return 3; }
 static bool t_desc(uint8_t i, ui_param_desc_t *o) { if (i >= 3) return false; *o = tech_desc[i]; return true; }
 static float t_get(uint8_t i) { return tech_val[i]; }
@@ -70,9 +70,9 @@ int main(int argc, char **argv)
     v.run_s = 5025; v.dry_time_min = 360;
     v.clock_ok = true; v.year = 2026; v.mon = 9; v.day = 27; v.hour = 14; v.min = 5; v.sec = 32;
     v.hist_count = 3;
-    strcpy(v.hist[0].when, "27/09 09:12"); v.hist[0].text = "AP SUAT CAO";
-    strcpy(v.hist[1].when, "25/09 21:40"); v.hist[1].text = "MAT CB NHIET";
-    strcpy(v.hist[2].when, "20/09 06:03"); v.hist[2].text = "QUA NHIET";
+    strcpy(v.hist[0].when, "27/09 09:12"); v.hist[0].text = "Áp suất cao";
+    strcpy(v.hist[1].when, "25/09 21:40"); v.hist[1].text = "Mất cảm biến nhiệt";
+    strcpy(v.hist[2].when, "20/09 06:03"); v.hist[2].text = "Quá nhiệt";
 
     ui_config_t cfg = { names, 7, &tech, on_cmd };
     UI_Init(&cfg);
@@ -95,7 +95,7 @@ int main(int argc, char **argv)
     EXPECT(last_cmd.type == UI_CMD_SET_DRY_TIME && last_cmd.u.minutes == 15 * 60 + 30, "Thoi gian say nhap tung chu so -> 15:30");
 
     key(UI_KEY_DOWN, UI_PRESS_SHORT);
-    v.fault_text = "AP SUAT CAO"; v.state = UI_ST_FAULT; v.comp = false;
+    v.fault_text = "Áp suất cao"; v.state = UI_ST_FAULT; v.comp = false;
     tick(6);
     shot("04_faults");
     key(UI_KEY_ENTER, UI_PRESS_SHORT);

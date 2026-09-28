@@ -43,6 +43,22 @@ void ILI9341_DrawString(int16_t x, int16_t y, const char *s, uint16_t fg, uint16
     while (*s) { ILI9341_DrawChar(x, y, *s++, fg, bg, scale); x = (int16_t)(x + 6 * scale); }
 }
 
+static int bx, by, bw, bh, bi;
+int ILI9341_BlitBegin(int16_t x, int16_t y, int16_t w, int16_t h)
+{
+    if (x < 0 || y < 0 || w <= 0 || h <= 0 || x + w > s_w || y + h > s_h) { s_overflow++; return 0; }
+    bx = x; by = y; bw = w; bh = h; bi = 0;
+    return 1;
+}
+void ILI9341_BlitPixels(const uint16_t *px, uint16_t n)
+{
+    while (n--) {
+        if (bi < bw * bh) fb[by + bi / bw][bx + bi % bw] = *px;
+        px++; bi++;
+    }
+}
+void ILI9341_BlitEnd(void) { if (bi != bw * bh) s_overflow++; }
+
 int Sim_Overflow(void) { int o = s_overflow; s_overflow = 0; return o; }
 
 void Sim_Save(const char *path)

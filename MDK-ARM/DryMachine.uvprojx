@@ -332,7 +332,7 @@
             <v6WtE>0</v6WtE>
             <v6Rtti>0</v6Rtti>
             <VariousControls>
-              <MiscControls />
+              <MiscControls>--no_multibyte_chars</MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xB</Define>
               <Undefine />
               <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../App;../App/board;../App/control;../App/drivers/button;../App/drivers/flash_store;../App/drivers/ili9341;../App/drivers/max31865;../App/drivers/press_analog;../App/drivers/relay;../App/drivers/sht4x;../App/services;../App/ui</IncludePath>
@@ -583,9 +583,19 @@
               <FilePath>../App/drivers/ili9341/font5x7.c</FilePath>
             </File>
             <File>
+              <FileName>fonts_vn.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../App/drivers/ili9341/fonts_vn.c</FilePath>
+            </File>
+            <File>
               <FileName>ili9341.c</FileName>
               <FileType>1</FileType>
               <FilePath>../App/drivers/ili9341/ili9341.c</FilePath>
+            </File>
+            <File>
+              <FileName>ili9341_text.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../App/drivers/ili9341/ili9341_text.c</FilePath>
             </File>
             <File>
               <FileName>max31865.c</FileName>
