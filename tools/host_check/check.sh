@@ -38,7 +38,7 @@ grep -rln '#include "main.h"' App --include=*.c --include=*.h | grep -v 'App/boa
 [ $fail = 0 ] && echo "   OK"
 
 echo "== 3. Test logic dieu khien =="
-gcc -std=c11 -Wall -IApp/control tools/host_check/test_ctrl.c App/control/dryer_ctrl.c -o "$OUT/test_ctrl"
+gcc -std=c11 -Wall -IApp/control tools/host_check/test_ctrl.c App/control/dryer_ctrl.c App/control/fan_speed.c -o "$OUT/test_ctrl"
 "$OUT/test_ctrl" | tail -1
 
 echo "== 4. Mo phong giao dien =="
