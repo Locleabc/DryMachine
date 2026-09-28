@@ -7,8 +7,9 @@
  */
 #include "ui_internal.h"
 
-#define ROW_Y0    32
-#define ROW_H     23
+#define ROW_Y0    30
+#define ROW_H     LINE_H
+#define X_VAL     200
 #define ROWS      8
 
 static uint8_t s_sel, s_top;
@@ -29,12 +30,13 @@ static void draw_row(uint8_t idx, uint8_t row)
     bool edit = sel && s_editing;
     uint16_t bg = edit ? UC_CURSOR : (sel ? UC_SEL : UC_BG);
     uint16_t fg = edit ? C_BLACK : UC_VALUE;
-    char num[12], val[20], line[48];
+    char num[12], val[24];
     Fmt_Float(num, sizeof(num), edit ? s_val : tp()->get(idx), d.dec);
     snprintf(val, sizeof(val), "%s %s", num, d.unit);
-    snprintf(line, sizeof(line), "%-14.14s%11s", d.name, val);
-    ILI9341_FillRect(0, y, TFT_WIDTH, ROW_H, bg);
-    ILI9341_DrawString(4, (int16_t)(y + 4), line, fg, bg, 2);
+    ILI9341_FillRect(0, y, 8, ROW_H, bg);
+    w_text(8, y, X_VAL - 8, d.name, fg, bg, TEXT_LEFT);
+    w_text(X_VAL, y, TFT_WIDTH - 8 - X_VAL, val, fg, bg, TEXT_RIGHT);
+    ILI9341_FillRect(TFT_WIDTH - 8, y, 8, ROW_H, bg);
 }
 
 static void enter(void)
@@ -83,7 +85,7 @@ static void key(ui_key_t k, ui_press_t p)
         if (k == UI_KEY_EXIT) {
             if (s_changed) {
                 ui_cmd_t c = { .type = UI_CMD_SAVE_SETTINGS };
-                UI_Message(ui_send(&c) ? "DA LUU CAI DAT" : "LOI LUU FLASH!");
+                UI_Message(ui_send(&c) ? "Đã lưu cài đặt" : "Lỗi lưu Flash!");
             }
             ui_goto(SCR_MAIN);
         }
@@ -100,11 +102,11 @@ static void key(ui_key_t k, ui_press_t p)
 
 static const char *hint(void)
 {
-    return s_editing ? "UP/DN: doi  ENTER: ok  EXIT: huy"
-                     : "ENTER: sua   EXIT: luu & thoat";
+    return s_editing ? "UP/DOWN: đổi · ENTER: OK · EXIT: huỷ"
+                     : "ENTER: sửa · EXIT: lưu & thoát";
 }
 
 const ui_screen_t scr_tech = {
-    .title = "KY THUAT", .page = -1, .refresh_ms = 1000,
+    .title = "KỸ THUẬT", .page = -1, .refresh_ms = 1000,
     .enter = enter, .draw_values = draw_values, .key = key, .hint = hint,
 };

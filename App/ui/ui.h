@@ -16,10 +16,10 @@
  *  Trang 3: ENTER = chỉnh thời gian sấy HH:MM (00:00 = không giới hạn)
  *  Trang 4: ENTER = xoá lỗi đang có; giữ EXIT 3 s = xoá lịch sử
  *
- *  Menu chế độ: 6 chế độ đặt sẵn + "Tu do" + "Chinh dong ho"
+ *  Menu chế độ: 6 chế độ đặt sẵn + "Tự do" + "Chỉnh đồng hồ"
  *     UP / DOWN chọn · ENTER áp dụng chế độ · EXIT thoát
  *     Giữ ENTER 3 s trên chế độ đặt sẵn → sửa giá trị của chế độ đó
- *     ENTER trên "Tu do" → nhập nhiệt độ, độ ẩm
+ *     ENTER trên "Tự do" → nhập nhiệt độ, độ ẩm
  *  Nhập số: từng chữ số từ trái sang phải; UP/DOWN đổi số, ENTER sang số kế,
  *     ENTER ở số cuối = lưu, EXIT = huỷ.
  */
@@ -29,7 +29,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define UI_PRESET_MAX   8        /* tối đa số chế độ (kể cả "Tu do") */
+#define UI_PRESET_MAX   8        /* tối đa số chế độ (kể cả "Tự do") */
 #define UI_HIST_ROWS    6        /* số dòng lịch sử lỗi hiển thị */
 
 /* ---------------- Phím ---------------- */
@@ -62,7 +62,7 @@ typedef enum { UI_ST_IDLE = 0, UI_ST_STARTING, UI_ST_RUNNING, UI_ST_STOPPING, UI
 
 typedef struct {
     char        when[12];        /* "27/09 14:05" */
-    const char *text;            /* "AP SUAT CAO" */
+    const char *text;            /* "Áp suất cao" */
 } ui_hist_row_t;
 
 typedef struct {
@@ -72,6 +72,7 @@ typedef struct {
     bool  press_ok; float press;
     /* điểm đặt & chế độ */
     float   temp_set, hum_set;
+    bool    hum_reached;                     /* đã đạt độ ẩm mục tiêu (tô xanh) */
     uint8_t preset;                          /* chế độ đang dùng */
     float   preset_temp[UI_PRESET_MAX];
     float   preset_hum[UI_PRESET_MAX];
@@ -107,7 +108,7 @@ typedef struct {
 
 /* ---------------- Cấu hình khởi tạo ---------------- */
 typedef struct {
-    const char *const   *preset_names;       /* phần tử cuối = "Tu do" */
+    const char *const   *preset_names;       /* UTF-8, phần tử cuối = "Tự do" */
     uint8_t              preset_count;       /* ≤ UI_PRESET_MAX */
     const ui_param_if_t *tech;               /* menu kỹ thuật */
     bool (*on_cmd)(const ui_cmd_t *cmd);     /* true = thành công */

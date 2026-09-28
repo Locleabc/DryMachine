@@ -9,19 +9,19 @@
     { name, unit, (uint16_t)offsetof(settings_t, field), mn, mx, st, dc }
 
 static const settings_param_t s_params[] = {
-    P(ctrl.temp_hyst,     "Tre nhiet",     "C",    0.5f,  10.0f, 0.5f,  1),
-    P(ctrl.hum_hyst,      "Tre am",        "%",    1.0f,  20.0f, 1.0f,  0),
-    P(ctrl.temp_max,      "Qua nhiet",     "C",   50.0f,  95.0f, 1.0f,  0),
-    P(ctrl.p_high,        "Ap cao ngat",   "bar",  5.0f,  45.0f, 0.5f,  1),
-    P(ctrl.p_low,         "Ap thap ngat",  "bar",  0.0f,  10.0f, 0.1f,  1),
-    P(ctrl.press_enable,  "Bao ve ap",     "",     0.0f,   1.0f, 1.0f,  0),
-    P(ctrl.comp_min_off,  "MN nghi min",   "s",   30.0f, 600.0f, 10.0f, 0),
-    P(ctrl.comp_min_on,   "MN chay min",   "s",   10.0f, 600.0f, 10.0f, 0),
-    P(ctrl.start_delay,   "Tre khoi dong", "s",    0.0f, 120.0f, 5.0f,  0),
-    P(ctrl.fan_post,      "Quat chay them","s",    0.0f, 300.0f, 5.0f,  0),
-    P(ctrl.cond_fan_mode, "Quat nong mode","",     0.0f,   1.0f, 1.0f,  0),
-    P(temp_offset,        "Bu nhiet PT100","C",   -5.0f,   5.0f, 0.1f,  1),
-    P(hum_offset,         "Bu do am",      "%",  -10.0f,  10.0f, 0.5f,  1),
+    P(ctrl.temp_hyst,     "Trễ nhiệt",           "°C",    0.5f,  10.0f, 0.5f,  1),
+    P(ctrl.hum_hyst,      "Trễ ẩm",              "%",    1.0f,  20.0f, 1.0f,  0),
+    P(ctrl.temp_max,      "Ngắt quá nhiệt",      "°C",   50.0f,  95.0f, 1.0f,  0),
+    P(ctrl.p_high,        "Ngắt áp cao",         "bar",  5.0f,  45.0f, 0.5f,  1),
+    P(ctrl.p_low,         "Ngắt áp thấp",        "bar",  0.0f,  10.0f, 0.1f,  1),
+    P(ctrl.press_enable,  "Bảo vệ áp (1=bật)",   "",     0.0f,   1.0f, 1.0f,  0),
+    P(ctrl.comp_min_off,  "Máy nén nghỉ min",    "s",   30.0f, 600.0f, 10.0f, 0),
+    P(ctrl.comp_min_on,   "Máy nén chạy min",    "s",   10.0f, 600.0f, 10.0f, 0),
+    P(ctrl.start_delay,   "Trễ khởi động",       "s",    0.0f, 120.0f, 5.0f,  0),
+    P(ctrl.fan_post,      "Quạt chạy thêm",      "s",    0.0f, 300.0f, 5.0f,  0),
+    P(ctrl.cond_fan_mode, "Quạt nóng (0/1)",     "",     0.0f,   1.0f, 1.0f,  0),
+    P(temp_offset,        "Bù nhiệt PT100",      "°C",   -5.0f,   5.0f, 0.1f,  1),
+    P(hum_offset,         "Bù độ ẩm",            "%",  -10.0f,  10.0f, 0.5f,  1),
 };
 
 #define PARAM_COUNT  (sizeof(s_params) / sizeof(s_params[0]))

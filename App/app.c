@@ -13,6 +13,7 @@
 #include "relay.h"
 #include "button.h"
 #include "ili9341.h"
+#include "ili9341_text.h"
 #include "sensors.h"
 #include "settings.h"
 #include "presets.h"
@@ -59,16 +60,16 @@ static bool on_ui_cmd(const ui_cmd_t *cmd)
 {
     switch (cmd->type) {
     case UI_CMD_START_STOP:
-        if (s_status.state == DRYER_FAULT) { UI_Message("DANG LOI - XEM TRANG 4"); return false; }
+        if (s_status.state == DRYER_FAULT) { UI_Message("Đang lỗi – xem trang 4"); return false; }
         if (s_status.state == DRYER_STOPPING) return false;
         DryerCtrl_Command(&s_ctrl, DRYER_CMD_TOGGLE);
-        UI_Message(s_status.state == DRYER_IDLE ? "BAT DAU SAY" : "DUNG SAY");
+        UI_Message(s_status.state == DRYER_IDLE ? "Bắt đầu sấy" : "Dừng sấy");
         Log_Printf("UI: start/stop");
         return true;
 
     case UI_CMD_RESET_FAULT:
         DryerCtrl_Command(&s_ctrl, DRYER_CMD_RESET_FAULT);
-        UI_Message("DA XOA LOI");
+        UI_Message("Đã xoá lỗi");
         return true;
 
     case UI_CMD_CLEAR_HISTORY:
@@ -178,6 +179,7 @@ static void build_view(ui_view_t *v)
 
     v->temp_set = set->ctrl.temp_set;
     v->hum_set  = set->ctrl.hum_set;
+    v->hum_reached = s_status.target_reached;
     v->preset   = set->preset;
     for (uint8_t i = 0; i < PRESET_COUNT && i < UI_PRESET_MAX; i++) {
         v->preset_temp[i] = set->preset_temp[i];
@@ -192,7 +194,7 @@ static void build_view(ui_view_t *v)
     v->dry_time_min = Settings_DryTimeMin();
     v->comp_wait_s  = s_status.comp_demand ? s_status.comp_wait_s : 0;
     v->fault_text   = s_status.faults ? DryerCtrl_FaultText(s_status.faults) : NULL;
-    v->warn_text    = (s_status.warnings & DRYER_WARN_HUM_SENSOR) ? "CANH BAO: MAT SHT45" : NULL;
+    v->warn_text    = (s_status.warnings & DRYER_WARN_HUM_SENSOR) ? "Cảnh báo: mất cảm biến ẩm SHT45" : NULL;
 
     uint32_t epoch;
     v->clock_ok = clock_now(&epoch);
@@ -282,8 +284,8 @@ void App_Init(void)
 
     ILI9341_Init(&board_lcd);
     ILI9341_FillScreen(C_BLACK);
-    ILI9341_DrawString(52, 100, "DRY MACHINE", C_WHITE, C_BLACK, 3);
-    ILI9341_DrawString(109, 140, "Dang khoi dong...", C_GRAY, C_BLACK, 1);
+    Text_Box(0, 92, TFT_WIDTH, "MÁY SẤY TÁCH ẨM", &font_vn16, C_WHITE, C_BLACK, TEXT_CENTER);
+    Text_Box(0, 124, TFT_WIDTH, "Đang khởi động…", &font_vn16, C_GRAY, C_BLACK, TEXT_CENTER);
 
     static const sensors_cfg_t sensors_cfg = {
         .pt100 = &board_pt100, .sht = &board_sht45, .press = &board_press,

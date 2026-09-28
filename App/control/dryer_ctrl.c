@@ -209,10 +209,10 @@ const char *DryerCtrl_StateName(dryer_state_t s)
 
 const char *DryerCtrl_FaultText(uint16_t f)
 {
-    if (f & DRYER_FAULT_PRESS_HIGH)   return "AP SUAT CAO";
-    if (f & DRYER_FAULT_PRESS_LOW)    return "AP SUAT THAP";
-    if (f & DRYER_FAULT_OVERTEMP)     return "QUA NHIET";
-    if (f & DRYER_FAULT_TEMP_SENSOR)  return "MAT CB NHIET";
-    if (f & DRYER_FAULT_PRESS_SENSOR) return "MAT CB AP SUAT";
+    if (f & DRYER_FAULT_PRESS_HIGH)   return "Áp suất cao";
+    if (f & DRYER_FAULT_PRESS_LOW)    return "Áp suất thấp";
+    if (f & DRYER_FAULT_OVERTEMP)     return "Quá nhiệt";
+    if (f & DRYER_FAULT_TEMP_SENSOR)  return "Mất cảm biến nhiệt";
+    if (f & DRYER_FAULT_PRESS_SENSOR) return "Mất cảm biến áp";
     return "";
 }

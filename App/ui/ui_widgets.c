@@ -4,32 +4,19 @@
  */
 #include "ui_internal.h"
 
-void w_text(int16_t x, int16_t y, const char *s, uint8_t width, uint16_t fg, uint16_t bg, uint8_t scale)
+void w_text(int16_t x, int16_t y, int16_t w, const char *s, uint16_t fg, uint16_t bg, text_align_t a)
 {
-    char buf[40];
-    size_t n = strlen(s);
-    if (width == 0) width = (uint8_t)n;
-    if (width >= sizeof(buf)) width = sizeof(buf) - 1;
-    if (n > width) n = width;
-    memcpy(buf, s, n);
-    memset(buf + n, ' ', width - n);          /* đệm trắng để xoá chữ cũ */
-    buf[width] = '\0';
-    ILI9341_DrawString(x, y, buf, fg, bg, scale);
+    Text_Box(x, y, w, s, F_TXT, fg, bg, a);
 }
 
-void w_text_center(int16_t y, const char *s, uint8_t width, uint16_t fg, uint16_t bg, uint8_t scale)
+void w_num(int16_t x, int16_t y, int16_t w, const char *s, uint16_t fg, uint16_t bg, text_align_t a)
 {
-    /* căn giữa trong ô width ký tự, ô đặt giữa màn hình */
-    char buf[40];
-    size_t n = strlen(s);
-    if (width >= sizeof(buf)) width = sizeof(buf) - 1;
-    if (n > width) n = width;
-    size_t left = (width - n) / 2;
-    memset(buf, ' ', width);
-    memcpy(buf + left, s, n);
-    buf[width] = '\0';
-    int16_t x = (int16_t)((TFT_WIDTH - (int16_t)width * 6 * scale) / 2);
-    ILI9341_DrawString(x, y, buf, fg, bg, scale);
+    Text_Box(x, y, w, s, F_NUM, fg, bg, a);
+}
+
+void w_label(int16_t x, int16_t y, const char *s)
+{
+    Text_Draw(x, y, s, F_TXT, UC_LABEL, UC_BG);
 }
 
 void w_hline(int16_t y)
@@ -41,19 +28,17 @@ void w_badge(int16_t x, int16_t y, int16_t w, const char *s, bool on)
 {
     uint16_t bg = on ? UC_OK : UC_OFF;
     uint16_t fg = on ? C_BLACK : UC_LABEL;
-    ILI9341_FillRect(x, y, w, 20, bg);
-    int16_t tx = (int16_t)(x + (w - (int16_t)strlen(s) * 12) / 2);
-    ILI9341_DrawString(tx, (int16_t)(y + 2), s, fg, bg, 2);
+    Text_Box(x, y, w, s, F_TXT, fg, bg, TEXT_CENTER);
 }
 
 const char *w_state_name(ui_state_t s)
 {
     switch (s) {
-    case UI_ST_IDLE:     return "DANG DUNG";
-    case UI_ST_STARTING: return "KHOI DONG";
-    case UI_ST_RUNNING:  return "DANG SAY";
-    case UI_ST_STOPPING: return "DANG TAT";
-    case UI_ST_FAULT:    return "LOI";
+    case UI_ST_IDLE:     return "Đang dừng";
+    case UI_ST_STARTING: return "Khởi động";
+    case UI_ST_RUNNING:  return "Đang sấy";
+    case UI_ST_STOPPING: return "Đang tắt";
+    case UI_ST_FAULT:    return "Lỗi";
     default:             return "?";
     }
 }

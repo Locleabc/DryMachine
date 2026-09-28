@@ -40,7 +40,7 @@ typedef struct {
 } settings_t;
 
 typedef struct {
-    const char *name;             /* ≤ 14 ký tự, không dấu */
+    const char *name;             /* tiếng Việt UTF-8, ≤ ~190 px (font_vn16) */
     const char *unit;
     uint16_t    offset;           /* offsetof trong settings_t, kiểu float */
     float       min, max, step;

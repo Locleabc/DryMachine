@@ -1,25 +1,27 @@
 /**
  * @file    ui_edit.c
- * @brief   Màn hình nhập số từng chữ số, từ trái sang phải.
+ * @brief   Màn hình nhập số từng chữ số, từ trái sang phải (số lớn font_num).
+ *          text: chữ số '0'..'9' là ô nhập, ký tự khác giữ nguyên, '\n' xuống dòng.
  *          UP/DOWN: tăng/giảm chữ số đang chọn (0..9 vòng)   ENTER: sang chữ số kế / lưu ở chữ số cuối
  *          EXIT: huỷ, quay về màn hình trước
  */
 #include "ui_internal.h"
 
-#define EDIT_MAX   20
-#define Y_LABEL    48
-#define Y_TEXT     92
-#define Y_POS      160
+#define EDIT_MAX   24            /* byte */
+#define DIG_MAX    12            /* số chữ số tối đa */
+#define Y_LABEL    38
+#define Y_TEXT1    72            /* dòng số đầu tiên */
+#define LINE_GAP   8
+#define CURSOR_H   4
 
 static struct {
     const char    *title;
     const char    *label;
     char           text[EDIT_MAX + 1];
-    uint8_t        pos[EDIT_MAX];       /* vị trí các chữ số trong text */
+    uint8_t        pos[DIG_MAX];       /* vị trí byte của các chữ số trong text */
     uint8_t        count, cur;
     ui_edit_done_t done;
     ui_scr_t       back;
-    uint8_t        scale;
 } e;
 
 void ui_edit_begin(const char *title, const char *label, const char *text,
@@ -29,11 +31,9 @@ void ui_edit_begin(const char *title, const char *label, const char *text,
     e.title = title;
     e.label = label;
     snprintf(e.text, sizeof(e.text), "%s", text);
-    for (uint8_t i = 0; e.text[i] && e.count < EDIT_MAX; i++) {
+    for (uint8_t i = 0; e.text[i] && e.count < DIG_MAX; i++) {
         if (e.text[i] >= '0' && e.text[i] <= '9') e.pos[e.count++] = i;
     }
-    size_t len = strlen(e.text);
-    e.scale = (len <= 5) ? 6 : (len <= 8) ? 4 : 3;
     e.done = done;
     e.back = back;
     ui_goto(SCR_EDIT);
@@ -41,37 +41,65 @@ void ui_edit_begin(const char *title, const char *label, const char *text,
 
 static void draw_static(void)
 {
-    /* tiêu đề riêng của lần nhập ghi đè tiêu đề chung "NHAP SO" */
-    ILI9341_FillRect(0, 0, 200, UI_HEAD_H, UC_HEAD);
-    ILI9341_DrawString(8, 6, e.title ? e.title : "NHAP SO", C_WHITE, UC_HEAD, 2);
-    w_text_center(Y_LABEL, e.label ? e.label : "", 24, UC_LABEL, UC_BG, 2);
+    /* tiêu đề riêng của lần nhập ghi đè tiêu đề chung */
+    Text_Box(8, 2, 210, e.title ? e.title : "NHẬP SỐ", F_TXT, C_WHITE, UC_HEAD, TEXT_LEFT);
+    w_text(0, Y_LABEL, TFT_WIDTH, e.label ? e.label : "", UC_LABEL, UC_BG, TEXT_CENTER);
+}
+
+/* Vẽ 1 dòng (từ byte `start` tới '\n' hoặc hết chuỗi), căn giữa */
+static void draw_line(uint8_t start, uint8_t end, int16_t y)
+{
+    char one[4];
+    int16_t w = 0;
+    /* đo độ rộng dòng */
+    for (const char *p = &e.text[start]; p < &e.text[end];) {
+        const char *q = p;
+        Text_NextChar(&q);
+        memcpy(one, p, (size_t)(q - p)); one[q - p] = '\0';
+        w = (int16_t)(w + Text_Width(F_NUM, one));
+        p = q;
+    }
+    int16_t x = (int16_t)((TFT_WIDTH - w) / 2);
+    ILI9341_FillRect(0, y, x, font_num.height + CURSOR_H + 2, UC_BG);
+    for (const char *p = &e.text[start]; p < &e.text[end];) {
+        const char *q = p;
+        Text_NextChar(&q);
+        memcpy(one, p, (size_t)(q - p)); one[q - p] = '\0';
+        uint8_t byte_pos = (uint8_t)(p - e.text);
+        bool is_digit = (*p >= '0' && *p <= '9');
+        bool is_cur   = (e.count > 0 && byte_pos == e.pos[e.cur]);
+        int16_t cw = Text_Width(F_NUM, one);
+        Text_Draw(x, y, one, F_NUM, is_cur ? C_BLACK : (is_digit ? UC_VALUE : UC_LABEL),
+                  is_cur ? UC_CURSOR : UC_BG);
+        ILI9341_FillRect(x, (int16_t)(y + font_num.height), cw, 2, UC_BG);
+        ILI9341_FillRect(x, (int16_t)(y + font_num.height + 2), cw, CURSOR_H, is_cur ? UC_CURSOR : UC_BG);
+        x = (int16_t)(x + cw);
+        p = q;
+    }
+    ILI9341_FillRect(x, y, (int16_t)(TFT_WIDTH - x), font_num.height + CURSOR_H + 2, UC_BG);
 }
 
 static void draw_values(bool full)
 {
     (void)full;
-    size_t len = strlen(e.text);
-    int16_t cw = (int16_t)(6 * e.scale);
-    int16_t x  = (int16_t)((TFT_WIDTH - (int16_t)len * cw) / 2);
-    for (size_t i = 0; i < len; i++) {
-        bool is_digit = (e.text[i] >= '0' && e.text[i] <= '9');
-        bool is_cur   = (e.count > 0 && i == e.pos[e.cur]);
-        uint16_t bg = is_cur ? UC_CURSOR : UC_BG;
-        uint16_t fg = is_cur ? C_BLACK : (is_digit ? UC_VALUE : UC_LABEL);
-        ILI9341_DrawChar((int16_t)(x + (int16_t)i * cw), Y_TEXT, e.text[i], fg, bg, e.scale);
+    int16_t y = Y_TEXT1;
+    uint8_t start = 0, i = 0;
+    for (;; i++) {
+        if (e.text[i] == '\n' || e.text[i] == '\0') {
+            draw_line(start, i, y);
+            y = (int16_t)(y + font_num.height + CURSOR_H + LINE_GAP);
+            if (e.text[i] == '\0') break;
+            start = (uint8_t)(i + 1);
+        }
     }
-    /* gạch chân chữ số đang chọn */
-    ILI9341_FillRect(0, (int16_t)(Y_TEXT + 8 * e.scale + 2), TFT_WIDTH, 4, UC_BG);
-    if (e.count) ILI9341_FillRect((int16_t)(x + e.pos[e.cur] * cw), (int16_t)(Y_TEXT + 8 * e.scale + 2), cw, 4, UC_CURSOR);
-
-    char a[24];
-    snprintf(a, sizeof(a), "Chu so %u / %u", (unsigned)(e.cur + 1), (unsigned)e.count);
-    w_text_center(Y_POS, a, 16, UC_LABEL, UC_BG, 2);
+    char a[32];
+    snprintf(a, sizeof(a), "Chữ số %u / %u", (unsigned)(e.cur + 1), (unsigned)e.count);
+    w_text(0, (int16_t)(UI_FOOT_Y - LINE_H - 4), TFT_WIDTH, a, UC_LABEL, UC_BG, TEXT_CENTER);
 }
 
 static void finish(void)
 {
-    uint8_t d[EDIT_MAX];
+    uint8_t d[DIG_MAX];
     for (uint8_t i = 0; i < e.count; i++) d[i] = (uint8_t)(e.text[e.pos[i]] - '0');
     if (e.done) e.done(d, e.count);          /* callback tự chuyển màn hình */
     else ui_goto(e.back);
@@ -96,7 +124,7 @@ static void key(ui_key_t k, ui_press_t p)
         break;
     case UI_KEY_EXIT:
         if (p == UI_PRESS_SHORT) {
-            UI_Message("DA HUY");
+            UI_Message("Đã huỷ");
             ui_goto(e.back);
         }
         break;
@@ -105,8 +133,8 @@ static void key(ui_key_t k, ui_press_t p)
 
 static const char *hint(void)
 {
-    return (e.cur + 1 < e.count) ? "UP/DN: doi so  ENTER: tiep  EXIT: huy"
-                                 : "UP/DN: doi so  ENTER: LUU  EXIT: huy";
+    return (e.cur + 1 < e.count) ? "UP/DOWN: đổi số · ENTER: tiếp · EXIT: huỷ"
+                                 : "UP/DOWN: đổi số · ENTER: LƯU · EXIT: huỷ";
 }
 
 const ui_screen_t scr_edit = {

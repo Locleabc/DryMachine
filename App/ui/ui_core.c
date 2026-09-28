@@ -18,10 +18,13 @@ static const ui_screen_t *const s_screens[SCR_COUNT] = {
 };
 
 /* ---------------- header / footer ---------------- */
+#define CLOCK_W   86          /* ô đồng hồ "14:05:32" */
+#define DOTS_W    56          /* ô số trang ở footer */
+
 static void draw_header(const ui_screen_t *s)
 {
     ILI9341_FillRect(0, 0, TFT_WIDTH, UI_HEAD_H, UC_HEAD);
-    ILI9341_DrawString(8, 6, s->title, C_WHITE, UC_HEAD, 2);
+    Text_Box(8, 2, TFT_WIDTH - 16 - CLOCK_W, s->title, F_TXT, C_WHITE, UC_HEAD, TEXT_LEFT);
     g_ui.clock_drawn[0] = '\0';
 }
 
@@ -32,7 +35,7 @@ static void draw_clock(void)
     else                 snprintf(c, sizeof(c), "--:--:--");
     if (strcmp(c, g_ui.clock_drawn) == 0) return;
     strcpy(g_ui.clock_drawn, c);
-    ILI9341_DrawString(TFT_WIDTH - 8 - 8 * 12, 6, c, g_ui.v.clock_ok ? C_WHITE : UC_LABEL, UC_HEAD, 2);
+    Text_Box(TFT_WIDTH - 8 - CLOCK_W, 2, CLOCK_W, c, F_TXT, g_ui.v.clock_ok ? C_WHITE : UC_LABEL, UC_HEAD, TEXT_RIGHT);
 }
 
 static void draw_footer_static(const ui_screen_t *s)
@@ -40,7 +43,8 @@ static void draw_footer_static(const ui_screen_t *s)
     ILI9341_FillRect(0, UI_FOOT_Y, TFT_WIDTH, TFT_HEIGHT - UI_FOOT_Y, UC_FOOT);
     if (s->page >= 0) {
         for (int i = 0; i < UI_PAGE_COUNT; i++) {
-            ILI9341_FillRect((int16_t)(270 + i * 12), 228, 9, 7, (i == s->page) ? UC_ACCENT : UC_OFF);
+            ILI9341_FillRect((int16_t)(TFT_WIDTH - DOTS_W + 6 + i * 12), UI_FOOT_Y + 9, 8, 6,
+                             (i == s->page) ? UC_ACCENT : UC_OFF);
         }
     }
     g_ui.foot_drawn[0] = '\0';
@@ -50,15 +54,14 @@ static void draw_footer_text(const ui_screen_t *s)
 {
     bool msg = g_ui.msg[0] && (g_ui.now - g_ui.msg_tick) < UI_MSG_MS;
     const char *txt = msg ? g_ui.msg : (s->hint ? s->hint() : "");
-    char key[48];
+    char key[sizeof(g_ui.foot_drawn)];
     snprintf(key, sizeof(key), "%c%s", msg ? 'M' : 'H', txt);
     if (strcmp(key, g_ui.foot_drawn) == 0) return;
     strcpy(g_ui.foot_drawn, key);
 
-    int16_t w = (s->page >= 0) ? 262 : TFT_WIDTH;
-    ILI9341_FillRect(0, UI_FOOT_Y, w, TFT_HEIGHT - UI_FOOT_Y, UC_FOOT);
-    if (msg) ILI9341_DrawString(6, UI_FOOT_Y + 2, txt, UC_ACCENT, UC_FOOT, 2);
-    else     ILI9341_DrawString(6, UI_FOOT_Y + 6, txt, UC_LABEL, UC_FOOT, 1);
+    int16_t w = (int16_t)((s->page >= 0) ? TFT_WIDTH - DOTS_W : TFT_WIDTH);
+    ILI9341_FillRect(0, UI_FOOT_Y, 6, TFT_HEIGHT - UI_FOOT_Y, UC_FOOT);
+    Text_Box(6, UI_FOOT_Y, (int16_t)(w - 6), txt, F_TXT, msg ? UC_ACCENT : UC_LABEL, UC_FOOT, TEXT_LEFT);
 }
 
 /* ---------------- API nội bộ ---------------- */

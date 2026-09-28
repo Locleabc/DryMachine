@@ -14,7 +14,7 @@
 #define PRESET_COUNT         (PRESET_FIXED_COUNT + 1)
 
 typedef struct {
-    const char *name;        /* ≤ 12 ký tự, không dấu (font ASCII) */
+    const char *name;        /* tiếng Việt UTF-8, ≤ ~180 px (font_vn16) */
     float       temp;        /* °C  */
     float       hum;         /* %RH */
 } preset_def_t;

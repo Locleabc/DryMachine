@@ -1,15 +1,18 @@
 /**
  * @file    ui_menu_preset.c
- * @brief   Menu chế độ sấy: 6 chế độ đặt sẵn + "Tu do" + "Chinh dong ho".
+ * @brief   Menu chế độ sấy: 6 chế độ đặt sẵn + "Tự do" + "Chỉnh đồng hồ".
  *          ENTER trên chế độ đặt sẵn   → áp dụng ngay
  *          Giữ ENTER trên chế độ đặt sẵn → sửa nhiệt độ/độ ẩm của chế độ đó
- *          ENTER trên "Tu do"          → nhập nhiệt độ, độ ẩm rồi áp dụng
- *          ENTER trên "Chinh dong ho"  → nhập ngày giờ
+ *          ENTER trên "Tự do"          → nhập nhiệt độ, độ ẩm rồi áp dụng
+ *          ENTER trên "Chỉnh đồng hồ"  → nhập ngày giờ
  */
 #include "ui_internal.h"
 
-#define ROW_Y0   32
-#define ROW_H    23
+#define ROW_Y0   30
+#define ROW_H    LINE_H
+#define X_NAME   8
+#define X_VAL    196
+#define W_VAL    (TFT_WIDTH - 8 - X_VAL)
 
 static uint8_t s_sel;          /* dòng đang chọn */
 static uint8_t s_edit_idx;     /* chế độ đang sửa */
@@ -24,21 +27,23 @@ static void draw_row(uint8_t r)
     int16_t y = (int16_t)(ROW_Y0 + r * ROW_H);
     bool sel = (r == s_sel);
     uint16_t bg = sel ? UC_SEL : UC_BG;
-    char line[48], val[16];
+    char line[48], val[24];
 
-    ILI9341_FillRect(0, y, TFT_WIDTH, ROW_H, bg);
+    ILI9341_FillRect(0, y, X_NAME, ROW_H, bg);
     if (is_clock_row(r)) {
         if (v->clock_ok) snprintf(val, sizeof(val), "%02u:%02u", v->hour, v->min);
         else             snprintf(val, sizeof(val), "--:--");
-        snprintf(line, sizeof(line), "   %-14s %8s", "Chinh dong ho", val);
-        ILI9341_DrawString(4, (int16_t)(y + 4), line, UC_LABEL, bg, 2);
-        return;
+        w_text(X_NAME, y, X_VAL - X_NAME, "   Chỉnh đồng hồ", UC_LABEL, bg, TEXT_LEFT);
+        w_text(X_VAL, y, W_VAL, val, UC_LABEL, bg, TEXT_RIGHT);
+    } else {
+        bool active = (r == v->preset);
+        uint16_t fg = active ? UC_OK : UC_VALUE;
+        snprintf(line, sizeof(line), "%s%u  %s", active ? "•" : "  ", (unsigned)(r + 1), g_ui.cfg->preset_names[r]);
+        snprintf(val, sizeof(val), "%d°C  %d%%", (int)(v->preset_temp[r] + 0.5f), (int)(v->preset_hum[r] + 0.5f));
+        w_text(X_NAME, y, X_VAL - X_NAME, line, fg, bg, TEXT_LEFT);
+        w_text(X_VAL, y, W_VAL, val, fg, bg, TEXT_RIGHT);
     }
-    bool active = (r == v->preset);
-    snprintf(val, sizeof(val), "%2dC %2d%%", (int)(v->preset_temp[r] + 0.5f), (int)(v->preset_hum[r] + 0.5f));
-    snprintf(line, sizeof(line), "%c%u %-12s %8s", active ? '*' : ' ', (unsigned)(r + 1),
-             g_ui.cfg->preset_names[r], val);
-    ILI9341_DrawString(4, (int16_t)(y + 4), line, active ? UC_OK : UC_VALUE, bg, 2);
+    ILI9341_FillRect(TFT_WIDTH - 8, y, 8, ROW_H, bg);
 }
 
 static void enter(void)
@@ -69,11 +74,11 @@ static void preset_done(const uint8_t *d, uint8_t n)
         c.u.preset.select = is_custom(s_edit_idx);
         bool ok = ui_send(&c);
         if (c.u.preset.select) {
-            UI_Message(ok ? "DA AP DUNG TU DO" : "DA GIOI HAN 30-75C");
+            UI_Message(ok ? "Đã áp dụng chế độ Tự do" : "Đã giới hạn 30–75°C, 5–80%");
             ui_goto(SCR_MAIN);
             return;
         }
-        UI_Message(ok ? "DA LUU CHE DO" : "DA GIOI HAN 30-75C");
+        UI_Message(ok ? "Đã lưu chế độ" : "Đã giới hạn 30–75°C, 5–80%");
     }
     ui_goto(SCR_PRESET);
 }
@@ -87,27 +92,29 @@ static void clock_done(const uint8_t *d, uint8_t n)
         c.u.clock.year = (uint16_t)(2000 + d[4] * 10 + d[5]);
         c.u.clock.hour = (uint8_t)(d[6] * 10 + d[7]);
         c.u.clock.min  = (uint8_t)(d[8] * 10 + d[9]);
-        UI_Message(ui_send(&c) ? "DA CHINH GIO" : "NGAY GIO SAI!");
+        UI_Message(ui_send(&c) ? "Đã chỉnh đồng hồ" : "Ngày giờ không hợp lệ!");
     }
     ui_goto(SCR_PRESET);
 }
 
 static void begin_preset_edit(uint8_t idx)
 {
-    char t[16];
+    char t[24];
     s_edit_idx = idx;
-    snprintf(t, sizeof(t), "%02dC %02d%%", (int)(g_ui.v.preset_temp[idx] + 0.5f) % 100,
+    snprintf(t, sizeof(t), "%02d°C %02d%%", (int)(g_ui.v.preset_temp[idx] + 0.5f) % 100,
              (int)(g_ui.v.preset_hum[idx] + 0.5f) % 100);
-    ui_edit_begin(g_ui.cfg->preset_names[idx], "Nhiet do   Do am", t, preset_done, SCR_PRESET);
+    ui_edit_begin(g_ui.cfg->preset_names[idx], "Nhiệt độ        Độ ẩm", t, preset_done, SCR_PRESET);
 }
 
 static void begin_clock_edit(void)
 {
     const ui_view_t *v = &g_ui.v;
-    char t[20];
-    if (v->clock_ok) snprintf(t, sizeof(t), "%02u/%02u/%02u %02u:%02u", v->day, v->mon, v->year % 100, v->hour, v->min);
-    else             snprintf(t, sizeof(t), "01/01/26 00:00");
-    ui_edit_begin("CHINH DONG HO", "Ngay/Thang/Nam Gio:Phut", t, clock_done, SCR_PRESET);
+    char t[24];
+    /* 2 dòng: ngày-tháng-năm / giờ:phút */
+    if (v->clock_ok) snprintf(t, sizeof(t), "%02u-%02u-%02u\n%02u:%02u", v->day % 100u, v->mon % 100u,
+                              v->year % 100u, v->hour % 100u, v->min % 100u);
+    else             snprintf(t, sizeof(t), "01-01-26\n00:00");
+    ui_edit_begin("CHỈNH ĐỒNG HỒ", "Ngày - Tháng - Năm  /  Giờ : Phút", t, clock_done, SCR_PRESET);
 }
 
 static void key(ui_key_t k, ui_press_t p)
@@ -126,8 +133,8 @@ static void key(ui_key_t k, ui_press_t p)
             ui_cmd_t c = { .type = UI_CMD_SELECT_PRESET };
             c.u.preset.idx = s_sel;
             ui_send(&c);
-            char m[24];
-            snprintf(m, sizeof(m), "CHON: %s", g_ui.cfg->preset_names[s_sel]);
+            char m[48];
+            snprintf(m, sizeof(m), "Đã chọn: %s", g_ui.cfg->preset_names[s_sel]);
             UI_Message(m);
             ui_goto(SCR_MAIN);
         }
@@ -137,12 +144,12 @@ static void key(ui_key_t k, ui_press_t p)
 
 static const char *hint(void)
 {
-    if (is_clock_row(s_sel)) return "ENTER: chinh gio   EXIT: thoat";
-    if (is_custom(s_sel))    return "ENTER: nhap gia tri   EXIT: thoat";
-    return "ENTER: chon  Giu ENTER: sua  EXIT: thoat";
+    if (is_clock_row(s_sel)) return "ENTER: chỉnh giờ · EXIT: thoát";
+    if (is_custom(s_sel))    return "ENTER: nhập giá trị · EXIT: thoát";
+    return "ENTER: chọn · Giữ ENTER: sửa";
 }
 
 const ui_screen_t scr_preset = {
-    .title = "CHE DO SAY", .page = -1, .refresh_ms = 1000,
+    .title = "CHẾ ĐỘ SẤY", .page = -1, .refresh_ms = 1000,
     .enter = enter, .draw_values = draw_values, .key = key, .hint = hint,
 };

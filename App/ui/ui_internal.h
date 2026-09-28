@@ -17,6 +17,7 @@
 
 #include "ui.h"
 #include "ili9341.h"
+#include "ili9341_text.h"
 #include "util_fmt.h"
 #include <stdio.h>
 #include <string.h>
@@ -39,8 +40,11 @@
 #define UC_OFF      RGB565(55, 60, 68)
 
 /* ---------------- Bố cục ---------------- */
-#define UI_HEAD_H   28
-#define UI_FOOT_Y   222
+#define UI_HEAD_H   27
+#define UI_FOOT_Y   217              /* footer cao 23 px = 1 dòng font_vn16 */
+#define F_TXT       (&font_vn16)     /* chữ tiếng Việt */
+#define F_NUM       (&font_num)      /* số lớn */
+#define LINE_H      23               /* chiều cao dòng F_TXT */
 #define UI_BODY_Y   UI_HEAD_H
 #define UI_PAGE_COUNT 4
 #define UI_MSG_MS   2000
@@ -69,10 +73,10 @@ typedef struct {
     bool       redraw;                          /* vẽ lại toàn màn hình */
     bool       dirty;                           /* vẽ lại giá trị ngay */
     uint32_t   now, last_draw;
-    char       msg[24];
+    char       msg[48];
     uint32_t   msg_tick;
     char       clock_drawn[16];
-    char       foot_drawn[48];
+    char       foot_drawn[80];
 } ui_ctx_t;
 
 extern ui_ctx_t g_ui;
@@ -92,8 +96,10 @@ void ui_edit_begin(const char *title, const char *label, const char *text,
                    ui_edit_done_t done, ui_scr_t back);
 
 /* ---------------- Widgets (ui_widgets.c) ---------------- */
-void w_text(int16_t x, int16_t y, const char *s, uint8_t width, uint16_t fg, uint16_t bg, uint8_t scale);
-void w_text_center(int16_t y, const char *s, uint8_t width, uint16_t fg, uint16_t bg, uint8_t scale);
+/* Ô chữ rộng w px: căn lề + tô nền phần thừa (xoá chữ cũ) */
+void w_text(int16_t x, int16_t y, int16_t w, const char *s, uint16_t fg, uint16_t bg, text_align_t a);
+void w_num(int16_t x, int16_t y, int16_t w, const char *s, uint16_t fg, uint16_t bg, text_align_t a);
+void w_label(int16_t x, int16_t y, const char *s);                 /* nhãn tĩnh màu xám */
 void w_hline(int16_t y);
 void w_badge(int16_t x, int16_t y, int16_t w, const char *s, bool on);
 const char *w_state_name(ui_state_t s);
