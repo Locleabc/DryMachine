@@ -17,20 +17,47 @@ Giao diện dùng font **Be Vietnam Pro** (SIL Open Font License 1.1) chuyển t
 * Keil ARMCC 5: cần option `--no_multibyte_chars` (C/C++ → Misc Controls) – `tools/keil_setup.py` tự thêm.
 * Toàn bộ firmware hiện ~52 KB / 62 KB Flash.
 
-## 4 trang chính – chuyển bằng UP / DOWN
+## 5 trang chính – chuyển bằng UP / DOWN
 
 | Trang | Nội dung | Phím riêng |
 |-------|----------|------------|
-| 1 Chính | Nhiệt độ, độ ẩm thực tế (số lớn) + điểm đặt, chế độ đang dùng, trạng thái, thời gian đã sấy / còn lại, relay | Giữ EXIT 3 s: menu kỹ thuật |
-| 2 Chạy / Dừng | Trạng thái, thời gian sấy, máy nén | ENTER: chạy / dừng |
-| 3 Thời gian sấy | HH:MM (00:00 = không giới hạn), thời gian còn lại | ENTER: chỉnh từng chữ số |
-| 4 Lịch sử lỗi | Lỗi đang có + 6 lỗi gần nhất (ngày giờ, tên lỗi) | ENTER: xoá lỗi đang có · Giữ EXIT 3 s: xoá lịch sử |
+| 1 Chính | Nhiệt độ, độ ẩm (số lớn) + điểm đặt, chế độ sấy, giai đoạn đang chạy, thời gian, relay (MN, QN + cấp, QL) | Giữ EXIT 3 s: menu kỹ thuật |
+| 2 Chạy / Dừng | Trạng thái (Tự động/Thủ công), giai đoạn, đã sấy, còn lại, máy nén | ENTER: chạy / dừng |
+| 3 Thời gian sấy | HH:MM (00:00 = không giới hạn). **Chỉ dùng cho chế độ Tự động**, Thủ công hiện "không áp dụng" | ENTER: chỉnh từng chữ số |
+| 4 Quạt dàn nóng | Chế độ Tự động / Thủ công, bảng 5 giai đoạn + cấp quạt, nhiệt độ bảo vệ, thời gian chờ máy nén | ENTER: danh sách cài đặt |
+| 5 Lịch sử lỗi | Lỗi đang có + 6 lỗi gần nhất (ngày giờ, tên lỗi) | ENTER: xoá lỗi đang có · Giữ EXIT 3 s: xoá lịch sử |
 
 Ở mọi trang: **giữ ENTER 3 s → menu chế độ sấy**, EXIT → về trang chính.
-Header luôn hiện đồng hồ HH:MM:SS; footer hiện gợi ý phím, thông báo và số trang (4 ô vuông).
+Header luôn hiện đồng hồ HH:MM:SS; footer hiện gợi ý phím, thông báo và số trang (5 ô vuông).
 
 ![Trang 1](ui/01_main.png) ![Trang 2](ui/02_run.png)
-![Trang 3](ui/03_timer.png) ![Trang 4](ui/04_faults.png)
+![Trang 3](ui/03_timer.png) ![Trang 4](ui/04_fan.png)
+![Trang 5](ui/05_faults.png)
+
+## Điều khiển quạt dàn nóng & máy nén
+
+**Tự động** – quạt dàn nóng chạy cấp *Tự động: cấp quạt* (mặc định 3):
+1. Quạt chạy trước *GĐ1: quạt chạy trước* giây (mặc định 60 s) rồi bật máy nén.
+2. Máy nén chạy liên tục tới khi độ ẩm ≤ độ ẩm đặt → dừng máy nén.
+3. Sau đó máy nén bật/tắt giữ nhiệt độ đặt, bỏ qua độ ẩm, tới hết *thời gian sấy* (trang 3).
+4. Hết giờ: tắt máy nén, quạt chạy làm mát tới *GĐ5: nhiệt độ dừng* thì kết thúc. Thời gian sấy 00:00 = chạy tới khi bấm dừng.
+
+**Thủ công** – 5 giai đoạn, mỗi giai đoạn chọn cấp quạt riêng; thời gian sấy trang 3 không áp dụng:
+
+| GĐ | Máy nén | Chuyển sang GĐ sau khi |
+|----|---------|------------------------|
+| 1 | quạt chạy trước 60 s, rồi máy nén chạy liên tục | nhiệt độ ≥ nhiệt độ đặt |
+| 2 | giữ nhiệt độ đặt | độ ẩm ≤ độ ẩm đặt |
+| 3 | giữ nhiệt độ đặt | hết *GĐ3: thời gian* (phút) |
+| 4 | giữ nhiệt độ đặt | hết *GĐ4: thời gian* (phút) |
+| 5 | **tắt** | nhiệt độ ≤ *GĐ5: nhiệt độ dừng* → kết thúc chu trình |
+
+Chung cho cả hai chế độ:
+* **Máy nén chờ bật lại** (mặc định 60 s, chỉnh ở trang 4): sau mỗi lần dừng phải chờ đủ mới bật lại.
+* **Nhiệt độ bảo vệ** (mặc định 75 °C, chỉnh ở trang 4): vượt → dừng máy, báo lỗi *Quá nhiệt*.
+* Quạt dàn lạnh chạy suốt chu trình. Quạt dàn nóng 5 cấp: chỉ 1 relay đóng, đổi cấp nghỉ 1 s.
+* Mất cảm biến ẩm: Tự động chuyển sang giữ nhiệt; Thủ công bỏ qua GĐ2 (có cảnh báo).
+* Đổi chế độ khi máy đang chạy: áp dụng từ lần chạy sau.
 
 ## Menu chế độ sấy (giữ ENTER 3 s)
 

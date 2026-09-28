@@ -672,6 +672,11 @@
               <FileType>1</FileType>
               <FilePath>../App/control/dryer_ctrl.c</FilePath>
             </File>
+            <File>
+              <FileName>fan_speed.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../App/control/fan_speed.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -688,14 +693,19 @@
               <FilePath>../App/ui/ui_edit.c</FilePath>
             </File>
             <File>
+              <FileName>ui_list.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../App/ui/ui_list.c</FilePath>
+            </File>
+            <File>
               <FileName>ui_menu_preset.c</FileName>
               <FileType>1</FileType>
               <FilePath>../App/ui/ui_menu_preset.c</FilePath>
             </File>
             <File>
-              <FileName>ui_menu_tech.c</FileName>
+              <FileName>ui_page_fan.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../App/ui/ui_menu_tech.c</FilePath>
+              <FilePath>../App/ui/ui_page_fan.c</FilePath>
             </File>
             <File>
               <FileName>ui_page_faults.c</FileName>
