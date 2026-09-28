@@ -54,14 +54,14 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(LED_RUN_GPIO_Port, LED_RUN_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(TFT_CS_GPIO_Port, TFT_CS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, RLY_FAN_S2_Pin|RLY_FAN_S3_Pin|RLY_FAN_S4_Pin|TFT_CS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(TFT_DC_GPIO_Port, TFT_DC_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, TFT_RST_Pin|MAX_CS_Pin|RLY_COMP_Pin|RLY_FAN_COND_Pin
-                          |RLY_FAN_EVAP_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOB, TFT_RST_Pin|MAX_CS_Pin|RLY_COMP_Pin|RLY_FAN_S5_Pin
+                          |RLY_FAN_S1_Pin|RLY_FAN_EVAP_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : LED_RUN_Pin */
   GPIO_InitStruct.Pin = LED_RUN_Pin;
@@ -70,17 +70,17 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_RUN_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : TFT_CS_Pin */
-  GPIO_InitStruct.Pin = TFT_CS_Pin;
+  /*Configure GPIO pins : RLY_FAN_S2_Pin RLY_FAN_S3_Pin RLY_FAN_S4_Pin TFT_CS_Pin */
+  GPIO_InitStruct.Pin = RLY_FAN_S2_Pin|RLY_FAN_S3_Pin|RLY_FAN_S4_Pin|TFT_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(TFT_CS_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : TFT_DC_Pin TFT_RST_Pin MAX_CS_Pin RLY_COMP_Pin
-                           RLY_FAN_COND_Pin RLY_FAN_EVAP_Pin */
+                           RLY_FAN_S5_Pin RLY_FAN_S1_Pin RLY_FAN_EVAP_Pin */
   GPIO_InitStruct.Pin = TFT_DC_Pin|TFT_RST_Pin|MAX_CS_Pin|RLY_COMP_Pin
-                          |RLY_FAN_COND_Pin|RLY_FAN_EVAP_Pin;
+                          |RLY_FAN_S5_Pin|RLY_FAN_S1_Pin|RLY_FAN_EVAP_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;

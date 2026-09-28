@@ -19,6 +19,10 @@ VCC TFT, nguồn cảm biến áp. 3.3V lấy từ LDO trên Blue Pill cho MAX31
 | PA8  | GPIO_Input (Pull-up) | BTN_ENTER | Nút ENTER → GND |
 | PA9  | USART1_TX | – | Debug log 115200 (USB-UART) |
 | PA10 | USART1_RX | – | Debug |
+| PA1  | GPIO_Output (High) | RLY_FAN_S2 | Relay IN4 – quạt dàn nóng cấp 2 |
+| PA2  | GPIO_Output (High) | RLY_FAN_S3 | Relay IN5 – quạt dàn nóng cấp 3 |
+| PA3  | GPIO_Output (High) | RLY_FAN_S4 | Relay IN6 – quạt dàn nóng cấp 4 |
+| PB4  | GPIO_Output (High) | RLY_FAN_S5 | Relay IN7 – quạt dàn nóng cấp 5 (cần SYS = Serial Wire) |
 | PA13 | SYS_SWDIO | – | ST-Link |
 | PA14 | SYS_SWCLK | – | ST-Link |
 | PA15 | GPIO_Input (Pull-up) | BTN_EXIT | Nút EXIT → GND (cần SYS = Serial Wire) |
@@ -27,8 +31,8 @@ VCC TFT, nguồn cảm biến áp. 3.3V lấy từ LDO trên Blue Pill cho MAX31
 | PB10 | I2C2_SCL | – | SHT45 SCL (pull-up 4.7 kΩ lên 3.3 V) |
 | PB11 | I2C2_SDA | – | SHT45 SDA (pull-up 4.7 kΩ lên 3.3 V) |
 | PB5  | GPIO_Output (High) | RLY_COMP | Relay IN1 – máy nén (qua contactor) |
-| PB6  | GPIO_Output (High) | RLY_FAN_COND | Relay IN2 – quạt dàn nóng |
-| PB7  | GPIO_Output (High) | RLY_FAN_EVAP | Relay IN3 – quạt dàn lạnh |
+| PB6  | GPIO_Output (High) | RLY_FAN_S1 | Relay IN3 – quạt dàn nóng cấp 1 |
+| PB7  | GPIO_Output (High) | RLY_FAN_EVAP | Relay IN2 – quạt dàn lạnh |
 | PB8  | GPIO_Input (Pull-up) | BTN_UP | Nút UP → GND |
 | PB9  | GPIO_Input (Pull-up) | BTN_DOWN | Nút DOWN → GND |
 | PB12 | GPIO_Output | MAX_CS | MAX31865 CS |
@@ -39,9 +43,16 @@ VCC TFT, nguồn cảm biến áp. 3.3V lấy từ LDO trên Blue Pill cho MAX31
 | VBAT (VB) | – | – | Pin CR2032 (+) để giữ giờ khi mất điện; (−) nối GND |
 | PC13 | GPIO_Output | LED_RUN | LED trên board (nhấp nháy = chương trình đang chạy) |
 
-Mức khởi động của các chân Output: **CS = High, RELAY (PB5–PB7) = High (relay kích mức thấp → nhả)**.
+Mức khởi động của các chân Output: **CS = High, 7 chân RELAY = High (relay kích mức thấp → nhả)**.
 
-Chân trống dự phòng: PA1, PA2, PA3 (USART2 nếu sau này cần RS485), PB3, PB4.
+Chân trống dự phòng: PB3 (+ IN8 của module relay 8 kênh).
+
+## Quạt dàn nóng 5 cấp
+
+Motor quạt nhiều đầu dây tốc độ: dây chung (COM motor) lên N/L theo sơ đồ motor, mỗi đầu dây tốc độ đi qua
+tiếp điểm NO của 1 relay (IN3…IN7). Firmware chỉ đóng **đúng 1** relay tốc độ, khi đổi cấp thì tắt hết
+1 giây rồi mới đóng cấp mới (`control/fan_speed.c`). Nên thêm khoá liên động cứng (dùng tiếp điểm NC nối tiếp)
+nếu motor không chịu được 2 đầu dây cùng có điện khi relay dính.
 
 ## Lưu ý phần cứng
 

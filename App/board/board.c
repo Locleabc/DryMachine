@@ -14,13 +14,18 @@ extern ADC_HandleTypeDef  hadc1;
 extern UART_HandleTypeDef huart1;
 
 /* ---------------- Relay ----------------
- * Module relay 5V opto, kích mức THẤP: VCC (opto) = 3.3V, JD-VCC = 5V buck, tháo jumper.
- * CubeMX: đặt mức khởi động PB5/PB6/PB7 = High để relay nhả khi cấp điện.
+ * Module relay 8 kênh 5V opto, kích mức THẤP: VCC (opto) = 3.3V, JD-VCC = 5V buck, tháo jumper.
+ * CubeMX: mức khởi động các chân relay = High để relay nhả khi cấp điện.
+ * Quạt dàn nóng 5 cấp: S1 PB6, S2 PA1, S3 PA2, S4 PA3, S5 PB4 (motor nhiều đầu dây tốc độ).
  * Nếu đổi sang module kích mức cao: sửa thành GPIO_PIN_SET và mức khởi động = Low. */
 const relay_hw_t board_relays[RLY_ID_COUNT] = {
     [RLY_ID_COMP]     = { RLY_COMP_GPIO_Port,     RLY_COMP_Pin,     GPIO_PIN_RESET },
-    [RLY_ID_FAN_COND] = { RLY_FAN_COND_GPIO_Port, RLY_FAN_COND_Pin, GPIO_PIN_RESET },
     [RLY_ID_FAN_EVAP] = { RLY_FAN_EVAP_GPIO_Port, RLY_FAN_EVAP_Pin, GPIO_PIN_RESET },
+    [RLY_ID_FAN_S1]   = { RLY_FAN_S1_GPIO_Port,   RLY_FAN_S1_Pin,   GPIO_PIN_RESET },
+    [RLY_ID_FAN_S2]   = { RLY_FAN_S2_GPIO_Port,   RLY_FAN_S2_Pin,   GPIO_PIN_RESET },
+    [RLY_ID_FAN_S3]   = { RLY_FAN_S3_GPIO_Port,   RLY_FAN_S3_Pin,   GPIO_PIN_RESET },
+    [RLY_ID_FAN_S4]   = { RLY_FAN_S4_GPIO_Port,   RLY_FAN_S4_Pin,   GPIO_PIN_RESET },
+    [RLY_ID_FAN_S5]   = { RLY_FAN_S5_GPIO_Port,   RLY_FAN_S5_Pin,   GPIO_PIN_RESET },
 };
 
 /* ---------------- Nút bấm (pull-up nội, nhấn = GND) ---------------- */

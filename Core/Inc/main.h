@@ -61,6 +61,12 @@ void Error_Handler(void);
 #define LED_RUN_GPIO_Port GPIOC
 #define PRESS_ADC_Pin GPIO_PIN_0
 #define PRESS_ADC_GPIO_Port GPIOA
+#define RLY_FAN_S2_Pin GPIO_PIN_1
+#define RLY_FAN_S2_GPIO_Port GPIOA
+#define RLY_FAN_S3_Pin GPIO_PIN_2
+#define RLY_FAN_S3_GPIO_Port GPIOA
+#define RLY_FAN_S4_Pin GPIO_PIN_3
+#define RLY_FAN_S4_GPIO_Port GPIOA
 #define TFT_CS_Pin GPIO_PIN_4
 #define TFT_CS_GPIO_Port GPIOA
 #define TFT_DC_Pin GPIO_PIN_0
@@ -75,10 +81,12 @@ void Error_Handler(void);
 #define BTN_EXIT_GPIO_Port GPIOA
 #define RLY_COMP_Pin GPIO_PIN_5
 #define RLY_COMP_GPIO_Port GPIOB
-#define RLY_FAN_COND_Pin GPIO_PIN_6
-#define RLY_FAN_COND_GPIO_Port GPIOB
+#define RLY_FAN_S1_Pin GPIO_PIN_6
+#define RLY_FAN_S1_GPIO_Port GPIOB
 #define RLY_FAN_EVAP_Pin GPIO_PIN_7
 #define RLY_FAN_EVAP_GPIO_Port GPIOB
+#define RLY_FAN_S5_Pin GPIO_PIN_4
+#define RLY_FAN_S5_GPIO_Port GPIOB
 #define BTN_UP_Pin GPIO_PIN_8
 #define BTN_UP_GPIO_Port GPIOB
 #define BTN_DOWN_Pin GPIO_PIN_9

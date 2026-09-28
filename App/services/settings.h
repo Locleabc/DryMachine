@@ -15,8 +15,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define SETTINGS_MAGIC     0x44525933UL   /* "DRY3" */
-#define SETTINGS_VERSION   3
+#define SETTINGS_MAGIC     0x44525934UL   /* "DRY4" */
+#define SETTINGS_VERSION   4
+
+/* Nhóm thông số (mỗi nhóm là 1 danh sách trên màn hình) */
+#define SETTINGS_GROUP_PROCESS  0      /* trang "Quạt dàn nóng / chu trình" */
+#define SETTINGS_GROUP_TECH     1      /* menu kỹ thuật ẩn */
 
 /* Giới hạn điểm đặt (áp dụng cho cả chế độ đặt sẵn và tự do) */
 #define SETTINGS_TEMP_MIN  30.0f
@@ -45,6 +49,8 @@ typedef struct {
     uint16_t    offset;           /* offsetof trong settings_t, kiểu float */
     float       min, max, step;
     uint8_t     dec;
+    uint8_t     group;            /* SETTINGS_GROUP_* */
+    const char *const *choices;   /* != NULL: hiển thị chữ thay số (giá trị = chỉ số) */
 } settings_param_t;
 
 void    Settings_Init(const flash_store_cfg_t *store);   /* nạp Flash, lỗi → mặc định */
@@ -58,7 +64,9 @@ bool    Settings_SetPresetValues(uint8_t idx, float temp, float hum); /* false n
 void    Settings_SetDryTimeMin(uint16_t minutes);                  /* 0 = không giới hạn */
 uint16_t Settings_DryTimeMin(void);
 
-/* ---- Thông số kỹ thuật (menu ẩn) ---- */
+/* ---- Bảng thông số (chỉ số toàn cục) ---- */
+uint8_t Settings_GroupCount(uint8_t group);
+int     Settings_GroupIndex(uint8_t group, uint8_t n);   /* n-th thông số của nhóm → chỉ số, -1 nếu không có */
 uint8_t Settings_ParamCount(void);
 const settings_param_t *Settings_Param(uint8_t idx);
 float   Settings_GetValue(uint8_t idx);

@@ -15,7 +15,16 @@
 #include "flash_store.h"
 
 /* Chỉ số relay trong board_relays[] */
-enum { RLY_ID_COMP = 0, RLY_ID_FAN_COND, RLY_ID_FAN_EVAP, RLY_ID_COUNT };
+enum {
+    RLY_ID_COMP = 0,        /* máy nén (qua contactor) */
+    RLY_ID_FAN_EVAP,        /* quạt dàn lạnh */
+    RLY_ID_FAN_S1,          /* quạt dàn nóng cấp 1..5 – chỉ 1 relay đóng tại một thời điểm */
+    RLY_ID_FAN_S2,
+    RLY_ID_FAN_S3,
+    RLY_ID_FAN_S4,
+    RLY_ID_FAN_S5,
+    RLY_ID_COUNT
+};
 
 /* Chỉ số nút trong board_buttons[] */
 enum { BTN_ID_UP = 0, BTN_ID_DOWN, BTN_ID_ENTER, BTN_ID_EXIT, BTN_ID_COUNT };

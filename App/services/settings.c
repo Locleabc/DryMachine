@@ -5,23 +5,39 @@
 #include <stddef.h>
 #include <string.h>
 
-#define P(field, name, unit, mn, mx, st, dc) \
-    { name, unit, (uint16_t)offsetof(settings_t, field), mn, mx, st, dc }
+#define P(grp, field, name, unit, mn, mx, st, dc, ch) \
+    { name, unit, (uint16_t)offsetof(settings_t, field), mn, mx, st, dc, grp, ch }
+
+static const char *const s_mode_ch[]  = { "Tự động", "Thủ công" };
+static const char *const s_onoff_ch[] = { "Tắt", "Bật" };
+
+#define PR SETTINGS_GROUP_PROCESS
+#define TE SETTINGS_GROUP_TECH
 
 static const settings_param_t s_params[] = {
-    P(ctrl.temp_hyst,     "Trễ nhiệt",           "°C",    0.5f,  10.0f, 0.5f,  1),
-    P(ctrl.hum_hyst,      "Trễ ẩm",              "%",    1.0f,  20.0f, 1.0f,  0),
-    P(ctrl.temp_max,      "Ngắt quá nhiệt",      "°C",   50.0f,  95.0f, 1.0f,  0),
-    P(ctrl.p_high,        "Ngắt áp cao",         "bar",  5.0f,  45.0f, 0.5f,  1),
-    P(ctrl.p_low,         "Ngắt áp thấp",        "bar",  0.0f,  10.0f, 0.1f,  1),
-    P(ctrl.press_enable,  "Bảo vệ áp (1=bật)",   "",     0.0f,   1.0f, 1.0f,  0),
-    P(ctrl.comp_min_off,  "Máy nén nghỉ min",    "s",   30.0f, 600.0f, 10.0f, 0),
-    P(ctrl.comp_min_on,   "Máy nén chạy min",    "s",   10.0f, 600.0f, 10.0f, 0),
-    P(ctrl.start_delay,   "Trễ khởi động",       "s",    0.0f, 120.0f, 5.0f,  0),
-    P(ctrl.fan_post,      "Quạt chạy thêm",      "s",    0.0f, 300.0f, 5.0f,  0),
-    P(ctrl.cond_fan_mode, "Quạt nóng (0/1)",     "",     0.0f,   1.0f, 1.0f,  0),
-    P(temp_offset,        "Bù nhiệt PT100",      "°C",   -5.0f,   5.0f, 0.1f,  1),
-    P(hum_offset,         "Bù độ ẩm",            "%",  -10.0f,  10.0f, 0.5f,  1),
+    /* ---- Trang "Quạt dàn nóng / chu trình" ---- */
+    P(PR, ctrl.mode,          "Chế độ điều khiển",   "",     0.0f,   1.0f, 1.0f,  0, s_mode_ch),
+    P(PR, ctrl.auto_fan,      "Tự động: cấp quạt",   "",     1.0f,   5.0f, 1.0f,  0, NULL),
+    P(PR, ctrl.stage_fan[0],  "GĐ1: cấp quạt",       "",     1.0f,   5.0f, 1.0f,  0, NULL),
+    P(PR, ctrl.start_delay,   "GĐ1: quạt chạy trước","s",    0.0f, 300.0f, 5.0f,  0, NULL),
+    P(PR, ctrl.stage_fan[1],  "GĐ2: cấp quạt",       "",     1.0f,   5.0f, 1.0f,  0, NULL),
+    P(PR, ctrl.stage_fan[2],  "GĐ3: cấp quạt",       "",     1.0f,   5.0f, 1.0f,  0, NULL),
+    P(PR, ctrl.gd3_min,       "GĐ3: thời gian",      "phút", 0.0f, 999.0f, 5.0f,  0, NULL),
+    P(PR, ctrl.stage_fan[3],  "GĐ4: cấp quạt",       "",     1.0f,   5.0f, 1.0f,  0, NULL),
+    P(PR, ctrl.gd4_min,       "GĐ4: thời gian",      "phút", 0.0f, 999.0f, 5.0f,  0, NULL),
+    P(PR, ctrl.stage_fan[4],  "GĐ5: cấp quạt",       "",     1.0f,   5.0f, 1.0f,  0, NULL),
+    P(PR, ctrl.end_temp,      "GĐ5: nhiệt độ dừng",  "°C",  20.0f,  60.0f, 1.0f,  0, NULL),
+    P(PR, ctrl.comp_min_off,  "Máy nén chờ bật lại", "s",   10.0f, 600.0f, 5.0f,  0, NULL),
+    P(PR, ctrl.temp_max,      "Nhiệt độ bảo vệ",     "°C",  50.0f,  95.0f, 1.0f,  0, NULL),
+    /* ---- Menu kỹ thuật (ẩn) ---- */
+    P(TE, ctrl.temp_hyst,     "Trễ nhiệt",           "°C",   0.5f,  10.0f, 0.5f,  1, NULL),
+    P(TE, ctrl.p_high,        "Ngắt áp cao",         "bar",  5.0f,  45.0f, 0.5f,  1, NULL),
+    P(TE, ctrl.p_low,         "Ngắt áp thấp",        "bar",  0.0f,  10.0f, 0.1f,  1, NULL),
+    P(TE, ctrl.press_enable,  "Bảo vệ áp suất",      "",     0.0f,   1.0f, 1.0f,  0, s_onoff_ch),
+    P(TE, ctrl.comp_min_on,   "Máy nén chạy min",    "s",   10.0f, 600.0f, 10.0f, 0, NULL),
+    P(TE, ctrl.fan_post,      "Quạt chạy thêm",      "s",    0.0f, 300.0f, 5.0f,  0, NULL),
+    P(TE, temp_offset,        "Bù nhiệt PT100",      "°C",  -5.0f,   5.0f, 0.1f,  1, NULL),
+    P(TE, hum_offset,         "Bù độ ẩm",            "%",  -10.0f,  10.0f, 0.5f,  1, NULL),
 };
 
 #define PARAM_COUNT  (sizeof(s_params) / sizeof(s_params[0]))
@@ -128,6 +144,21 @@ void Settings_SetDryTimeMin(uint16_t minutes)
 uint16_t Settings_DryTimeMin(void)
 {
     return (uint16_t)(s_set.ctrl.dry_time_h * 60.0f + 0.5f);
+}
+
+uint8_t Settings_GroupCount(uint8_t group)
+{
+    uint8_t n = 0;
+    for (uint8_t i = 0; i < PARAM_COUNT; i++) if (s_params[i].group == group) n++;
+    return n;
+}
+
+int Settings_GroupIndex(uint8_t group, uint8_t n)
+{
+    for (uint8_t i = 0; i < PARAM_COUNT; i++) {
+        if (s_params[i].group == group && n-- == 0) return i;
+    }
+    return -1;
 }
 
 uint8_t Settings_ParamCount(void)
