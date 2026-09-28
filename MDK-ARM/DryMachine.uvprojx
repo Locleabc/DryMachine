@@ -723,6 +723,11 @@
               <FilePath>../App/ui/ui_page_main.c</FilePath>
             </File>
             <File>
+              <FileName>ui_page_outputs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../App/ui/ui_page_outputs.c</FilePath>
+            </File>
+            <File>
               <FileName>ui_page_run.c</FileName>
               <FileType>1</FileType>
               <FilePath>../App/ui/ui_page_run.c</FilePath>

@@ -13,6 +13,7 @@ static const ui_screen_t *const s_screens[SCR_COUNT] = {
     [SCR_TIMER]  = &scr_timer,
     [SCR_FAN]    = &scr_fan,
     [SCR_FAULTS] = &scr_faults,
+    [SCR_OUTPUTS] = &scr_outputs,
     [SCR_PRESET] = &scr_preset,
     [SCR_EDIT]   = &scr_edit,
     [SCR_LIST]   = &scr_list,
@@ -46,7 +47,7 @@ static void draw_footer_static(const ui_screen_t *s)
     ILI9341_FillRect(0, UI_FOOT_Y, TFT_WIDTH, TFT_HEIGHT - UI_FOOT_Y, UC_FOOT);
     if (s->page >= 0) {
         for (int i = 0; i < UI_PAGE_COUNT; i++) {
-            ILI9341_FillRect((int16_t)(TFT_WIDTH - DOTS_W + 6 + i * 12), UI_FOOT_Y + 9, 8, 6,
+            ILI9341_FillRect((int16_t)(TFT_WIDTH - DOTS_W + 6 + i * 10), UI_FOOT_Y + 9, 7, 6,
                              (i == s->page) ? UC_ACCENT : UC_OFF);
         }
     }

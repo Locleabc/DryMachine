@@ -151,6 +151,15 @@ GROUP_ADAPTER(s_proc_params, SETTINGS_GROUP_PROCESS)
 
 static const char *s_preset_names[PRESET_COUNT];
 
+/* trang trạng thái đầu ra – thứ tự = RLY_ID_* */
+static const char *const s_out_names[RLY_ID_COUNT] = {
+    "Máy nén", "Quạt dàn lạnh",
+    "Quạt nóng cấp 1", "Quạt nóng cấp 2", "Quạt nóng cấp 3", "Quạt nóng cấp 4", "Quạt nóng cấp 5",
+};
+static const char *const s_out_pins[RLY_ID_COUNT] = {
+    "IN1 · PB5", "IN2 · PB7", "IN3 · PB6", "IN4 · PA1", "IN5 · PA2", "IN6 · PA3", "IN7 · PB4",
+};
+
 /* ================= Thời gian ================= */
 static bool clock_now(uint32_t *epoch)
 {
@@ -318,6 +327,13 @@ static void build_view(ui_view_t *v)
     v->comp         = s_status.out.comp;
     v->fan_level    = s_fan_actual;
     v->fan_evap     = s_status.out.fan_evap;
+    v->out_cmd = (uint8_t)((s_status.out.comp ? 1u << RLY_ID_COMP : 0u) |
+                           (s_status.out.fan_evap ? 1u << RLY_ID_FAN_EVAP : 0u));
+    if (s_fan_actual >= 1 && s_fan_actual <= DRYER_FAN_LEVELS)
+        v->out_cmd |= (uint8_t)(1u << (RLY_ID_FAN_S1 + s_fan_actual - 1));
+    v->out_relay = 0;
+    for (uint8_t i = 0; i < RLY_ID_COUNT; i++)
+        if (Relay_Get(i)) v->out_relay |= (uint8_t)(1u << i);
     v->run_s        = s_status.run_s;
     v->phase_left_s = s_status.phase_left_s;
     v->phase_text   = DryerCtrl_PhaseName(s_status.phase);
@@ -453,6 +469,7 @@ void App_Init(void)
     static const ui_config_t ui_cfg = {
         .preset_names = s_preset_names, .preset_count = PRESET_COUNT,
         .tech = &s_tech_params, .process = &s_proc_params, .sim = &s_sim_params, .on_cmd = on_ui_cmd,
+        .output_names = s_out_names, .output_pins = s_out_pins, .output_count = RLY_ID_COUNT,
     };
     UI_Init(&ui_cfg);
     Sched_Init(s_tasks, TASK_COUNT, now);

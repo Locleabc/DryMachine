@@ -103,7 +103,11 @@ int main(int argc, char **argv)
     strcpy(v.hist[1].when, "25/09 21:40"); v.hist[1].text = "Mất cảm biến nhiệt";
     strcpy(v.hist[2].when, "20/09 06:03"); v.hist[2].text = "Quá nhiệt";
 
-    ui_config_t cfg = { names, 7, &tech, &proc, &simif, on_cmd };
+    static const char *const onames[7] = { "Máy nén", "Quạt dàn lạnh", "Quạt nóng cấp 1", "Quạt nóng cấp 2",
+                                           "Quạt nóng cấp 3", "Quạt nóng cấp 4", "Quạt nóng cấp 5" };
+    static const char *const opins[7] = { "IN1 · PB5", "IN2 · PB7", "IN3 · PB6", "IN4 · PA1",
+                                          "IN5 · PA2", "IN6 · PA3", "IN7 · PB4" };
+    ui_config_t cfg = { names, 7, &tech, &proc, &simif, on_cmd, onames, opins, 7 };
     UI_Init(&cfg);
     tick(2);
 
@@ -147,6 +151,11 @@ int main(int argc, char **argv)
     key(UI_KEY_ENTER, UI_PRESS_SHORT);
     EXPECT(last_cmd.type == UI_CMD_RESET_FAULT, "Trang 5: ENTER xoa loi");
     v.state = UI_ST_RUNNING; v.comp = true;
+    key(UI_KEY_DOWN, UI_PRESS_SHORT);                           /* trang 6: đầu ra */
+    v.out_cmd = 0x0B; v.out_relay = 0x0B;                       /* máy nén, quạt lạnh, cấp 2 */
+    tick(3); shot("13_outputs");
+    v.out_relay = 0;  tick(3); shot("13b_outputs_sim");         /* giả lập, relay không đóng */
+    v.out_cmd = v.out_relay = 0;
     key(UI_KEY_DOWN, UI_PRESS_SHORT);                           /* vòng về trang 1 */
 
     tick(3); shot("01b_main_manual");

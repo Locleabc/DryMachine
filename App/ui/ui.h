@@ -32,6 +32,7 @@
 #include <stdint.h>
 
 #define UI_PRESET_MAX   8        /* tối đa số chế độ (kể cả "Tự do") */
+#define UI_OUT_MAX      7        /* số đầu ra relay hiển thị */
 #define UI_HIST_ROWS    6        /* số dòng lịch sử lỗi hiển thị */
 
 /* ---------------- Phím ---------------- */
@@ -97,6 +98,9 @@ typedef struct {
     uint16_t gd3_min, gd4_min;
     float    end_temp, temp_max;
     uint16_t comp_restart_s;
+    /* đầu ra: bit i = đầu ra i (thứ tự như cfg->output_names) */
+    uint8_t  out_cmd;                        /* bộ điều khiển yêu cầu BẬT */
+    uint8_t  out_relay;                      /* relay thật đang đóng */
     /* giả lập */
     const char *sim_text;                    /* != NULL: đang chạy giả lập (header đổi màu) */
     /* đồng hồ */
@@ -130,6 +134,9 @@ typedef struct {
     const ui_param_if_t *process;            /* cài đặt quạt dàn nóng / chu trình */
     const ui_param_if_t *sim;                /* chạy giả lập (không lưu Flash) */
     bool (*on_cmd)(const ui_cmd_t *cmd);     /* true = thành công */
+    const char *const   *output_names;       /* tên đầu ra (trang trạng thái đầu ra) */
+    const char *const   *output_pins;        /* ghi chú chân, có thể NULL */
+    uint8_t              output_count;       /* ≤ UI_OUT_MAX */
 } ui_config_t;
 
 void UI_Init(const ui_config_t *cfg);

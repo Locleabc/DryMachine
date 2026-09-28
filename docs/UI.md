@@ -17,7 +17,7 @@ Giao diện dùng font **Be Vietnam Pro** (SIL Open Font License 1.1) chuyển t
 * Keil ARMCC 5: cần option `--no_multibyte_chars` (C/C++ → Misc Controls) – `tools/keil_setup.py` tự thêm.
 * Toàn bộ firmware hiện ~52 KB / 62 KB Flash.
 
-## 5 trang chính – chuyển bằng UP / DOWN
+## 6 trang chính – chuyển bằng UP / DOWN
 
 | Trang | Nội dung | Phím riêng |
 |-------|----------|------------|
@@ -26,13 +26,14 @@ Giao diện dùng font **Be Vietnam Pro** (SIL Open Font License 1.1) chuyển t
 | 3 Thời gian sấy | HH:MM (00:00 = không giới hạn). **Chỉ dùng cho chế độ Tự động**, Thủ công hiện "không áp dụng" | ENTER: chỉnh từng chữ số |
 | 4 Quạt dàn nóng | Chế độ Tự động / Thủ công, bảng 5 giai đoạn + cấp quạt, nhiệt độ bảo vệ, thời gian chờ máy nén | ENTER: danh sách cài đặt |
 | 5 Lịch sử lỗi | Lỗi đang có + 6 lỗi gần nhất (ngày giờ, tên lỗi) | ENTER: xoá lỗi đang có · Giữ EXIT 3 s: xoá lịch sử |
+| 6 Trạng thái đầu ra | 7 relay (máy nén, quạt dàn lạnh, quạt nóng cấp 1–5) kèm chân IN/GPIO, ô **ON** xanh / **OFF** xám. Giả lập với *Relay thật = Tắt*: ô vàng **ON\*** = bộ điều khiển yêu cầu bật nhưng relay không đóng | – |
 
 Ở mọi trang: **giữ ENTER 3 s → menu chế độ sấy**, EXIT → về trang chính.
-Header luôn hiện đồng hồ HH:MM:SS; footer hiện gợi ý phím, thông báo và số trang (5 ô vuông).
+Header luôn hiện đồng hồ HH:MM:SS; footer hiện gợi ý phím, thông báo và số trang (6 ô vuông).
 
 ![Trang 1](ui/01_main.png) ![Trang 2](ui/02_run.png)
 ![Trang 3](ui/03_timer.png) ![Trang 4](ui/04_fan.png)
-![Trang 5](ui/05_faults.png)
+![Trang 5](ui/05_faults.png) ![Trang 6](ui/06_outputs.png)
 
 ## Điều khiển quạt dàn nóng & máy nén
 

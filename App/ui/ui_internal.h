@@ -6,7 +6,8 @@
  *    ui_page_main.c   trang 1  – nhiệt độ, độ ẩm, chế độ, trạng thái
  *    ui_page_run.c    trang 2  – chạy / dừng
  *    ui_page_timer.c  trang 3  – thời gian sấy
- *    ui_page_faults.c trang 4  – lịch sử lỗi
+ *    ui_page_faults.c trang 5  – lịch sử lỗi
+ *    ui_page_outputs.c trang 6 – trạng thái đầu ra ON/OFF
  *    ui_menu_preset.c menu chế độ sấy + chỉnh đồng hồ
  *    ui_edit.c        nhập số từng chữ số
  *    ui_menu_tech.c   menu kỹ thuật
@@ -47,11 +48,11 @@
 #define F_NUM       (&font_num)      /* số lớn */
 #define LINE_H      23               /* chiều cao dòng F_TXT */
 #define UI_BODY_Y   UI_HEAD_H
-#define UI_PAGE_COUNT 5
+#define UI_PAGE_COUNT 6
 #define UI_MSG_MS   2000
 
 typedef enum {
-    SCR_MAIN = 0, SCR_RUN, SCR_TIMER, SCR_FAN, SCR_FAULTS,   /* 5 trang, chuyển bằng UP/DOWN */
+    SCR_MAIN = 0, SCR_RUN, SCR_TIMER, SCR_FAN, SCR_FAULTS, SCR_OUTPUTS,   /* 6 trang, chuyển bằng UP/DOWN */
     SCR_PRESET, SCR_EDIT, SCR_LIST,
     SCR_COUNT
 } ui_scr_t;
@@ -83,7 +84,7 @@ typedef struct {
 
 extern ui_ctx_t g_ui;
 
-extern const ui_screen_t scr_main, scr_run, scr_timer, scr_fan, scr_faults;
+extern const ui_screen_t scr_main, scr_run, scr_timer, scr_fan, scr_faults, scr_outputs;
 extern const ui_screen_t scr_preset, scr_edit, scr_list;
 
 /* ---------------- Core ---------------- */
