@@ -150,6 +150,35 @@ void ILI9341_DrawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color
     ILI9341_FillRect((int16_t)(x + w - 1), y, 1, h, color);
 }
 
+int ILI9341_BlitBegin(int16_t x, int16_t y, int16_t w, int16_t h)
+{
+    if (x < 0 || y < 0 || w <= 0 || h <= 0 || x + w > (int16_t)s_w || y + h > (int16_t)s_h) return 0;
+    set_window((uint16_t)x, (uint16_t)y, (uint16_t)(x + w - 1), (uint16_t)(y + h - 1));
+    dc_data();
+    cs_low();
+    return 1;
+}
+
+void ILI9341_BlitPixels(const uint16_t *px, uint16_t n)
+{
+    uint8_t buf[LINE_BUF_PX * 2];
+    while (n) {
+        uint16_t k = (n > LINE_BUF_PX) ? LINE_BUF_PX : n;
+        for (uint16_t i = 0; i < k; i++) {
+            buf[2 * i]     = (uint8_t)(px[i] >> 8);
+            buf[2 * i + 1] = (uint8_t)(px[i] & 0xFF);
+        }
+        HAL_SPI_Transmit(TFT_SPI, buf, (uint16_t)(k * 2), SPI_TIMEOUT);
+        px += k;
+        n = (uint16_t)(n - k);
+    }
+}
+
+void ILI9341_BlitEnd(void)
+{
+    cs_high();
+}
+
 /* Vẽ 1 ký tự trong ô (6*scale) x (8*scale), đẩy cả ô trong 1 lần set_window */
 void ILI9341_DrawChar(int16_t x, int16_t y, char c, uint16_t fg, uint16_t bg, uint8_t scale)
 {

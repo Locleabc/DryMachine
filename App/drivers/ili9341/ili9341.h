@@ -41,6 +41,13 @@ void ILI9341_DrawPixel(int16_t x, int16_t y, uint16_t color);
 void ILI9341_DrawHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
 void ILI9341_DrawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
 /* Vẽ ký tự/chuỗi, scale = 1,2,3.. (ô ký tự 6*scale x 8*scale), nền bg luôn được tô */
+/* Đẩy khối điểm ảnh tuỳ ý (dùng cho vẽ chữ anti-alias, ảnh):
+ *   BlitBegin(x,y,w,h) → gọi BlitPixels nhiều lần tổng đúng w*h điểm → BlitEnd()
+ *   Khối phải nằm trọn trong màn hình (hàm trả 0 nếu không hợp lệ và không vẽ gì). */
+int  ILI9341_BlitBegin(int16_t x, int16_t y, int16_t w, int16_t h);
+void ILI9341_BlitPixels(const uint16_t *px, uint16_t n);
+void ILI9341_BlitEnd(void);
+/* Font 5x7 cũ (giữ lại cho tương thích, giao diện hiện dùng ili9341_text.h) */
 void ILI9341_DrawChar(int16_t x, int16_t y, char c, uint16_t fg, uint16_t bg, uint8_t scale);
 void ILI9341_DrawString(int16_t x, int16_t y, const char *s, uint16_t fg, uint16_t bg, uint8_t scale);
 
