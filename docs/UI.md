@@ -103,6 +103,10 @@ Khi chỉnh giờ, ngày nhập dạng `ngày-tháng-năm` (dòng trên) và `gi
 Vào: trang 2 **Chạy / Dừng** → **giữ EXIT 3 s** → danh sách *GIẢ LẬP (không lưu)*. Header chuyển **màu cam**,
 trang chính hiện dòng `GIẢ LẬP · Mô hình x60`. Giả lập chỉ nằm trong RAM: tắt nguồn / reset là tắt.
 
+Chưa gắn cảm biến nhiệt: lúc khởi động máy báo lỗi *Mất cảm biến nhiệt* và khoá chạy. **Bật giả lập sẽ tự xoá lỗi này**
+(giá trị giả lập luôn hợp lệ) → ENTER ở trang 2 là chạy được. Chưa gắn cảm biến áp suất: đặt *Bảo vệ áp suất = Tắt*
+trong menu kỹ thuật (trang 1, giữ EXIT 3 s) – cài đặt này lưu Flash.
+
 | Mục | Giá trị | Ý nghĩa |
 |-----|---------|---------|
 | Giả lập | Tắt / **Mô hình** / **Chỉnh tay** | Mô hình: nhiệt độ, độ ẩm, áp suất tự thay đổi theo máy nén + quạt. Chỉnh tay: bạn tự đặt nhiệt độ, độ ẩm |

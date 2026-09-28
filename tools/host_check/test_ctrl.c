@@ -31,6 +31,26 @@ static void run_plant(dryer_input_t *in, uint32_t ms)
     }
 }
 
+/* chưa gắn cảm biến: khởi động báo lỗi, bật giả lập (xoá lỗi + giá trị hợp lệ) → chạy được */
+static void test_no_sensor_then_sim(void)
+{
+    printf("\n--- CHUA CO CAM BIEN -> GIA LAP ---\n");
+    DryerCtrl_DefaultParams(&p);
+    p.press_enable = 0.0f;                                  /* chưa gắn cảm biến áp suất */
+    dryer_input_t in = { false, 0.0f, false, 0.0f, false, 0.0f };
+    now = 1000;
+    DryerCtrl_Init(&c, now);
+    run(&in, 3000);
+    EXPECT(st.state == DRYER_FAULT, "Khong co cam bien nhiet -> loi, khoa may");
+    in = (dryer_input_t){ true, 30.0f, true, 65.0f, false, 0.0f };   /* giá trị nhập tay */
+    DryerCtrl_Command(&c, DRYER_CMD_RESET_FAULT);
+    run(&in, 1000);
+    EXPECT(st.state == DRYER_IDLE, "Bat gia lap: xoa loi -> san sang");
+    DryerCtrl_Command(&c, DRYER_CMD_TOGGLE);
+    run(&in, 1000);
+    EXPECT(st.state == DRYER_STARTING, "Chay duoc khi khong co cam bien ap suat (bao ve ap = Tat)");
+}
+
 static void test_auto(void)
 {
     printf("\n--- TU DONG ---\n");
@@ -146,6 +166,7 @@ static void test_fan_speed(void)
 
 int main(void)
 {
+    test_no_sensor_then_sim();
     test_auto();
     test_manual();
     test_protect();

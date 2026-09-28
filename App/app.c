@@ -115,6 +115,9 @@ static void sim_set(uint8_t i, float v)
         if (s_sim.mode == SIM_OFF && u != SIM_OFF) {          /* bật giả lập: khởi tạo buồng 30 °C / 65 % */
             SimPlant_Init(&s_sim.plant, 30.0f, 65.0f);
             s_sim.man_temp = 30.0f; s_sim.man_hum = 65.0f;
+            /* chưa gắn cảm biến → lúc khởi động đã báo "Mất cảm biến nhiệt" và khoá máy;
+             * vào giả lập thì xoá lỗi đó để chạy được (giá trị giả lập luôn hợp lệ) */
+            DryerCtrl_Command(&s_ctrl, DRYER_CMD_RESET_FAULT);
         }
         if (u == SIM_OFF) { s_sim.speed_idx = 0; s_sim.fault = SIMF_NONE; }
         s_sim.mode = u;
@@ -172,7 +175,7 @@ static bool on_ui_cmd(const ui_cmd_t *cmd)
 {
     switch (cmd->type) {
     case UI_CMD_START_STOP:
-        if (s_status.state == DRYER_FAULT) { UI_Message("Đang lỗi – xem trang 4"); return false; }
+        if (s_status.state == DRYER_FAULT) { UI_Message("Đang lỗi – xem trang 5"); return false; }
         if (s_status.state == DRYER_STOPPING) return false;
         DryerCtrl_Command(&s_ctrl, DRYER_CMD_TOGGLE);
         UI_Message(s_status.state == DRYER_IDLE ? "Bắt đầu sấy" : "Dừng sấy");
