@@ -26,7 +26,7 @@ Giao diện dùng font **Be Vietnam Pro** (SIL Open Font License 1.1) chuyển t
 | 3 Thời gian sấy | HH:MM (00:00 = không giới hạn). **Chỉ dùng cho chế độ Tự động**, Thủ công hiện "không áp dụng" | ENTER: chỉnh từng chữ số |
 | 4 Quạt dàn nóng | Chế độ Tự động / Thủ công, bảng 5 giai đoạn + cấp quạt, nhiệt độ bảo vệ, thời gian chờ máy nén | ENTER: danh sách cài đặt |
 | 5 Lịch sử lỗi | Lỗi đang có + 6 lỗi gần nhất (ngày giờ, tên lỗi) | ENTER: xoá lỗi đang có · Giữ EXIT 3 s: xoá lịch sử |
-| 6 Trạng thái đầu ra | 7 relay (máy nén, quạt dàn lạnh, quạt nóng cấp 1–5) kèm chân IN/GPIO, ô **ON** xanh / **OFF** xám. Giả lập với *Relay thật = Tắt*: ô vàng **ON\*** = bộ điều khiển yêu cầu bật nhưng relay không đóng | – |
+| 6 Trạng thái đầu ra | 7 relay (máy nén, quạt dàn lạnh, quạt nóng cấp 1–5) kèm chân IN/GPIO, ô **ON** xanh / **OFF** xám. Dòng dưới: chân ra **ON = 0 V, OFF = 3.3 V** (module relay kích mức thấp). Giả lập với *Relay thật = Tắt*: ô vàng **ON\*** = bộ điều khiển yêu cầu bật nhưng relay không đóng | Khi giả lập: ENTER đảo *Relay thật* bật/tắt |
 
 Ở mọi trang: **giữ ENTER 3 s → menu chế độ sấy**, EXIT → về trang chính.
 Header luôn hiện đồng hồ HH:MM:SS; footer hiện gợi ý phím, thông báo và số trang (6 ô vuông).
@@ -109,7 +109,7 @@ trang chính hiện dòng `GIẢ LẬP · Mô hình x60`. Giả lập chỉ nằ
 | Tua nhanh | x1 / x10 / x60 / x300 | Đồng hồ bộ điều khiển chạy nhanh hơn (GĐ3 120 phút ở x300 còn 24 giây). Quạt 5 cấp vẫn nghỉ 1 s thật khi đổi cấp |
 | Nhiệt độ, Độ ẩm | °C, %RH | Chỉnh tay: giá trị đưa vào bộ điều khiển. Mô hình: đặt lại điểm xuất phát |
 | Tạo lỗi | Không / Mất CB nhiệt / Mất CB ẩm / Áp suất cao | Thử các bảo vệ và lịch sử lỗi |
-| Relay thật | **Tắt** / Bật | Mặc định relay KHÔNG đóng khi giả lập (an toàn); màn hình vẫn hiện MN / QN / QL |
+| Relay thật | Tắt / **Bật** | Mặc định chân ra + relay chạy theo bộ điều khiển khi giả lập → đo được điện áp thực tế. **Tháo dây máy nén / quạt (hoặc nguồn tải) nếu không muốn thiết bị chạy thật.** Tắt = chỉ hiện trên màn hình. Đổi nhanh bằng ENTER ở trang 6 |
 
 Cách thử từng giai đoạn:
 1. Trang 4 chọn chế độ (Tự động / Thủ công), đặt cấp quạt, thời gian GĐ3/GĐ4.

@@ -41,7 +41,8 @@ static bool           s_prev_finished;
  *  - Chỉnh tay: người dùng đặt nhiệt độ/độ ẩm trong danh sách GIẢ LẬP
  *  - Tua nhanh: đồng hồ của bộ điều khiển chạy x1/x10/x60/x300 (quạt 5 cấp vẫn theo thời gian thật)
  *  - Tạo lỗi : mất cảm biến nhiệt / ẩm, áp suất cao – để thử bảo vệ
- *  - Relay thật: mặc định TẮT – relay không đóng khi giả lập, màn hình vẫn hiện trạng thái */
+ *  - Relay thật: mặc định BẬT – chân ra + relay đóng theo bộ điều khiển để đo điện áp thực tế;
+ *                 chuyển Tắt (danh sách GIẢ LẬP hoặc ENTER ở trang 6) để chỉ hiện trên màn hình */
 enum { SIM_OFF = 0, SIM_MODEL, SIM_MANUAL };
 enum { SIMF_NONE = 0, SIMF_TEMP, SIMF_HUM, SIMF_PRESS };
 static const char *const s_sim_mode_ch[]  = { "Tắt", "Mô hình", "Chỉnh tay" };
@@ -55,7 +56,7 @@ static struct {
     sim_plant_t plant;
     float       man_temp, man_hum;
     char        text[40];
-} s_sim;
+} s_sim = { .relay = 1 };
 
 static uint32_t s_vclock, s_last_tick;     /* đồng hồ của bộ điều khiển (có thể tua nhanh) */
 
@@ -181,6 +182,13 @@ static bool on_ui_cmd(const ui_cmd_t *cmd)
     case UI_CMD_RESET_FAULT:
         DryerCtrl_Command(&s_ctrl, DRYER_CMD_RESET_FAULT);
         UI_Message("Đã xoá lỗi");
+        return true;
+
+    case UI_CMD_SIM_RELAY:
+        if (s_sim.mode == SIM_OFF) return false;
+        s_sim.relay = !s_sim.relay;
+        UI_Message(s_sim.relay ? "Giả lập: relay thật BẬT" : "Giả lập: relay thật TẮT");
+        Log_Printf("SIM relay=%u", (unsigned)s_sim.relay);
         return true;
 
     case UI_CMD_CLEAR_HISTORY:

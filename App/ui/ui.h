@@ -49,6 +49,7 @@ typedef enum {
     UI_CMD_SET_DRY_TIME,       /* u.minutes */
     UI_CMD_SET_CLOCK,          /* u.clock */
     UI_CMD_SAVE_SETTINGS,      /* sau khi sửa danh sách thông số */
+    UI_CMD_SIM_RELAY,          /* giả lập: đảo "Relay thật" bật/tắt */
 } ui_cmd_type_t;
 
 typedef struct {

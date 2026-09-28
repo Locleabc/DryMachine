@@ -155,6 +155,8 @@ int main(int argc, char **argv)
     v.out_cmd = 0x0B; v.out_relay = 0x0B;                       /* máy nén, quạt lạnh, cấp 2 */
     tick(3); shot("13_outputs");
     v.out_relay = 0;  tick(3); shot("13b_outputs_sim");         /* giả lập, relay không đóng */
+    key(UI_KEY_ENTER, UI_PRESS_SHORT);
+    EXPECT(last_cmd.type == UI_CMD_SIM_RELAY, "Trang 6: ENTER dao Relay that khi gia lap");
     v.out_cmd = v.out_relay = 0;
     key(UI_KEY_DOWN, UI_PRESS_SHORT);                           /* vòng về trang 1 */
 

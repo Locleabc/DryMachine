@@ -7,6 +7,7 @@
  *    out_cmd   – bộ điều khiển đang yêu cầu BẬT
  *    out_relay – relay thật đang đóng
  *  Giả lập với "Relay thật" = Tắt: yêu cầu BẬT nhưng relay không đóng → hiện "ON*".
+ *  Khi giả lập: ENTER đảo "Relay thật" (đo điện áp chân ra thực tế).
  */
 #include "ui_internal.h"
 
@@ -47,18 +48,24 @@ static void draw_values(bool full)
             w_badge(X_PILL, y, W_PILL, rly ? "ON" : "OFF", rly);
         }
     }
-    w_text(X_NAME, Y_NOTE, TFT_WIDTH - 16,
-           mismatch ? "* giả lập: relay không đóng" : "", UC_WARN, UC_BG, TEXT_LEFT);
+    if (mismatch) w_text(X_NAME, Y_NOTE, TFT_WIDTH - 16, "* giả lập: relay không đóng", UC_WARN, UC_BG, TEXT_LEFT);
+    else          w_text(X_NAME, Y_NOTE, TFT_WIDTH - 16, "Chân ra: ON = 0 V · OFF = 3.3 V", UC_LABEL, UC_BG, TEXT_LEFT);
 }
 
 static void key(ui_key_t k, ui_press_t p)
 {
+    if (k == UI_KEY_ENTER && p == UI_PRESS_SHORT && g_ui.sim_on) {
+        ui_cmd_t c = { .type = UI_CMD_SIM_RELAY };
+        ui_send(&c);
+        g_ui.dirty = true;
+        return;
+    }
     ui_page_nav(k, p);
 }
 
 static const char *hint(void)
 {
-    return "UP/DOWN: trang · EXIT: về";
+    return g_ui.sim_on ? "ENTER: relay thật bật/tắt" : "UP/DOWN: trang · EXIT: về";
 }
 
 const ui_screen_t scr_outputs = {
