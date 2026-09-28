@@ -75,12 +75,16 @@ static void key(ui_key_t k, ui_press_t p)
         ui_send(&c);
         return;
     }
+    if (k == UI_KEY_EXIT && p == UI_PRESS_LONG && g_ui.cfg->sim) {    /* chế độ chạy giả lập */
+        ui_list_open("GIẢ LẬP (không lưu)", g_ui.cfg->sim, SCR_RUN, false);
+        return;
+    }
     ui_page_nav(k, p);
 }
 
 static const char *hint(void)
 {
-    return "ENTER: chạy/dừng · EXIT: thoát";
+    return "Giữ EXIT: giả lập · ENTER: chạy";
 }
 
 const ui_screen_t scr_run = {

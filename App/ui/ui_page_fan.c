@@ -78,7 +78,7 @@ static void draw_values(bool full)
 static void key(ui_key_t k, ui_press_t p)
 {
     if (k == UI_KEY_ENTER && p == UI_PRESS_SHORT) {
-        ui_list_open("CÀI ĐẶT CHU TRÌNH", g_ui.cfg->process, SCR_FAN);
+        ui_list_open("CÀI ĐẶT CHU TRÌNH", g_ui.cfg->process, SCR_FAN, true);
         return;
     }
     ui_page_nav(k, p);

@@ -84,6 +84,8 @@ static void draw_values(bool full)
         w_text(COL_L, Y_ALARM, TFT_WIDTH - 16, a, UC_ERR, UC_BG, TEXT_LEFT);
     } else if (v->warn_text) {
         w_text(COL_L, Y_ALARM, TFT_WIDTH - 16, v->warn_text, UC_WARN, UC_BG, TEXT_LEFT);
+    } else if (v->sim_text) {
+        w_text(COL_L, Y_ALARM, TFT_WIDTH - 16, v->sim_text, UC_CURSOR, UC_BG, TEXT_LEFT);
     } else {
         w_text(COL_L, Y_ALARM, TFT_WIDTH - 16, "", UC_BG, UC_BG, TEXT_LEFT);
     }
@@ -91,7 +93,7 @@ static void draw_values(bool full)
 
 static void key(ui_key_t k, ui_press_t p)
 {
-    if (k == UI_KEY_EXIT && p == UI_PRESS_LONG) { ui_list_open("KỸ THUẬT", g_ui.cfg->tech, SCR_MAIN); return; }
+    if (k == UI_KEY_EXIT && p == UI_PRESS_LONG) { ui_list_open("KỸ THUẬT", g_ui.cfg->tech, SCR_MAIN, true); return; }
     ui_page_nav(k, p);
 }
 

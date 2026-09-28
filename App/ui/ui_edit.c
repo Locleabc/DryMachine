@@ -42,7 +42,7 @@ void ui_edit_begin(const char *title, const char *label, const char *text,
 static void draw_static(void)
 {
     /* tiêu đề riêng của lần nhập ghi đè tiêu đề chung */
-    Text_Box(8, 2, 210, e.title ? e.title : "NHẬP SỐ", F_TXT, C_WHITE, UC_HEAD, TEXT_LEFT);
+    Text_Box(8, 2, 210, e.title ? e.title : "NHẬP SỐ", F_TXT, C_WHITE, g_ui.sim_on ? UC_SIMHEAD : UC_HEAD, TEXT_LEFT);
     w_text(0, Y_LABEL, TFT_WIDTH, e.label ? e.label : "", UC_LABEL, UC_BG, TEXT_CENTER);
 }
 

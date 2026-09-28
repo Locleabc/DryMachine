@@ -38,6 +38,7 @@
 #define UC_CURSOR   RGB565(255, 150, 50)
 #define UC_LINE     RGB565(60, 66, 76)
 #define UC_OFF      RGB565(55, 60, 68)
+#define UC_SIMHEAD  RGB565(150, 70, 0)     /* header khi đang chạy giả lập */
 
 /* ---------------- Bố cục ---------------- */
 #define UI_HEAD_H   27
@@ -77,6 +78,7 @@ typedef struct {
     uint32_t   msg_tick;
     char       clock_drawn[16];
     char       foot_drawn[80];
+    bool       sim_on;                          /* header đang vẽ màu giả lập */
 } ui_ctx_t;
 
 extern ui_ctx_t g_ui;
@@ -96,7 +98,7 @@ void ui_edit_begin(const char *title, const char *label, const char *text,
                    ui_edit_done_t done, ui_scr_t back);
 
 /* ---------------- Danh sách thông số dùng chung (ui_list.c) ---------------- */
-void ui_list_open(const char *title, const ui_param_if_t *list, ui_scr_t back);
+void ui_list_open(const char *title, const ui_param_if_t *list, ui_scr_t back, bool save_on_exit);
 
 /* ---------------- Widgets (ui_widgets.c) ---------------- */
 /* Ô chữ rộng w px: căn lề + tô nền phần thừa (xoá chữ cũ) */

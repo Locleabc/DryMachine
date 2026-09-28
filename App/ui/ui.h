@@ -12,7 +12,7 @@
  *     Giữ ENTER 3 s (ở bất kỳ trang nào) → MENU CHẾ ĐỘ SẤY
  *     Giữ EXIT 3 s ở trang chính → MENU KỸ THUẬT (thông số bảo vệ)
  *
- *  Trang 2: ENTER = chạy / dừng
+ *  Trang 2: ENTER = chạy / dừng; giữ EXIT 3 s = GIẢ LẬP (mô hình / chỉnh tay, tua nhanh, tạo lỗi)
  *  Trang 3: ENTER = chỉnh thời gian sấy HH:MM (00:00 = không giới hạn; chỉ dùng cho chế độ Tự động)
  *  Trang 4: ENTER = danh sách cài đặt: Tự động/Thủ công, cấp quạt từng GĐ, thời gian GĐ3/GĐ4,
  *           nhiệt độ dừng GĐ5, máy nén chờ bật lại, nhiệt độ bảo vệ
@@ -97,6 +97,8 @@ typedef struct {
     uint16_t gd3_min, gd4_min;
     float    end_temp, temp_max;
     uint16_t comp_restart_s;
+    /* giả lập */
+    const char *sim_text;                    /* != NULL: đang chạy giả lập (header đổi màu) */
     /* đồng hồ */
     bool     clock_ok;
     uint16_t year; uint8_t mon, day, hour, min, sec;
@@ -126,6 +128,7 @@ typedef struct {
     uint8_t              preset_count;       /* ≤ UI_PRESET_MAX */
     const ui_param_if_t *tech;               /* menu kỹ thuật (ẩn) */
     const ui_param_if_t *process;            /* cài đặt quạt dàn nóng / chu trình */
+    const ui_param_if_t *sim;                /* chạy giả lập (không lưu Flash) */
     bool (*on_cmd)(const ui_cmd_t *cmd);     /* true = thành công */
 } ui_config_t;
 

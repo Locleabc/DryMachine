@@ -15,12 +15,14 @@
 static const char          *s_title;
 static const ui_param_if_t *s_list;
 static ui_scr_t             s_back;
+static bool                 s_save;
 static uint8_t s_sel, s_top;
 static bool    s_editing, s_changed;
 static float   s_val;
 
-void ui_list_open(const char *title, const ui_param_if_t *list, ui_scr_t back)
+void ui_list_open(const char *title, const ui_param_if_t *list, ui_scr_t back, bool save_on_exit)
 {
+    s_save  = save_on_exit;
     s_title = title;
     s_list  = list;
     s_back  = back;
@@ -65,16 +67,20 @@ static void draw_row(uint8_t idx, uint8_t row)
 
 static void draw_static(void)
 {
-    Text_Box(8, 2, 210, s_title ? s_title : "", F_TXT, C_WHITE, UC_HEAD, TEXT_LEFT);
+    Text_Box(8, 2, 210, s_title ? s_title : "", F_TXT, C_WHITE, g_ui.sim_on ? UC_SIMHEAD : UC_HEAD, TEXT_LEFT);
 }
 
 static void draw_values(bool full)
 {
     static uint8_t last_sel = 0xFF, last_top = 0xFF;
-    static float   last_val;
+    static float   last_val, last_sum;
     static bool    last_edit;
-    if (!full && last_sel == s_sel && last_top == s_top && last_edit == s_editing && last_val == s_val) return;
-    last_sel = s_sel; last_top = s_top; last_edit = s_editing; last_val = s_val;
+    float sum = 0.0f;                              /* giá trị có thể tự đổi (giả lập) → vẽ lại */
+    for (uint8_t r = 0; r < ROWS && s_list && (uint8_t)(s_top + r) < s_list->count(); r++)
+        sum += s_list->get((uint8_t)(s_top + r)) * (float)(r + 1);
+    if (!full && last_sel == s_sel && last_top == s_top && last_edit == s_editing && last_val == s_val &&
+        last_sum == sum) return;
+    last_sel = s_sel; last_top = s_top; last_edit = s_editing; last_val = s_val; last_sum = sum;
     for (uint8_t r = 0; r < ROWS; r++) draw_row((uint8_t)(s_top + r), r);
 }
 
@@ -106,7 +112,7 @@ static void key(ui_key_t k, ui_press_t p)
         if (k == UI_KEY_DOWN) move(+1);
         if (k == UI_KEY_ENTER) { s_val = s_list->get(s_sel); s_editing = true; }
         if (k == UI_KEY_EXIT) {
-            if (s_changed) {
+            if (s_changed && s_save) {
                 ui_cmd_t c = { .type = UI_CMD_SAVE_SETTINGS };
                 UI_Message(ui_send(&c) ? "Đã lưu cài đặt" : "Lỗi lưu Flash!");
             }
@@ -125,8 +131,8 @@ static void key(ui_key_t k, ui_press_t p)
 
 static const char *hint(void)
 {
-    return s_editing ? "UP/DOWN: đổi · ENTER: OK · EXIT: huỷ"
-                     : "ENTER: sửa · EXIT: lưu & thoát";
+    if (s_editing) return "UP/DOWN: đổi · ENTER: OK · EXIT: huỷ";
+    return s_save ? "ENTER: sửa · EXIT: lưu & thoát" : "ENTER: sửa · EXIT: thoát";
 }
 
 const ui_screen_t scr_list = {

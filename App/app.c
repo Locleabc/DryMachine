@@ -21,6 +21,7 @@
 #include "datetime.h"
 #include "dryer_ctrl.h"
 #include "fan_speed.h"
+#include "sim_plant.h"
 #include "ui.h"
 #include "log.h"
 #include "sched.h"
@@ -33,6 +34,100 @@ static uint16_t       s_prev_faults;
 static fan_speed_t    s_fan;             /* khoá liên động 5 relay tốc độ quạt dàn nóng */
 static uint8_t        s_fan_actual;      /* cấp quạt đang thực sự đóng relay */
 static bool           s_prev_finished;
+
+/* ================= Chạy giả lập (không cần cảm biến) =================
+ * Mở: giữ EXIT 3 s ở trang 2 (Chạy/Dừng). Chỉ lưu RAM – khởi động lại luôn TẮT giả lập.
+ *  - Mô hình : nhiệt độ/độ ẩm/áp suất do sim_plant tính theo máy nén + quạt
+ *  - Chỉnh tay: người dùng đặt nhiệt độ/độ ẩm trong danh sách GIẢ LẬP
+ *  - Tua nhanh: đồng hồ của bộ điều khiển chạy x1/x10/x60/x300 (quạt 5 cấp vẫn theo thời gian thật)
+ *  - Tạo lỗi : mất cảm biến nhiệt / ẩm, áp suất cao – để thử bảo vệ
+ *  - Relay thật: mặc định TẮT – relay không đóng khi giả lập, màn hình vẫn hiện trạng thái */
+enum { SIM_OFF = 0, SIM_MODEL, SIM_MANUAL };
+enum { SIMF_NONE = 0, SIMF_TEMP, SIMF_HUM, SIMF_PRESS };
+static const char *const s_sim_mode_ch[]  = { "Tắt", "Mô hình", "Chỉnh tay" };
+static const char *const s_sim_speed_ch[] = { "x1", "x10", "x60", "x300" };
+static const uint16_t    s_sim_speed[]    = { 1, 10, 60, 300 };
+static const char *const s_sim_fault_ch[] = { "Không", "Mất CB nhiệt", "Mất CB ẩm", "Áp suất cao" };
+static const char *const s_onoff_ch[]     = { "Tắt", "Bật" };
+
+static struct {
+    uint8_t     mode, speed_idx, fault, relay;
+    sim_plant_t plant;
+    float       man_temp, man_hum;
+    char        text[40];
+} s_sim;
+
+static uint32_t s_vclock, s_last_tick;     /* đồng hồ của bộ điều khiển (có thể tua nhanh) */
+
+typedef struct { bool t_ok, h_ok, p_ok; float t, h, p; } meas_t;
+
+static void get_meas(meas_t *m)
+{
+    if (s_sim.mode == SIM_OFF) {
+        const sensors_data_t *d = Sensors_Data();
+        m->t_ok = d->temp.ok;  m->t = d->temp.value;
+        m->h_ok = d->hum.ok;   m->h = d->hum.value;
+        m->p_ok = d->press.ok; m->p = d->press.value;
+        return;
+    }
+    m->t_ok = m->h_ok = m->p_ok = true;
+    m->p = s_sim.plant.press;
+    if (s_sim.mode == SIM_MODEL) { m->t = s_sim.plant.temp; m->h = s_sim.plant.hum; }
+    else                         { m->t = s_sim.man_temp;   m->h = s_sim.man_hum;   }
+    switch (s_sim.fault) {
+    case SIMF_TEMP:  m->t_ok = false; break;
+    case SIMF_HUM:   m->h_ok = false; break;
+    case SIMF_PRESS: m->p = Settings_Get()->ctrl.p_high + 2.0f; break;
+    default: break;
+    }
+}
+
+static const ui_param_desc_t s_sim_desc[] = {
+    { "Giả lập",     "",    0, 2,   1,    0, s_sim_mode_ch  },
+    { "Tua nhanh",   "",    0, 3,   1,    0, s_sim_speed_ch },
+    { "Nhiệt độ",    "°C",  0, 100, 0.5f, 1, NULL },
+    { "Độ ẩm",       "%",   0, 100, 1,    0, NULL },
+    { "Tạo lỗi",     "",    0, 3,   1,    0, s_sim_fault_ch },
+    { "Relay thật",  "",    0, 1,   1,    0, s_onoff_ch },
+};
+#define SIM_ITEMS  ((uint8_t)(sizeof(s_sim_desc) / sizeof(s_sim_desc[0])))
+
+static uint8_t sim_count(void) { return SIM_ITEMS; }
+static bool sim_desc(uint8_t i, ui_param_desc_t *o) { if (i >= SIM_ITEMS) return false; *o = s_sim_desc[i]; return true; }
+static float sim_get(uint8_t i)
+{
+    switch (i) {
+    case 0: return s_sim.mode;
+    case 1: return s_sim.speed_idx;
+    case 2: return (s_sim.mode == SIM_MANUAL) ? s_sim.man_temp : s_sim.plant.temp;
+    case 3: return (s_sim.mode == SIM_MANUAL) ? s_sim.man_hum  : s_sim.plant.hum;
+    case 4: return s_sim.fault;
+    case 5: return s_sim.relay;
+    default: return 0;
+    }
+}
+static void sim_set(uint8_t i, float v)
+{
+    uint8_t u = (uint8_t)(v + 0.5f);
+    switch (i) {
+    case 0:
+        if (s_sim.mode == SIM_OFF && u != SIM_OFF) {          /* bật giả lập: khởi tạo buồng 30 °C / 65 % */
+            SimPlant_Init(&s_sim.plant, 30.0f, 65.0f);
+            s_sim.man_temp = 30.0f; s_sim.man_hum = 65.0f;
+        }
+        if (u == SIM_OFF) { s_sim.speed_idx = 0; s_sim.fault = SIMF_NONE; }
+        s_sim.mode = u;
+        Log_Printf("SIM mode=%u", (unsigned)u);
+        break;
+    case 1: s_sim.speed_idx = u; break;
+    case 2: s_sim.man_temp = v; s_sim.plant.temp = v; break;
+    case 3: s_sim.man_hum  = v; s_sim.plant.hum  = v; break;
+    case 4: s_sim.fault = u; break;
+    case 5: s_sim.relay = u; break;
+    default: break;
+    }
+}
+static const ui_param_if_t s_sim_params = { sim_count, sim_desc, sim_get, sim_set };
 
 /* ================= Adapter: settings → danh sách thông số trên UI ================= */
 /* Mỗi nhóm thông số (SETTINGS_GROUP_*) là một ui_param_if_t; chỉ số trong nhóm → chỉ số toàn cục */
@@ -142,26 +237,41 @@ static void task_buttons(uint32_t now)
 static void task_ctrl(uint32_t now)
 {
     const settings_t *set = Settings_Get();
-    const sensors_data_t *d = Sensors_Data();
 
     sensors_calib_t cal = { set->temp_offset, set->hum_offset };
     Sensors_SetCalib(&cal);
 
+    /* đồng hồ bộ điều khiển: ×1 bình thường, tua nhanh khi giả lập */
+    uint32_t dt = now - s_last_tick;
+    s_last_tick = now;
+    uint16_t speed = (s_sim.mode != SIM_OFF) ? s_sim_speed[s_sim.speed_idx] : 1;
+    s_vclock += dt * speed;
+
+    meas_t m;
+    get_meas(&m);
     dryer_input_t in = {
-        .temp_ok  = d->temp.ok,  .temp  = d->temp.value,
-        .hum_ok   = d->hum.ok,   .hum   = d->hum.value,
-        .press_ok = d->press.ok, .press = d->press.value,
+        .temp_ok  = m.t_ok, .temp  = m.t,
+        .hum_ok   = m.h_ok, .hum   = m.h,
+        .press_ok = m.p_ok, .press = m.p,
     };
     dryer_output_t out;
-    DryerCtrl_Step(&s_ctrl, &set->ctrl, &in, now, &out);
+    DryerCtrl_Step(&s_ctrl, &set->ctrl, &in, s_vclock, &out);
     DryerCtrl_GetStatus(&s_ctrl, &s_status);
 
-    /* quạt dàn nóng 5 cấp: chỉ 1 relay đóng, đổi cấp có khoảng nghỉ */
+    /* quạt dàn nóng 5 cấp: chỉ 1 relay đóng, đổi cấp có khoảng nghỉ (thời gian thật) */
     s_fan_actual = FanSpeed_Step(&s_fan, out.fan_level, now);
-    Relay_Set(RLY_ID_COMP,     out.comp);
-    Relay_Set(RLY_ID_FAN_EVAP, out.fan_evap);
+
+    if (s_sim.mode != SIM_OFF) {
+        SimPlant_Step(&s_sim.plant, (float)(dt * speed) / 1000.0f, out.comp, s_fan_actual, out.fan_evap);
+        snprintf(s_sim.text, sizeof(s_sim.text), "GIẢ LẬP · %s %s%s", s_sim_mode_ch[s_sim.mode],
+                 s_sim_speed_ch[s_sim.speed_idx], s_sim.relay ? " · relay BẬT" : "");
+    }
+
+    bool drive = (s_sim.mode == SIM_OFF) || s_sim.relay;       /* giả lập: mặc định không đóng relay */
+    Relay_Set(RLY_ID_COMP,     drive && out.comp);
+    Relay_Set(RLY_ID_FAN_EVAP, drive && out.fan_evap);
     for (uint8_t i = 0; i < DRYER_FAN_LEVELS; i++) {
-        Relay_Set((uint8_t)(RLY_ID_FAN_S1 + i), s_fan_actual == i + 1);
+        Relay_Set((uint8_t)(RLY_ID_FAN_S1 + i), drive && s_fan_actual == i + 1);
     }
 
     log_new_faults();
@@ -185,13 +295,15 @@ static ui_state_t map_state(dryer_state_t s)
 
 static void build_view(ui_view_t *v)
 {
-    const sensors_data_t *d = Sensors_Data();
     const settings_t *set = Settings_Get();
+    meas_t m;
+    get_meas(&m);
 
     *v = (ui_view_t){0};
-    v->temp_ok  = d->temp.ok;  v->temp  = d->temp.value;
-    v->hum_ok   = d->hum.ok;   v->hum   = d->hum.value;
-    v->press_ok = d->press.ok; v->press = d->press.value;
+    v->temp_ok  = m.t_ok; v->temp  = m.t;
+    v->hum_ok   = m.h_ok; v->hum   = m.h;
+    v->press_ok = m.p_ok; v->press = m.p;
+    v->sim_text = (s_sim.mode != SIM_OFF) ? s_sim.text : NULL;
 
     v->temp_set = set->ctrl.temp_set;
     v->hum_set  = set->ctrl.hum_set;
@@ -282,11 +394,14 @@ static void task_log(uint32_t now)
 {
     (void)now;
     const sensors_data_t *d = Sensors_Data();
+    meas_t m;
+    get_meas(&m);
     char t[12], h[12], p[12];
-    Log_Printf("T=%s H=%s P=%s ST=%s PH=%d MN=%d QN=%d QL=%d F=0x%02X W=0x%02X SHTerr=%lu",
-               d->temp.ok  ? Fmt_Float(t, sizeof(t), d->temp.value, 1)  : "ERR",
-               d->hum.ok   ? Fmt_Float(h, sizeof(h), d->hum.value, 1)   : "ERR",
-               d->press.ok ? Fmt_Float(p, sizeof(p), d->press.value, 2) : "ERR",
+    Log_Printf("%sT=%s H=%s P=%s ST=%s PH=%d MN=%d QN=%d QL=%d F=0x%02X W=0x%02X SHTerr=%lu",
+               s_sim.mode ? "[SIM] " : "",
+               m.t_ok ? Fmt_Float(t, sizeof(t), m.t, 1) : "ERR",
+               m.h_ok ? Fmt_Float(h, sizeof(h), m.h, 1) : "ERR",
+               m.p_ok ? Fmt_Float(p, sizeof(p), m.p, 2) : "ERR",
                DryerCtrl_StateName(s_status.state), (int)s_status.phase,
                s_status.out.comp, s_fan_actual, s_status.out.fan_evap,
                s_status.faults, s_status.warnings, (unsigned long)d->sht_errors);
@@ -329,6 +444,7 @@ void App_Init(void)
     Sensors_Init(&sensors_cfg);
 
     uint32_t now = Board_Millis();
+    s_vclock = s_last_tick = now;
     DryerCtrl_Init(&s_ctrl, now);
     FanSpeed_Init(&s_fan, now);
     DryerCtrl_GetStatus(&s_ctrl, &s_status);
@@ -336,7 +452,7 @@ void App_Init(void)
     for (uint8_t i = 0; i < PRESET_COUNT; i++) s_preset_names[i] = g_preset_defs[i].name;
     static const ui_config_t ui_cfg = {
         .preset_names = s_preset_names, .preset_count = PRESET_COUNT,
-        .tech = &s_tech_params, .process = &s_proc_params, .on_cmd = on_ui_cmd,
+        .tech = &s_tech_params, .process = &s_proc_params, .sim = &s_sim_params, .on_cmd = on_ui_cmd,
     };
     UI_Init(&ui_cfg);
     Sched_Init(s_tasks, TASK_COUNT, now);
