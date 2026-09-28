@@ -66,8 +66,16 @@ char *w_fmt_hhmm(char *buf, size_t n, uint32_t minutes)
     return buf;
 }
 
+char *w_fan_badge(char *buf, size_t n, uint8_t level)
+{
+    if (level) snprintf(buf, n, "QN%u", (unsigned)level);
+    else       snprintf(buf, n, "QN");
+    return buf;
+}
+
 uint32_t w_remaining_s(void)
 {
+    if (g_ui.v.manual) return g_ui.v.phase_left_s;
     uint32_t total = (uint32_t)g_ui.v.dry_time_min * 60UL;
     if (total == 0) return 0;
     return (g_ui.v.run_s < total) ? total - g_ui.v.run_s : 0;

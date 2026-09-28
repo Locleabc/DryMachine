@@ -12,7 +12,6 @@
 static void draw_static(void)
 {
     w_text(0, Y_LABEL, TFT_WIDTH, "Thời gian sấy đặt (giờ:phút)", UC_LABEL, UC_BG, TEXT_CENTER);
-    w_text(0, Y_NOTE,  TFT_WIDTH, "00:00 = không giới hạn", UC_LABEL, UC_BG, TEXT_CENTER);
 }
 
 static void draw_values(bool full)
@@ -21,8 +20,15 @@ static void draw_values(bool full)
     char a[40], b[16];
     (void)full;
 
-    w_num(0, Y_BIG, TFT_WIDTH, w_fmt_hhmm(b, sizeof(b), v->dry_time_min), UC_ACCENT, UC_BG, TEXT_CENTER);
+    w_num(0, Y_BIG, TFT_WIDTH, w_fmt_hhmm(b, sizeof(b), v->dry_time_min), v->manual ? UC_OFF : UC_ACCENT,
+          UC_BG, TEXT_CENTER);
 
+    if (v->manual) {
+        w_text(0, Y_NOTE, TFT_WIDTH, "Chế độ Thủ công: không áp dụng", UC_WARN, UC_BG, TEXT_CENTER);
+        w_text(0, Y_REMAIN, TFT_WIDTH, "(thời gian theo GĐ3, GĐ4 ở trang 4)", UC_LABEL, UC_BG, TEXT_CENTER);
+        return;
+    }
+    w_text(0, Y_NOTE, TFT_WIDTH, "00:00 = không giới hạn", UC_LABEL, UC_BG, TEXT_CENTER);
     bool running = (v->state == UI_ST_RUNNING || v->state == UI_ST_STARTING);
     if (running && v->dry_time_min) snprintf(a, sizeof(a), "Còn lại %s", Fmt_Time(b, sizeof(b), w_remaining_s()));
     else a[0] = '\0';

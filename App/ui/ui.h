@@ -7,14 +7,16 @@
  *
  *  Điều hướng
  *  ──────────
- *  Trang 1 CHÍNH ⇄ Trang 2 CHẠY/DỪNG ⇄ Trang 3 THỜI GIAN SẤY ⇄ Trang 4 LỊCH SỬ LỖI
+ *  Trang 1 CHÍNH ⇄ 2 CHẠY/DỪNG ⇄ 3 THỜI GIAN SẤY ⇄ 4 QUẠT DÀN NÓNG ⇄ 5 LỊCH SỬ LỖI
  *     UP / DOWN : chuyển trang (vòng tròn)      EXIT : về trang chính
  *     Giữ ENTER 3 s (ở bất kỳ trang nào) → MENU CHẾ ĐỘ SẤY
  *     Giữ EXIT 3 s ở trang chính → MENU KỸ THUẬT (thông số bảo vệ)
  *
  *  Trang 2: ENTER = chạy / dừng
- *  Trang 3: ENTER = chỉnh thời gian sấy HH:MM (00:00 = không giới hạn)
- *  Trang 4: ENTER = xoá lỗi đang có; giữ EXIT 3 s = xoá lịch sử
+ *  Trang 3: ENTER = chỉnh thời gian sấy HH:MM (00:00 = không giới hạn; chỉ dùng cho chế độ Tự động)
+ *  Trang 4: ENTER = danh sách cài đặt: Tự động/Thủ công, cấp quạt từng GĐ, thời gian GĐ3/GĐ4,
+ *           nhiệt độ dừng GĐ5, máy nén chờ bật lại, nhiệt độ bảo vệ
+ *  Trang 5: ENTER = xoá lỗi đang có; giữ EXIT 3 s = xoá lịch sử
  *
  *  Menu chế độ: 6 chế độ đặt sẵn + "Tự do" + "Chỉnh đồng hồ"
  *     UP / DOWN chọn · ENTER áp dụng chế độ · EXIT thoát
@@ -45,7 +47,7 @@ typedef enum {
     UI_CMD_SET_PRESET,         /* u.preset.idx, temp, hum, select */
     UI_CMD_SET_DRY_TIME,       /* u.minutes */
     UI_CMD_SET_CLOCK,          /* u.clock */
-    UI_CMD_SAVE_SETTINGS,      /* sau khi sửa menu kỹ thuật */
+    UI_CMD_SAVE_SETTINGS,      /* sau khi sửa danh sách thông số */
 } ui_cmd_type_t;
 
 typedef struct {
@@ -78,12 +80,23 @@ typedef struct {
     float   preset_hum[UI_PRESET_MAX];
     /* trạng thái máy */
     ui_state_t state;
-    bool     comp, fan_cond, fan_evap;
+    bool     comp, fan_evap;
+    uint8_t  fan_level;                      /* cấp quạt dàn nóng đang chạy 0..5 */
+    const char *phase_text;                  /* "GĐ2 – hút ẩm"… (NULL/"" khi không chạy) */
+    int8_t   stage;                          /* giai đoạn thủ công đang chạy 0..4, -1 = không */
     uint32_t run_s;                          /* đã sấy (s) */
+    uint32_t phase_left_s;                   /* còn lại của GĐ3/GĐ4 */
     uint16_t dry_time_min;                   /* thời gian sấy đặt, 0 = không giới hạn */
     uint32_t comp_wait_s;                    /* > 0: máy nén đang chờ */
     const char *fault_text;                  /* NULL = không lỗi */
     const char *warn_text;                   /* NULL = không cảnh báo */
+    /* điều khiển quạt dàn nóng / chu trình */
+    bool     manual;                         /* chế độ thủ công (đang chạy hoặc đã chọn) */
+    uint8_t  auto_fan;
+    uint8_t  stage_fan[5];
+    uint16_t gd3_min, gd4_min;
+    float    end_temp, temp_max;
+    uint16_t comp_restart_s;
     /* đồng hồ */
     bool     clock_ok;
     uint16_t year; uint8_t mon, day, hour, min, sec;
@@ -92,11 +105,12 @@ typedef struct {
     ui_hist_row_t hist[UI_HIST_ROWS];
 } ui_view_t;
 
-/* ---------------- Menu kỹ thuật: truy cập danh sách thông số ---------------- */
+/* ---------------- Danh sách thông số (menu kỹ thuật, cài đặt chu trình) ---------------- */
 typedef struct {
     const char *name, *unit;
     float min, max, step;
     uint8_t dec;
+    const char *const *choices;   /* != NULL: hiện chữ choices[giá trị] thay cho số */
 } ui_param_desc_t;
 
 typedef struct {
@@ -110,7 +124,8 @@ typedef struct {
 typedef struct {
     const char *const   *preset_names;       /* UTF-8, phần tử cuối = "Tự do" */
     uint8_t              preset_count;       /* ≤ UI_PRESET_MAX */
-    const ui_param_if_t *tech;               /* menu kỹ thuật */
+    const ui_param_if_t *tech;               /* menu kỹ thuật (ẩn) */
+    const ui_param_if_t *process;            /* cài đặt quạt dàn nóng / chu trình */
     bool (*on_cmd)(const ui_cmd_t *cmd);     /* true = thành công */
 } ui_config_t;
 

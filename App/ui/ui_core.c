@@ -11,15 +11,16 @@ static const ui_screen_t *const s_screens[SCR_COUNT] = {
     [SCR_MAIN]   = &scr_main,
     [SCR_RUN]    = &scr_run,
     [SCR_TIMER]  = &scr_timer,
+    [SCR_FAN]    = &scr_fan,
     [SCR_FAULTS] = &scr_faults,
     [SCR_PRESET] = &scr_preset,
     [SCR_EDIT]   = &scr_edit,
-    [SCR_TECH]   = &scr_tech,
+    [SCR_LIST]   = &scr_list,
 };
 
 /* ---------------- header / footer ---------------- */
 #define CLOCK_W   86          /* ô đồng hồ "14:05:32" */
-#define DOTS_W    56          /* ô số trang ở footer */
+#define DOTS_W    68          /* ô số trang ở footer */
 
 static void draw_header(const ui_screen_t *s)
 {

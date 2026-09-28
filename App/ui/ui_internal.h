@@ -46,12 +46,12 @@
 #define F_NUM       (&font_num)      /* số lớn */
 #define LINE_H      23               /* chiều cao dòng F_TXT */
 #define UI_BODY_Y   UI_HEAD_H
-#define UI_PAGE_COUNT 4
+#define UI_PAGE_COUNT 5
 #define UI_MSG_MS   2000
 
 typedef enum {
-    SCR_MAIN = 0, SCR_RUN, SCR_TIMER, SCR_FAULTS,     /* 4 trang, chuyển bằng UP/DOWN */
-    SCR_PRESET, SCR_EDIT, SCR_TECH,
+    SCR_MAIN = 0, SCR_RUN, SCR_TIMER, SCR_FAN, SCR_FAULTS,   /* 5 trang, chuyển bằng UP/DOWN */
+    SCR_PRESET, SCR_EDIT, SCR_LIST,
     SCR_COUNT
 } ui_scr_t;
 
@@ -81,8 +81,8 @@ typedef struct {
 
 extern ui_ctx_t g_ui;
 
-extern const ui_screen_t scr_main, scr_run, scr_timer, scr_faults;
-extern const ui_screen_t scr_preset, scr_edit, scr_tech;
+extern const ui_screen_t scr_main, scr_run, scr_timer, scr_fan, scr_faults;
+extern const ui_screen_t scr_preset, scr_edit, scr_list;
 
 /* ---------------- Core ---------------- */
 void ui_goto(ui_scr_t s);
@@ -95,6 +95,9 @@ typedef void (*ui_edit_done_t)(const uint8_t *digits, uint8_t count);
 void ui_edit_begin(const char *title, const char *label, const char *text,
                    ui_edit_done_t done, ui_scr_t back);
 
+/* ---------------- Danh sách thông số dùng chung (ui_list.c) ---------------- */
+void ui_list_open(const char *title, const ui_param_if_t *list, ui_scr_t back);
+
 /* ---------------- Widgets (ui_widgets.c) ---------------- */
 /* Ô chữ rộng w px: căn lề + tô nền phần thừa (xoá chữ cũ) */
 void w_text(int16_t x, int16_t y, int16_t w, const char *s, uint16_t fg, uint16_t bg, text_align_t a);
@@ -106,6 +109,7 @@ const char *w_state_name(ui_state_t s);
 uint16_t    w_state_color(ui_state_t s);
 char *w_fmt_value(char *buf, size_t n, bool ok, float v);        /* "55.3" / "--.-" */
 char *w_fmt_hhmm(char *buf, size_t n, uint32_t minutes);         /* "12:30" */
-uint32_t w_remaining_s(void);                                    /* còn lại (s), 0 nếu không hẹn giờ */
+uint32_t w_remaining_s(void);        /* còn lại: tự động = thời gian sấy, thủ công = GĐ3/GĐ4; 0 nếu không */
+char *w_fan_badge(char *buf, size_t n, uint8_t level);           /* "Q3" / "Q–" */
 
 #endif

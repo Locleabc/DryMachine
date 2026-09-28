@@ -67,6 +67,6 @@ static const char *hint(void)
 }
 
 const ui_screen_t scr_faults = {
-    .title = "LỊCH SỬ LỖI", .page = 3, .refresh_ms = 500,
+    .title = "LỊCH SỬ LỖI", .page = 4, .refresh_ms = 500,
     .draw_values = draw_values, .key = key, .hint = hint,
 };

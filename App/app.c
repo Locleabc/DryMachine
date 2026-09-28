@@ -20,6 +20,7 @@
 #include "fault_log.h"
 #include "datetime.h"
 #include "dryer_ctrl.h"
+#include "fan_speed.h"
 #include "ui.h"
 #include "log.h"
 #include "sched.h"
@@ -29,23 +30,29 @@
 static dryer_ctrl_t   s_ctrl;
 static dryer_status_t s_status;
 static uint16_t       s_prev_faults;
+static fan_speed_t    s_fan;             /* khoá liên động 5 relay tốc độ quạt dàn nóng */
+static uint8_t        s_fan_actual;      /* cấp quạt đang thực sự đóng relay */
+static bool           s_prev_finished;
 
-/* ================= Adapter: settings → menu kỹ thuật ================= */
-static uint8_t par_count(void) { return Settings_ParamCount(); }
+/* ================= Adapter: settings → danh sách thông số trên UI ================= */
+/* Mỗi nhóm thông số (SETTINGS_GROUP_*) là một ui_param_if_t; chỉ số trong nhóm → chỉ số toàn cục */
+#define GROUP_ADAPTER(NAME, GROUP)                                                        \
+    static uint8_t NAME##_count(void) { return Settings_GroupCount(GROUP); }               \
+    static bool NAME##_desc(uint8_t i, ui_param_desc_t *o) {                               \
+        int g = Settings_GroupIndex(GROUP, i);                                              \
+        const settings_param_t *p = (g < 0) ? 0 : Settings_Param((uint8_t)g);              \
+        if (!p) return false;                                                              \
+        o->name = p->name; o->unit = p->unit; o->min = p->min; o->max = p->max;            \
+        o->step = p->step; o->dec = p->dec; o->choices = p->choices;                       \
+        return true; }                                                                     \
+    static float NAME##_get(uint8_t i) {                                                   \
+        int g = Settings_GroupIndex(GROUP, i); return (g < 0) ? 0.0f : Settings_GetValue((uint8_t)g); } \
+    static void NAME##_set(uint8_t i, float v) {                                           \
+        int g = Settings_GroupIndex(GROUP, i); if (g >= 0) Settings_SetValue((uint8_t)g, v); } \
+    static const ui_param_if_t NAME = { NAME##_count, NAME##_desc, NAME##_get, NAME##_set };
 
-static bool par_desc(uint8_t idx, ui_param_desc_t *o)
-{
-    const settings_param_t *p = Settings_Param(idx);
-    if (!p) return false;
-    o->name = p->name; o->unit = p->unit;
-    o->min = p->min;   o->max = p->max; o->step = p->step; o->dec = p->dec;
-    return true;
-}
-
-static const ui_param_if_t s_tech_params = {
-    .count = par_count, .desc = par_desc,
-    .get = Settings_GetValue, .set = Settings_SetValue,
-};
+GROUP_ADAPTER(s_tech_params, SETTINGS_GROUP_TECH)
+GROUP_ADAPTER(s_proc_params, SETTINGS_GROUP_PROCESS)
 
 static const char *s_preset_names[PRESET_COUNT];
 
@@ -149,11 +156,20 @@ static void task_ctrl(uint32_t now)
     DryerCtrl_Step(&s_ctrl, &set->ctrl, &in, now, &out);
     DryerCtrl_GetStatus(&s_ctrl, &s_status);
 
+    /* quạt dàn nóng 5 cấp: chỉ 1 relay đóng, đổi cấp có khoảng nghỉ */
+    s_fan_actual = FanSpeed_Step(&s_fan, out.fan_level, now);
     Relay_Set(RLY_ID_COMP,     out.comp);
-    Relay_Set(RLY_ID_FAN_COND, out.fan_cond);
     Relay_Set(RLY_ID_FAN_EVAP, out.fan_evap);
+    for (uint8_t i = 0; i < DRYER_FAN_LEVELS; i++) {
+        Relay_Set((uint8_t)(RLY_ID_FAN_S1 + i), s_fan_actual == i + 1);
+    }
 
     log_new_faults();
+    if (s_status.finished && !s_prev_finished) {
+        UI_Message("Hoàn thành chu trình sấy");
+        Log_Printf("Chu trinh hoan thanh");
+    }
+    s_prev_finished = s_status.finished;
 }
 
 static ui_state_t map_state(dryer_state_t s)
@@ -188,9 +204,28 @@ static void build_view(ui_view_t *v)
 
     v->state        = map_state(s_status.state);
     v->comp         = s_status.out.comp;
-    v->fan_cond     = s_status.out.fan_cond;
+    v->fan_level    = s_fan_actual;
     v->fan_evap     = s_status.out.fan_evap;
     v->run_s        = s_status.run_s;
+    v->phase_left_s = s_status.phase_left_s;
+    v->phase_text   = DryerCtrl_PhaseName(s_status.phase);
+    switch (s_status.phase) {
+    case PH_GD1: case PH_AUTO_DRY:  v->stage = 0; break;
+    case PH_GD2: case PH_AUTO_HOLD: v->stage = 1; break;
+    case PH_GD3: case PH_AUTO_COOL: v->stage = 2; break;
+    case PH_GD4: v->stage = 3; break;
+    case PH_GD5: v->stage = 4; break;
+    default:     v->stage = (s_status.state == DRYER_STARTING) ? 0 : -1; break;
+    }
+    bool active = (s_status.state == DRYER_STARTING || s_status.state == DRYER_RUNNING);
+    v->manual         = active ? s_status.manual : (set->ctrl.mode > 0.5f);
+    v->auto_fan       = (uint8_t)(set->ctrl.auto_fan + 0.5f);
+    for (uint8_t i = 0; i < 5; i++) v->stage_fan[i] = (uint8_t)(set->ctrl.stage_fan[i] + 0.5f);
+    v->gd3_min        = (uint16_t)(set->ctrl.gd3_min + 0.5f);
+    v->gd4_min        = (uint16_t)(set->ctrl.gd4_min + 0.5f);
+    v->end_temp       = set->ctrl.end_temp;
+    v->temp_max       = set->ctrl.temp_max;
+    v->comp_restart_s = (uint16_t)(set->ctrl.comp_min_off + 0.5f);
     v->dry_time_min = Settings_DryTimeMin();
     v->comp_wait_s  = s_status.comp_demand ? s_status.comp_wait_s : 0;
     v->fault_text   = s_status.faults ? DryerCtrl_FaultText(s_status.faults) : NULL;
@@ -248,12 +283,12 @@ static void task_log(uint32_t now)
     (void)now;
     const sensors_data_t *d = Sensors_Data();
     char t[12], h[12], p[12];
-    Log_Printf("T=%s H=%s P=%s ST=%s MN=%d QN=%d QL=%d F=0x%02X W=0x%02X SHTerr=%lu",
+    Log_Printf("T=%s H=%s P=%s ST=%s PH=%d MN=%d QN=%d QL=%d F=0x%02X W=0x%02X SHTerr=%lu",
                d->temp.ok  ? Fmt_Float(t, sizeof(t), d->temp.value, 1)  : "ERR",
                d->hum.ok   ? Fmt_Float(h, sizeof(h), d->hum.value, 1)   : "ERR",
                d->press.ok ? Fmt_Float(p, sizeof(p), d->press.value, 2) : "ERR",
-               DryerCtrl_StateName(s_status.state),
-               s_status.out.comp, s_status.out.fan_cond, s_status.out.fan_evap,
+               DryerCtrl_StateName(s_status.state), (int)s_status.phase,
+               s_status.out.comp, s_fan_actual, s_status.out.fan_evap,
                s_status.faults, s_status.warnings, (unsigned long)d->sht_errors);
 }
 
@@ -295,12 +330,13 @@ void App_Init(void)
 
     uint32_t now = Board_Millis();
     DryerCtrl_Init(&s_ctrl, now);
+    FanSpeed_Init(&s_fan, now);
     DryerCtrl_GetStatus(&s_ctrl, &s_status);
 
     for (uint8_t i = 0; i < PRESET_COUNT; i++) s_preset_names[i] = g_preset_defs[i].name;
     static const ui_config_t ui_cfg = {
         .preset_names = s_preset_names, .preset_count = PRESET_COUNT,
-        .tech = &s_tech_params, .on_cmd = on_ui_cmd,
+        .tech = &s_tech_params, .process = &s_proc_params, .on_cmd = on_ui_cmd,
     };
     UI_Init(&ui_cfg);
     Sched_Init(s_tasks, TASK_COUNT, now);

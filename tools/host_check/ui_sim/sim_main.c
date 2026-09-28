@@ -20,12 +20,25 @@ static const char *outdir = ".";
 /* ---- menu kỹ thuật giả ---- */
 static float tech_val[3] = { 2.0f, 30.0f, 180.0f };
 static const ui_param_desc_t tech_desc[3] = {
-    { "Trễ nhiệt", "°C", 0.5f, 10, 0.5f, 1 }, { "Ngắt áp cao", "bar", 5, 45, 0.5f, 1 }, { "Máy nén nghỉ min", "s", 30, 600, 10, 0 } };
+    { "Trễ nhiệt", "°C", 0.5f, 10, 0.5f, 1, NULL }, { "Ngắt áp cao", "bar", 5, 45, 0.5f, 1, NULL },
+    { "Máy nén chạy min", "s", 10, 600, 10, 0, NULL } };
 static uint8_t t_count(void) { return 3; }
 static bool t_desc(uint8_t i, ui_param_desc_t *o) { if (i >= 3) return false; *o = tech_desc[i]; return true; }
 static float t_get(uint8_t i) { return tech_val[i]; }
 static void t_set(uint8_t i, float x) { tech_val[i] = x; }
 static const ui_param_if_t tech = { t_count, t_desc, t_get, t_set };
+
+/* ---- danh sách cài đặt chu trình giả (giống settings nhóm PROCESS) ---- */
+static const char *const mode_ch[] = { "Tự động", "Thủ công" };
+static float proc_val[4] = { 0, 3, 60, 75 };
+static const ui_param_desc_t proc_desc[4] = {
+    { "Chế độ điều khiển", "", 0, 1, 1, 0, mode_ch }, { "Tự động: cấp quạt", "", 1, 5, 1, 0, NULL },
+    { "Máy nén chờ bật lại", "s", 10, 600, 5, 0, NULL }, { "Nhiệt độ bảo vệ", "°C", 50, 95, 1, 0, NULL } };
+static uint8_t p_count(void) { return 4; }
+static bool p_desc(uint8_t i, ui_param_desc_t *o) { if (i >= 4) return false; *o = proc_desc[i]; return true; }
+static float p_get(uint8_t i) { return proc_val[i]; }
+static void p_set(uint8_t i, float x) { proc_val[i] = x; if (i == 0) v.manual = x > 0.5f; if (i == 2) v.comp_restart_s = (uint16_t)x; }
+static const ui_param_if_t proc = { p_count, p_desc, p_get, p_set };
 
 static bool on_cmd(const ui_cmd_t *c)
 {
@@ -66,7 +79,10 @@ int main(int argc, char **argv)
     for (int i = 0; i < 7; i++) { v.preset_temp[i] = dt[i]; v.preset_hum[i] = dh[i]; }
     v.preset = 2; v.temp_set = 55; v.hum_set = 15;
     v.temp_ok = true; v.temp = 54.6f; v.hum_ok = true; v.hum = 21.4f; v.press_ok = true; v.press = 18.3f;
-    v.state = UI_ST_RUNNING; v.comp = true; v.fan_cond = true; v.fan_evap = true;
+    v.state = UI_ST_RUNNING; v.comp = true; v.fan_level = 3; v.fan_evap = true;
+    v.phase_text = "Tự động – hút ẩm"; v.stage = 0;
+    v.auto_fan = 3; v.stage_fan[0] = 4; v.stage_fan[1] = 3; v.stage_fan[2] = 2; v.stage_fan[3] = 1; v.stage_fan[4] = 5;
+    v.gd3_min = 120; v.gd4_min = 60; v.end_temp = 40; v.temp_max = 75; v.comp_restart_s = 60;
     v.run_s = 5025; v.dry_time_min = 360;
     v.clock_ok = true; v.year = 2026; v.mon = 9; v.day = 27; v.hour = 14; v.min = 5; v.sec = 32;
     v.hist_count = 3;
@@ -74,7 +90,7 @@ int main(int argc, char **argv)
     strcpy(v.hist[1].when, "25/09 21:40"); v.hist[1].text = "Mất cảm biến nhiệt";
     strcpy(v.hist[2].when, "20/09 06:03"); v.hist[2].text = "Quá nhiệt";
 
-    ui_config_t cfg = { names, 7, &tech, on_cmd };
+    ui_config_t cfg = { names, 7, &tech, &proc, on_cmd };
     UI_Init(&cfg);
     tick(2);
 
@@ -94,20 +110,33 @@ int main(int argc, char **argv)
     key(UI_KEY_ENTER, UI_PRESS_SHORT);                          /* lưu */
     EXPECT(last_cmd.type == UI_CMD_SET_DRY_TIME && last_cmd.u.minutes == 15 * 60 + 30, "Thoi gian say nhap tung chu so -> 15:30");
 
+    key(UI_KEY_DOWN, UI_PRESS_SHORT);  shot("04_fan_auto");
+    key(UI_KEY_ENTER, UI_PRESS_SHORT); shot("04b_fan_settings");
+    key(UI_KEY_ENTER, UI_PRESS_SHORT); key(UI_KEY_UP, UI_PRESS_SHORT); key(UI_KEY_ENTER, UI_PRESS_SHORT);
+    EXPECT(v.manual && proc_val[0] == 1, "Trang 4: doi sang Thu cong");
+    key(UI_KEY_EXIT, UI_PRESS_SHORT);
+    EXPECT(last_cmd.type == UI_CMD_SAVE_SETTINGS, "Thoat danh sach -> luu cai dat");
+    v.phase_text = "GĐ3 – giữ nhiệt"; v.stage = 2; v.phase_left_s = 4321; v.fan_level = 2;
+    tick(6); shot("04c_fan_manual");
+    key(UI_KEY_UP, UI_PRESS_SHORT); tick(3); shot("03c_timer_manual");
+    key(UI_KEY_DOWN, UI_PRESS_SHORT);
     key(UI_KEY_DOWN, UI_PRESS_SHORT);
     v.fault_text = "Áp suất cao"; v.state = UI_ST_FAULT; v.comp = false;
     tick(6);
-    shot("04_faults");
+    shot("05_faults");
     key(UI_KEY_ENTER, UI_PRESS_SHORT);
-    EXPECT(last_cmd.type == UI_CMD_RESET_FAULT, "Trang 4: ENTER xoa loi");
+    EXPECT(last_cmd.type == UI_CMD_RESET_FAULT, "Trang 5: ENTER xoa loi");
     v.state = UI_ST_RUNNING; v.comp = true;
     key(UI_KEY_DOWN, UI_PRESS_SHORT);                           /* vòng về trang 1 */
 
-    key(UI_KEY_ENTER, UI_PRESS_LONG);  shot("05_preset_menu");
+    tick(3); shot("01b_main_manual");
+    key(UI_KEY_DOWN, UI_PRESS_SHORT); tick(3); shot("02b_run_manual");
+    key(UI_KEY_UP, UI_PRESS_SHORT);
+    key(UI_KEY_ENTER, UI_PRESS_LONG);  shot("06_preset_menu");
     key(UI_KEY_UP, UI_PRESS_SHORT);                             /* Rau cu */
     key(UI_KEY_ENTER, UI_PRESS_SHORT);
     EXPECT(last_cmd.type == UI_CMD_SELECT_PRESET && last_cmd.u.preset.idx == 1 && v.preset == 1, "Chon che do dat san 'Rau cu'");
-    shot("06_main_after_select");
+    shot("06b_main_after_select");
 
     key(UI_KEY_ENTER, UI_PRESS_LONG);
     for (int i = 0; i < 5; i++) key(UI_KEY_DOWN, UI_PRESS_SHORT); /* 1 -> 6 = Tu do */

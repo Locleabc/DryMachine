@@ -26,7 +26,7 @@
 #define Y_STATE  142
 #define Y_RELAY  166
 #define Y_ALARM  192
-#define X_TIME   128          /* cột thời gian bên phải */
+#define X_TIME   180          /* cột thời gian bên phải */
 #define W_TIME   (TFT_WIDTH - 8 - X_TIME)
 
 static void draw_static(void)
@@ -61,22 +61,22 @@ static void draw_values(bool full)
     const char *name = (v->preset < g_ui.cfg->preset_count) ? g_ui.cfg->preset_names[v->preset] : "?";
     w_text(COL_L + 64, Y_MODE, TFT_WIDTH - 8 - (COL_L + 64), name, UC_ACCENT, UC_BG, TEXT_LEFT);
 
-    /* trạng thái + thời gian đã sấy */
-    w_text(COL_L, Y_STATE, X_TIME - COL_L, w_state_name(v->state), w_state_color(v->state), UC_BG, TEXT_LEFT);
+    /* trạng thái / giai đoạn + thời gian đã sấy */
     bool running = (v->state == UI_ST_RUNNING || v->state == UI_ST_STARTING);
-    if (running) snprintf(a, sizeof(a), "Đã sấy  %s", Fmt_Time(b, sizeof(b), v->run_s));
-    else         a[0] = '\0';
-    w_text(X_TIME, Y_STATE, W_TIME, a, UC_VALUE, UC_BG, TEXT_RIGHT);
+    const char *st = (v->state == UI_ST_RUNNING && v->phase_text && v->phase_text[0]) ? v->phase_text
+                                                                                      : w_state_name(v->state);
+    w_text(COL_L, Y_STATE, X_TIME - COL_L, st, w_state_color(v->state), UC_BG, TEXT_LEFT);
+    w_text(X_TIME, Y_STATE, W_TIME, running ? Fmt_Time(b, sizeof(b), v->run_s) : "", UC_VALUE, UC_BG, TEXT_RIGHT);
 
-    /* relay + thời gian còn lại / chờ máy nén */
+    /* relay: máy nén, quạt dàn nóng (cấp), quạt dàn lạnh + thời gian còn lại / chờ máy nén */
     w_badge(COL_L,       Y_RELAY, 36, "MN", v->comp);
-    w_badge(COL_L + 40,  Y_RELAY, 36, "QN", v->fan_cond);
-    w_badge(COL_L + 80,  Y_RELAY, 36, "QL", v->fan_evap);
+    w_badge(COL_L + 40,  Y_RELAY, 44, w_fan_badge(b, sizeof(b), v->fan_level), v->fan_level > 0);
+    w_badge(COL_L + 88,  Y_RELAY, 36, "QL", v->fan_evap);
     uint32_t rem = w_remaining_s();
-    if (running && rem)                 snprintf(a, sizeof(a), "Còn  %s", Fmt_Time(b, sizeof(b), rem));
-    else if (running && v->comp_wait_s) snprintf(a, sizeof(a), "Chờ máy nén %lus", (unsigned long)v->comp_wait_s);
-    else                                a[0] = '\0';
-    w_text(X_TIME, Y_RELAY, W_TIME, a, UC_LABEL, UC_BG, TEXT_RIGHT);
+    if (running && v->comp_wait_s) snprintf(a, sizeof(a), "Chờ MN %lus", (unsigned long)v->comp_wait_s);
+    else if (running && rem)        snprintf(a, sizeof(a), "Còn %s", Fmt_Time(b, sizeof(b), rem));
+    else                            a[0] = '\0';
+    w_text(COL_L + 128, Y_RELAY, TFT_WIDTH - 8 - (COL_L + 128), a, UC_LABEL, UC_BG, TEXT_RIGHT);
 
     /* lỗi / cảnh báo */
     if (v->fault_text) {
@@ -91,7 +91,7 @@ static void draw_values(bool full)
 
 static void key(ui_key_t k, ui_press_t p)
 {
-    if (k == UI_KEY_EXIT && p == UI_PRESS_LONG) { ui_goto(SCR_TECH); return; }
+    if (k == UI_KEY_EXIT && p == UI_PRESS_LONG) { ui_list_open("KỸ THUẬT", g_ui.cfg->tech, SCR_MAIN); return; }
     ui_page_nav(k, p);
 }
 
