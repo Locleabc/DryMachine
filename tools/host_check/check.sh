@@ -3,6 +3,7 @@
 #   1. Biên dịch cú pháp toàn bộ App/ với HAL giả lập (-Wall -Wextra)
 #   2. Kiểm tra quy tắc phụ thuộc giữa các tầng (docs/ARCHITECTURE.md)
 #   3. Chạy test logic control/dryer_ctrl (không cần HAL)
+#   5. Chạy trọn chu trình Tự động + Thủ công với mô hình buồng sấy, in mốc từng giai đoạn
 #   4. Mô phỏng giao diện: chạy nguyên App/ui với màn hình giả lập, bấm phím theo kịch bản,
 #      lưu ảnh từng màn hình vào tools/build/ui/*.ppm
 # Chạy từ thư mục gốc repo:  sh tools/host_check/check.sh
@@ -47,4 +48,10 @@ gcc -std=c11 -Wall -Wno-unused-parameter -Itools/host_check -IApp/ui -IApp/drive
     App/ui/*.c App/drivers/ili9341/font5x7.c App/drivers/ili9341/fonts_vn.c App/drivers/ili9341/ili9341_text.c \
     App/services/util_fmt.c tools/host_check/ui_sim/*.c -o "$OUT/ui_sim"
 "$OUT/ui_sim" "$OUT/ui" | tail -1
+
+echo "== 5. Chay tron chu trinh voi mo hinh buong say (giong che do GIA LAP) =="
+gcc -std=c11 -IApp/control -IApp/services tools/host_check/sim_cycle.c App/control/dryer_ctrl.c \
+    App/services/sim_plant.c -o "$OUT/sim_cycle"
+"$OUT/sim_cycle"
+"$OUT/sim_cycle" thucong
 exit $fail

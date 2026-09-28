@@ -96,3 +96,31 @@ trong Flash (settings), không mất khi mất điện.
 RTC nội STM32 + thạch anh 32.768 kHz có sẵn trên Blue Pill. Cắm pin CR2032 vào chân VB để giữ giờ khi
 mất điện. Chưa chỉnh giờ thì đồng hồ hiện `--:--:--` và lịch sử lỗi ghi `--/-- --:--`.
 Khi chỉnh giờ, ngày nhập dạng `ngày-tháng-năm` (dòng trên) và `giờ:phút` (dòng dưới).
+
+## Chạy giả lập (khi chưa có cảm biến)
+
+Vào: trang 2 **Chạy / Dừng** → **giữ EXIT 3 s** → danh sách *GIẢ LẬP (không lưu)*. Header chuyển **màu cam**,
+trang chính hiện dòng `GIẢ LẬP · Mô hình x60`. Giả lập chỉ nằm trong RAM: tắt nguồn / reset là tắt.
+
+| Mục | Giá trị | Ý nghĩa |
+|-----|---------|---------|
+| Giả lập | Tắt / **Mô hình** / **Chỉnh tay** | Mô hình: nhiệt độ, độ ẩm, áp suất tự thay đổi theo máy nén + quạt. Chỉnh tay: bạn tự đặt nhiệt độ, độ ẩm |
+| Tua nhanh | x1 / x10 / x60 / x300 | Đồng hồ bộ điều khiển chạy nhanh hơn (GĐ3 120 phút ở x300 còn 24 giây). Quạt 5 cấp vẫn nghỉ 1 s thật khi đổi cấp |
+| Nhiệt độ, Độ ẩm | °C, %RH | Chỉnh tay: giá trị đưa vào bộ điều khiển. Mô hình: đặt lại điểm xuất phát |
+| Tạo lỗi | Không / Mất CB nhiệt / Mất CB ẩm / Áp suất cao | Thử các bảo vệ và lịch sử lỗi |
+| Relay thật | **Tắt** / Bật | Mặc định relay KHÔNG đóng khi giả lập (an toàn); màn hình vẫn hiện MN / QN / QL |
+
+Cách thử từng giai đoạn:
+1. Trang 4 chọn chế độ (Tự động / Thủ công), đặt cấp quạt, thời gian GĐ3/GĐ4.
+2. Giả lập = **Mô hình**, Tua nhanh = **x60** → EXIT → ENTER để chạy. Theo dõi trang 1, 2, 4 (GĐ đang chạy được tô).
+3. Muốn ép chuyển giai đoạn: Giả lập = **Chỉnh tay**, đặt nhiệt độ ≥ nhiệt độ đặt (qua GĐ1), độ ẩm ≤ độ ẩm đặt (qua GĐ2),
+   nhiệt độ ≤ nhiệt độ dừng (kết thúc GĐ5).
+4. Tạo lỗi *Áp suất cao* hoặc đặt nhiệt độ > nhiệt độ bảo vệ → máy dừng, trang 5 ghi lỗi.
+
+Trên PC, bước 5 của `sh tools/host_check/check.sh` chạy trọn 1 chu trình với cùng mô hình và in mốc từng giai đoạn:
+
+```
+TU DONG:   1 phút quạt chạy trước → 42 phút hút ẩm (T lên 61 °C) → giữ 55 °C tới 240 phút → làm mát → 256 phút xong
+THU CONG:  GĐ1 31 phút → GĐ2 18 phút → GĐ3 120 phút → GĐ4 60 phút → GĐ5 11 phút → 240 phút xong
+```
+Mô hình chỉ gần đúng để kiểm tra trình tự, không thay được số đo thật.

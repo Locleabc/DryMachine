@@ -40,6 +40,19 @@ static float p_get(uint8_t i) { return proc_val[i]; }
 static void p_set(uint8_t i, float x) { proc_val[i] = x; if (i == 0) v.manual = x > 0.5f; if (i == 2) v.comp_restart_s = (uint16_t)x; }
 static const ui_param_if_t proc = { p_count, p_desc, p_get, p_set };
 
+/* ---- danh sách giả lập giả (giống app.c) ---- */
+static const char *const sim_mode_ch[] = { "Tắt", "Mô hình", "Chỉnh tay" };
+static const char *const sim_speed_ch[] = { "x1", "x10", "x60", "x300" };
+static float sim_val[3] = { 0, 0, 30 };
+static const ui_param_desc_t sim_d[3] = {
+    { "Giả lập", "", 0, 2, 1, 0, sim_mode_ch }, { "Tua nhanh", "", 0, 3, 1, 0, sim_speed_ch },
+    { "Nhiệt độ", "°C", 0, 100, 0.5f, 1, NULL } };
+static uint8_t s_count(void) { return 3; }
+static bool s_desc(uint8_t i, ui_param_desc_t *o) { if (i >= 3) return false; *o = sim_d[i]; return true; }
+static float s_get(uint8_t i) { return sim_val[i]; }
+static void s_set(uint8_t i, float x) { sim_val[i] = x; if (i == 0) v.sim_text = (x > 0.5f) ? "GIẢ LẬP · Mô hình x60" : NULL; }
+static const ui_param_if_t simif = { s_count, s_desc, s_get, s_set };
+
 static bool on_cmd(const ui_cmd_t *c)
 {
     last_cmd = *c; cmd_count++;
@@ -90,7 +103,7 @@ int main(int argc, char **argv)
     strcpy(v.hist[1].when, "25/09 21:40"); v.hist[1].text = "Mất cảm biến nhiệt";
     strcpy(v.hist[2].when, "20/09 06:03"); v.hist[2].text = "Quá nhiệt";
 
-    ui_config_t cfg = { names, 7, &tech, &proc, on_cmd };
+    ui_config_t cfg = { names, 7, &tech, &proc, &simif, on_cmd };
     UI_Init(&cfg);
     tick(2);
 
@@ -99,6 +112,13 @@ int main(int argc, char **argv)
     key(UI_KEY_ENTER, UI_PRESS_SHORT);
     EXPECT(last_cmd.type == UI_CMD_START_STOP, "Trang 2: ENTER gui lenh chay/dung");
     key(UI_KEY_ENTER, UI_PRESS_SHORT);                          /* chạy lại */
+    key(UI_KEY_EXIT, UI_PRESS_LONG);                            /* mở GIẢ LẬP */
+    key(UI_KEY_ENTER, UI_PRESS_SHORT); key(UI_KEY_UP, UI_PRESS_SHORT); key(UI_KEY_ENTER, UI_PRESS_SHORT);
+    sim_val[1] = 2; tick(3); shot("12_sim_list");
+    int before = cmd_count;
+    key(UI_KEY_EXIT, UI_PRESS_SHORT);
+    EXPECT(v.sim_text != NULL && cmd_count == before, "Gia lap: bat Mo hinh, thoat KHONG luu Flash");
+    tick(3); shot("12b_run_sim");
     key(UI_KEY_DOWN, UI_PRESS_SHORT);  shot("03_timer");
     key(UI_KEY_ENTER, UI_PRESS_SHORT); shot("03b_timer_edit");  /* "06:00" */
     key(UI_KEY_UP, UI_PRESS_SHORT);                             /* 1 */
