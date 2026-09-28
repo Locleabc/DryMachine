@@ -28,6 +28,7 @@ PROJECT = os.path.join(ROOT, "MDK-ARM", "DryMachine.uvprojx")
 MAIN_C = os.path.join(ROOT, "Core", "Src", "main.c")
 RTC_C = os.path.join(ROOT, "Core", "Src", "rtc.c")
 APP = os.path.join(ROOT, "App")
+IROM_START = "0x8000000"   # Flash STM32 bắt đầu ở 0x08000000 (CubeMX để trống = 0x0 → sai)
 IROM_SIZE = "0xF800"
 GROUP_PREFIX = "App/"
 
@@ -75,7 +76,8 @@ def set_text(parent, tag, value):
 def patch_project():
     if not os.path.exists(PROJECT):
         sys.exit(f"Khong thay {PROJECT}\n-> Mo DryMachine.ioc bang STM32CubeMX va bam GENERATE CODE truoc.")
-    shutil.copyfile(PROJECT, PROJECT + ".bak")
+    if not os.path.exists(PROJECT + ".bak"):
+        shutil.copyfile(PROJECT, PROJECT + ".bak")
 
     ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
     tree = ET.parse(PROJECT)
@@ -86,8 +88,9 @@ def patch_project():
         name = target.findtext("TargetName")
         opt = target.find("TargetOption")
 
-        # 1. IROM1 size
+        # 1. IROM1 = 0x08000000, 62 KB  (phải đặt CẢ địa chỉ bắt đầu)
         for ocr in opt.iter("OCR_RVCT4"):
+            set_text(ocr, "StartAddress", IROM_START)
             set_text(ocr, "Size", IROM_SIZE)
 
         # 2. MicroLIB
@@ -126,7 +129,7 @@ def patch_project():
                 ET.SubElement(fe, "FileType").text = "1"
                 ET.SubElement(fe, "FilePath").text = rel_from_mdk(f)
                 n_files += 1
-        print(f"[{name}] IROM1={IROM_SIZE}, MicroLIB, {len(incs)} include path, {n_files} file .c trong App/")
+        print(f"[{name}] IROM1={IROM_START}+{IROM_SIZE}, MicroLIB, {len(incs)} include path, {n_files} file .c trong App/")
 
     ET.indent(tree, space="  ")
     tree.write(PROJECT, encoding="UTF-8", xml_declaration=True)
@@ -154,7 +157,8 @@ def patch_main():
         if line.strip() not in block:
             src = src.replace(marker, marker + nl + line, 1)
     if src != orig:
-        shutil.copyfile(MAIN_C, MAIN_C + ".bak")
+        if not os.path.exists(MAIN_C + ".bak"):
+            shutil.copyfile(MAIN_C, MAIN_C + ".bak")
         open(MAIN_C, "w", encoding="utf-8", errors="surrogateescape", newline="").write(src)
         print("main.c: da chen App_Init() / App_Loop()")
     else:
@@ -178,7 +182,8 @@ def patch_rtc():
         print("rtc.c: da co san, khong doi")
         return
     nl = "\r\n" if "\r\n" in src else "\n"
-    shutil.copyfile(RTC_C, RTC_C + ".bak")
+    if not os.path.exists(RTC_C + ".bak"):
+        shutil.copyfile(RTC_C, RTC_C + ".bak")
     src = src.replace(marker, marker + nl + RTC_GUARD, 1)
     open(RTC_C, "w", encoding="utf-8", errors="surrogateescape", newline="").write(src)
     print("rtc.c: da chan HAL_RTC_SetTime khi da chinh gio")
