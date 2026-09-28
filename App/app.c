@@ -27,6 +27,7 @@
 #include "sched.h"
 #include "util_fmt.h"
 #include <stdio.h>
+#include <string.h>
 
 static dryer_ctrl_t   s_ctrl;
 static dryer_status_t s_status;
@@ -170,11 +171,75 @@ static bool clock_now(uint32_t *epoch)
     return Board_RtcRead(epoch);
 }
 
+/* ================= Test đầu ra (trang 6) =================
+ *  Bật/tắt tay từng relay khi máy KHÔNG chạy (Đang dừng hoặc Lỗi).
+ *  - quạt dàn nóng vẫn qua khoá liên động: chỉ 1 cấp, đổi cấp nghỉ 1 s
+ *  - máy nén vẫn giữ thời gian chờ bật lại (comp_min_off)
+ *  - luôn đóng relay thật (kể cả khi giả lập), thoát test hoặc 10 phút không bấm → tắt hết */
+#define OUT_TEST_TIMEOUT_MS  (10u * 60u * 1000u)
+static struct {
+    bool     on, comp, evap;
+    uint8_t  fan;                 /* 0 = tắt, 1..5 */
+    uint32_t last_key;
+} s_test;
+static uint32_t s_comp_off_tick;  /* lúc relay máy nén nhả gần nhất (thời gian thật) */
+static uint8_t  s_out_cmd;        /* đầu ra đang được yêu cầu (bit = RLY_ID_*) */
+
+static bool out_test_cmd(uint8_t op, uint8_t idx)
+{
+    uint32_t now = Board_Millis();
+    switch (op) {
+    case UI_TEST_BEGIN:
+        if (s_status.state != DRYER_IDLE && s_status.state != DRYER_FAULT) {
+            UI_Message("Dừng máy trước khi test");
+            return false;
+        }
+        memset(&s_test, 0, sizeof(s_test));
+        s_test.on = true;
+        s_test.last_key = now;
+        Log_Printf("Test dau ra: bat dau");
+        return true;
+    case UI_TEST_TOGGLE:
+        if (!s_test.on) return false;
+        s_test.last_key = now;
+        if (idx == RLY_ID_COMP) {
+            if (!s_test.comp) {
+                uint32_t wait_ms = (uint32_t)(Settings_Get()->ctrl.comp_min_off * 1000.0f);
+                uint32_t off_ms  = now - s_comp_off_tick;
+                if (!Relay_Get(RLY_ID_COMP) && off_ms < wait_ms) {
+                    char m[40];
+                    snprintf(m, sizeof(m), "Máy nén chờ %lu s", (unsigned long)((wait_ms - off_ms + 999u) / 1000u));
+                    UI_Message(m);
+                    return false;
+                }
+            }
+            s_test.comp = !s_test.comp;
+        } else if (idx == RLY_ID_FAN_EVAP) {
+            s_test.evap = !s_test.evap;
+        } else if (idx >= RLY_ID_FAN_S1 && idx < RLY_ID_FAN_S1 + DRYER_FAN_LEVELS) {
+            uint8_t lv = (uint8_t)(idx - RLY_ID_FAN_S1 + 1);
+            s_test.fan = (s_test.fan == lv) ? 0 : lv;          /* chỉ 1 cấp: bật cấp mới tự tắt cấp cũ */
+        } else {
+            return false;
+        }
+        Log_Printf("Test dau ra: %u -> comp=%u evap=%u fan=%u", (unsigned)idx,
+                   (unsigned)s_test.comp, (unsigned)s_test.evap, (unsigned)s_test.fan);
+        return true;
+    case UI_TEST_END:
+        if (s_test.on) Log_Printf("Test dau ra: ket thuc, tat het");
+        memset(&s_test, 0, sizeof(s_test));
+        return true;
+    default:
+        return false;
+    }
+}
+
 /* ================= Lệnh từ UI ================= */
 static bool on_ui_cmd(const ui_cmd_t *cmd)
 {
     switch (cmd->type) {
     case UI_CMD_START_STOP:
+        if (s_test.on) { UI_Message("Đang test đầu ra – thoát trước"); return false; }
         if (s_status.state == DRYER_FAULT) { UI_Message("Đang lỗi – xem trang 5"); return false; }
         if (s_status.state == DRYER_STOPPING) return false;
         DryerCtrl_Command(&s_ctrl, DRYER_CMD_TOGGLE);
@@ -187,12 +252,8 @@ static bool on_ui_cmd(const ui_cmd_t *cmd)
         UI_Message("Đã xoá lỗi");
         return true;
 
-    case UI_CMD_SIM_RELAY:
-        if (s_sim.mode == SIM_OFF) return false;
-        s_sim.relay = !s_sim.relay;
-        UI_Message(s_sim.relay ? "Giả lập: relay thật BẬT" : "Giả lập: relay thật TẮT");
-        Log_Printf("SIM relay=%u", (unsigned)s_sim.relay);
-        return true;
+    case UI_CMD_OUT_TEST:
+        return out_test_cmd(cmd->u.test.op, cmd->u.test.idx);
 
     case UI_CMD_CLEAR_HISTORY:
         return FaultLog_Clear();
@@ -278,21 +339,40 @@ static void task_ctrl(uint32_t now)
     DryerCtrl_Step(&s_ctrl, &set->ctrl, &in, s_vclock, &out);
     DryerCtrl_GetStatus(&s_ctrl, &s_status);
 
+    /* test đầu ra: chỉ khi máy không chạy; hết giờ không bấm → thoát */
+    if (s_test.on && ((s_status.state != DRYER_IDLE && s_status.state != DRYER_FAULT) ||
+                      now - s_test.last_key >= OUT_TEST_TIMEOUT_MS)) {
+        out_test_cmd(UI_TEST_END, 0);
+        UI_Message("Hết giờ test – đã tắt hết");
+    }
+    bool    want_comp = s_test.on ? s_test.comp : out.comp;
+    bool    want_evap = s_test.on ? s_test.evap : out.fan_evap;
+    uint8_t want_fan  = s_test.on ? s_test.fan  : out.fan_level;
+
     /* quạt dàn nóng 5 cấp: chỉ 1 relay đóng, đổi cấp có khoảng nghỉ (thời gian thật) */
-    s_fan_actual = FanSpeed_Step(&s_fan, out.fan_level, now);
+    s_fan_actual = FanSpeed_Step(&s_fan, want_fan, now);
 
     if (s_sim.mode != SIM_OFF) {
-        SimPlant_Step(&s_sim.plant, (float)(dt * speed) / 1000.0f, out.comp, s_fan_actual, out.fan_evap);
+        SimPlant_Step(&s_sim.plant, (float)(dt * speed) / 1000.0f, want_comp, s_fan_actual, want_evap);
         snprintf(s_sim.text, sizeof(s_sim.text), "GIẢ LẬP · %s %s%s", s_sim_mode_ch[s_sim.mode],
                  s_sim_speed_ch[s_sim.speed_idx], s_sim.relay ? " · relay BẬT" : "");
     }
 
-    bool drive = (s_sim.mode == SIM_OFF) || s_sim.relay;       /* giả lập: mặc định không đóng relay */
-    Relay_Set(RLY_ID_COMP,     drive && out.comp);
-    Relay_Set(RLY_ID_FAN_EVAP, drive && out.fan_evap);
+    /* giả lập có thể không đóng relay; test đầu ra luôn đóng relay thật */
+    bool drive = (s_sim.mode == SIM_OFF) || s_sim.relay || s_test.on;
+    bool comp_was = Relay_Get(RLY_ID_COMP);
+    Relay_Set(RLY_ID_COMP,     drive && want_comp);
+    Relay_Set(RLY_ID_FAN_EVAP, drive && want_evap);
     for (uint8_t i = 0; i < DRYER_FAN_LEVELS; i++) {
         Relay_Set((uint8_t)(RLY_ID_FAN_S1 + i), drive && s_fan_actual == i + 1);
     }
+    if (comp_was && !Relay_Get(RLY_ID_COMP)) s_comp_off_tick = now;
+
+    s_out_cmd = (uint8_t)((want_comp ? 1u << RLY_ID_COMP : 0u) | (want_evap ? 1u << RLY_ID_FAN_EVAP : 0u));
+    if (s_fan_actual >= 1 && s_fan_actual <= DRYER_FAN_LEVELS)
+        s_out_cmd |= (uint8_t)(1u << (RLY_ID_FAN_S1 + s_fan_actual - 1));
+    else if (want_fan >= 1 && want_fan <= DRYER_FAN_LEVELS)          /* đang nghỉ đổi cấp */
+        s_out_cmd |= (uint8_t)(1u << (RLY_ID_FAN_S1 + want_fan - 1));
 
     log_new_faults();
     if (s_status.finished && !s_prev_finished) {
@@ -338,10 +418,8 @@ static void build_view(ui_view_t *v)
     v->comp         = s_status.out.comp;
     v->fan_level    = s_fan_actual;
     v->fan_evap     = s_status.out.fan_evap;
-    v->out_cmd = (uint8_t)((s_status.out.comp ? 1u << RLY_ID_COMP : 0u) |
-                           (s_status.out.fan_evap ? 1u << RLY_ID_FAN_EVAP : 0u));
-    if (s_fan_actual >= 1 && s_fan_actual <= DRYER_FAN_LEVELS)
-        v->out_cmd |= (uint8_t)(1u << (RLY_ID_FAN_S1 + s_fan_actual - 1));
+    v->out_cmd  = s_out_cmd;
+    v->out_test = s_test.on;
     v->out_relay = 0;
     for (uint8_t i = 0; i < RLY_ID_COUNT; i++)
         if (Relay_Get(i)) v->out_relay |= (uint8_t)(1u << i);
@@ -472,6 +550,7 @@ void App_Init(void)
 
     uint32_t now = Board_Millis();
     s_vclock = s_last_tick = now;
+    s_comp_off_tick = now;                            /* sau khởi động máy nén cũng phải chờ */
     DryerCtrl_Init(&s_ctrl, now);
     FanSpeed_Init(&s_fan, now);
     DryerCtrl_GetStatus(&s_ctrl, &s_status);

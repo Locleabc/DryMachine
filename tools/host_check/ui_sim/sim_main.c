@@ -66,6 +66,7 @@ static bool on_cmd(const ui_cmd_t *c)
     case UI_CMD_SET_CLOCK: v.day = c->u.clock.day; v.mon = c->u.clock.mon; v.year = c->u.clock.year; v.hour = c->u.clock.hour; v.min = c->u.clock.min; break;
     case UI_CMD_START_STOP: v.state = (v.state == UI_ST_IDLE) ? UI_ST_RUNNING : UI_ST_IDLE; break;
     case UI_CMD_RESET_FAULT: v.fault_text = NULL; break;
+    case UI_CMD_OUT_TEST: if (c->u.test.op != UI_TEST_TOGGLE) v.out_test = (c->u.test.op == UI_TEST_BEGIN); break;
     default: break;
     }
     return true;
@@ -155,9 +156,24 @@ int main(int argc, char **argv)
     v.out_cmd = 0x0B; v.out_relay = 0x0B;                       /* máy nén, quạt lạnh, cấp 2 */
     tick(3); shot("13_outputs");
     v.out_relay = 0;  tick(3); shot("13b_outputs_sim");         /* giả lập, relay không đóng */
-    key(UI_KEY_ENTER, UI_PRESS_SHORT);
-    EXPECT(last_cmd.type == UI_CMD_SIM_RELAY, "Trang 6: ENTER dao Relay that khi gia lap");
     v.out_cmd = v.out_relay = 0;
+    key(UI_KEY_ENTER, UI_PRESS_SHORT);                          /* vào test đầu ra */
+    EXPECT(last_cmd.type == UI_CMD_OUT_TEST && last_cmd.u.test.op == UI_TEST_BEGIN, "Trang 6: ENTER vao test dau ra");
+    v.out_test = true;
+    key(UI_KEY_DOWN, UI_PRESS_SHORT);                           /* chọn Quạt dàn lạnh (không chuyển trang) */
+    key(UI_KEY_ENTER, UI_PRESS_SHORT);
+    EXPECT(last_cmd.type == UI_CMD_OUT_TEST && last_cmd.u.test.op == UI_TEST_TOGGLE && last_cmd.u.test.idx == 1,
+           "Test: DOWN chon dong 2, ENTER bat/tat quat dan lanh");
+    v.out_cmd = v.out_relay = 0x02;
+    key(UI_KEY_DOWN, UI_PRESS_SHORT); key(UI_KEY_DOWN, UI_PRESS_SHORT);   /* Quạt nóng cấp 2 */
+    key(UI_KEY_ENTER, UI_PRESS_SHORT);
+    EXPECT(last_cmd.u.test.idx == 3, "Test: chon quat nong cap 2");
+    v.out_cmd = v.out_relay = 0x0A;
+    tick(3); shot("13c_outputs_test");
+    key(UI_KEY_ENTER, UI_PRESS_LONG);                           /* không mở menu chế độ khi test */
+    key(UI_KEY_EXIT, UI_PRESS_SHORT);
+    EXPECT(last_cmd.type == UI_CMD_OUT_TEST && last_cmd.u.test.op == UI_TEST_END, "Test: EXIT thoat, tat het");
+    v.out_test = false; v.out_cmd = v.out_relay = 0;
     key(UI_KEY_DOWN, UI_PRESS_SHORT);                           /* vòng về trang 1 */
 
     tick(3); shot("01b_main_manual");

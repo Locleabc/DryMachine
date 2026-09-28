@@ -49,8 +49,10 @@ typedef enum {
     UI_CMD_SET_DRY_TIME,       /* u.minutes */
     UI_CMD_SET_CLOCK,          /* u.clock */
     UI_CMD_SAVE_SETTINGS,      /* sau khi sửa danh sách thông số */
-    UI_CMD_SIM_RELAY,          /* giả lập: đảo "Relay thật" bật/tắt */
+    UI_CMD_OUT_TEST,           /* test đầu ra: u.test.op (UI_TEST_*), u.test.idx */
 } ui_cmd_type_t;
+
+enum { UI_TEST_BEGIN = 0, UI_TEST_TOGGLE, UI_TEST_END };
 
 typedef struct {
     ui_cmd_type_t type;
@@ -58,6 +60,7 @@ typedef struct {
         struct { uint8_t idx; float temp; float hum; bool select; } preset;
         uint16_t minutes;
         struct { uint16_t year; uint8_t mon, day, hour, min; } clock;
+        struct { uint8_t op, idx; } test;
     } u;
 } ui_cmd_t;
 
@@ -102,6 +105,7 @@ typedef struct {
     /* đầu ra: bit i = đầu ra i (thứ tự như cfg->output_names) */
     uint8_t  out_cmd;                        /* bộ điều khiển yêu cầu BẬT */
     uint8_t  out_relay;                      /* relay thật đang đóng */
+    bool     out_test;                       /* đang ở chế độ test đầu ra (bật/tắt tay) */
     /* giả lập */
     const char *sim_text;                    /* != NULL: đang chạy giả lập (header đổi màu) */
     /* đồng hồ */
