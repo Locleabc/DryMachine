@@ -30,3 +30,4 @@ tools/build/
 # backup do tools/keil_setup.py tao
 *.bak
 Claude outputs/
+__pycache__/
