@@ -134,11 +134,20 @@ static void test_protect(void)
     EXPECT(out.comp, "Dang chay");
     p.temp_max = 70.0f; in.temp = 71.0f; run(&in, 200);
     EXPECT(st.state == DRYER_FAULT && !out.comp && (st.faults & DRYER_FAULT_OVERTEMP), "Qua nhiet bao ve (chinh duoc) -> dung may");
-    EXPECT(out.fan_level > 0 && out.fan_evap, "Loi: quat chay them de xa nhiet");
-    run(&in, 61000);
-    EXPECT(out.fan_level == 0 && !out.fan_evap, "Loi: quat tat sau fan_post");
-    in.temp = 40.0f; DryerCtrl_Command(&c, DRYER_CMD_RESET_FAULT); run(&in, 400);
-    EXPECT(st.state == DRYER_IDLE && st.faults == 0, "Reset loi -> IDLE");
+    EXPECT(out.fan_level == 5 && out.fan_evap, "Qua nhiet: quat dan lanh + quat nong cap 5");
+    in.temp = 50.0f; run(&in, 300000);
+    EXPECT(st.state == DRYER_FAULT && !out.comp && out.fan_level == 5 && out.fan_evap, "Qua nhiet: quat chay lien tuc (5 phut, 50 C)");
+    DryerCtrl_Command(&c, DRYER_CMD_RESET_FAULT); run(&in, 400);
+    EXPECT(st.state == DRYER_FAULT && (st.faults & DRYER_FAULT_OVERTEMP), "Qua nhiet: chua nguoi 30 C -> khong reset duoc");
+    in.temp = 30.5f; run(&in, 1000);
+    EXPECT(st.state == DRYER_FAULT && out.fan_level == 5, "Qua nhiet: 30.5 C van lam mat");
+    in.temp = 30.0f; run(&in, 400);
+    EXPECT(st.state == DRYER_IDLE && st.faults == 0 && out.fan_level == 0 && !out.fan_evap && !out.comp,
+           "Qua nhiet: nguoi toi 30 C -> het loi, tat het");
+    p.temp_recover = 80.0f;
+    EXPECT(DryerCtrl_RecoverTemp(&p) == 65.0f, "Nhiet do het qua nhiet luon <= bao ve - 5");
+    p.temp_recover = 30.0f;
+    in.temp = 40.0f;
 
     DryerCtrl_Command(&c, DRYER_CMD_START); run(&in, 62000);
     in.press = 31.0f; run(&in, 200);

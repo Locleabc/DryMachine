@@ -14,7 +14,7 @@
 
 void SimPlant_Init(sim_plant_t *s, float temp, float hum)
 {
-    s->amb_temp = 30.0f;
+    s->amb_temp = 28.0f;         /* < 30 °C để thử được "quá nhiệt → nguội tới 30 °C" */
     s->amb_hum  = 70.0f;
     s->temp  = temp;
     s->hum   = hum;

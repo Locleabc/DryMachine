@@ -35,6 +35,7 @@ static uint16_t       s_prev_faults;
 static fan_speed_t    s_fan;             /* khoá liên động 5 relay tốc độ quạt dàn nóng */
 static uint8_t        s_fan_actual;      /* cấp quạt đang thực sự đóng relay */
 static bool           s_prev_finished;
+static bool           s_prev_cooling;    /* đang làm mát do quá nhiệt (bước trước) */
 
 /* ================= Chạy giả lập (không cần cảm biến) =================
  * Mở: giữ EXIT 3 s ở trang 2 (Chạy/Dừng). Chỉ lưu RAM – khởi động lại luôn TẮT giả lập.
@@ -190,6 +191,7 @@ static bool out_test_cmd(uint8_t op, uint8_t idx)
     uint32_t now = Board_Millis();
     switch (op) {
     case UI_TEST_BEGIN:
+        if (DryerCtrl_OvertempCooling(&s_ctrl)) { UI_Message("Đang làm mát do quá nhiệt"); return false; }
         if (s_status.state != DRYER_IDLE && s_status.state != DRYER_FAULT) {
             UI_Message("Dừng máy trước khi test");
             return false;
@@ -248,6 +250,18 @@ static bool on_ui_cmd(const ui_cmd_t *cmd)
         return true;
 
     case UI_CMD_RESET_FAULT:
+        if (DryerCtrl_OvertempCooling(&s_ctrl)) {
+            meas_t m;
+            get_meas(&m);
+            float rec = DryerCtrl_RecoverTemp(&Settings_Get()->ctrl);
+            if (m.t_ok && m.t > rec) {
+                char b[40], t[8];
+                Fmt_Float(t, sizeof(t), rec, 0);
+                snprintf(b, sizeof(b), "Chờ nguội về %s°C", t);
+                UI_Message(b);
+                return false;
+            }
+        }
         DryerCtrl_Command(&s_ctrl, DRYER_CMD_RESET_FAULT);
         UI_Message("Đã xoá lỗi");
         return true;
@@ -340,10 +354,16 @@ static void task_ctrl(uint32_t now)
     DryerCtrl_GetStatus(&s_ctrl, &s_status);
 
     /* test đầu ra: chỉ khi máy không chạy; hết giờ không bấm → thoát */
-    if (s_test.on && ((s_status.state != DRYER_IDLE && s_status.state != DRYER_FAULT) ||
+    bool cooling = DryerCtrl_OvertempCooling(&s_ctrl);
+    if (s_prev_cooling && !cooling && s_status.state == DRYER_IDLE) {
+        UI_Message("Đã nguội – hết quá nhiệt");
+        Log_Printf("Qua nhiet: da nguoi, het loi");
+    }
+    s_prev_cooling = cooling;
+    if (s_test.on && ((s_status.state != DRYER_IDLE && s_status.state != DRYER_FAULT) || cooling ||
                       now - s_test.last_key >= OUT_TEST_TIMEOUT_MS)) {
         out_test_cmd(UI_TEST_END, 0);
-        UI_Message("Hết giờ test – đã tắt hết");
+        UI_Message(cooling ? "Quá nhiệt – thoát test" : "Hết giờ test – đã tắt hết");
     }
     bool    want_comp = s_test.on ? s_test.comp : out.comp;
     bool    want_evap = s_test.on ? s_test.evap : out.fan_evap;
@@ -446,6 +466,13 @@ static void build_view(ui_view_t *v)
     v->dry_time_min = Settings_DryTimeMin();
     v->comp_wait_s  = s_status.comp_demand ? s_status.comp_wait_s : 0;
     v->fault_text   = s_status.faults ? DryerCtrl_FaultText(s_status.faults) : NULL;
+    if (DryerCtrl_OvertempCooling(&s_ctrl)) {
+        static char ot[40];
+        char t[8];
+        Fmt_Float(t, sizeof(t), DryerCtrl_RecoverTemp(&set->ctrl), 0);
+        snprintf(ot, sizeof(ot), "Quá nhiệt · làm mát tới %s°C", t);
+        v->fault_text = ot;
+    }
     v->warn_text    = (s_status.warnings & DRYER_WARN_HUM_SENSOR) ? "Cảnh báo: mất cảm biến ẩm SHT45" : NULL;
 
     uint32_t epoch;

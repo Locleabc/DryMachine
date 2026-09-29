@@ -74,7 +74,11 @@ nên dùng được cả khi chưa gắn cảm biến).
 
 Chung cho cả hai chế độ:
 * **Máy nén chờ bật lại** (mặc định 60 s, chỉnh ở trang 4): sau mỗi lần dừng phải chờ đủ mới bật lại.
-* **Nhiệt độ bảo vệ** (mặc định 75 °C, chỉnh ở trang 4): vượt → dừng máy, báo lỗi *Quá nhiệt*.
+* **Nhiệt độ bảo vệ** (mặc định 75 °C, chỉnh ở trang 4): vượt → báo lỗi *Quá nhiệt*, **tắt máy nén**,
+  **quạt dàn lạnh + quạt dàn nóng cấp 5 chạy liên tục** tới khi nhiệt độ ≤ *Quá nhiệt: nguội tới* (mặc định **30 °C**,
+  chỉnh ở trang 4, luôn ≤ nhiệt độ bảo vệ − 5) → tự hết lỗi, máy dừng (cần bấm chạy lại). Chưa nguội thì ENTER ở trang 5
+  không xoá được lỗi (báo *Chờ nguội về 30°C*), test đầu ra cũng bị khoá. Mất cảm biến nhiệt trong lúc làm mát → quạt vẫn chạy,
+  xoá lỗi bằng tay. ⚠ Nếu trời nóng hơn 30 °C buồng sẽ không nguội tới 30 °C → quạt chạy mãi: tăng giá trị này (vd 35 °C).
 * Quạt dàn lạnh chạy suốt chu trình. Quạt dàn nóng 5 cấp: chỉ 1 relay đóng, đổi cấp nghỉ 1 s.
 * Mất cảm biến ẩm: Tự động chuyển sang giữ nhiệt; Thủ công bỏ qua GĐ2 (có cảnh báo).
 * Đổi chế độ khi máy đang chạy: áp dụng từ lần chạy sau.
@@ -139,7 +143,8 @@ Cách thử từng giai đoạn:
 2. Giả lập = **Mô hình**, Tua nhanh = **x60** → EXIT → ENTER để chạy. Theo dõi trang 1, 2, 4 (GĐ đang chạy được tô).
 3. Muốn ép chuyển giai đoạn: Giả lập = **Chỉnh tay**, đặt nhiệt độ ≥ nhiệt độ đặt (qua GĐ1), độ ẩm ≤ độ ẩm đặt (qua GĐ2),
    nhiệt độ ≤ nhiệt độ dừng (kết thúc GĐ5).
-4. Tạo lỗi *Áp suất cao* hoặc đặt nhiệt độ > nhiệt độ bảo vệ → máy dừng, trang 5 ghi lỗi.
+4. Tạo lỗi *Áp suất cao* hoặc đặt nhiệt độ > nhiệt độ bảo vệ → máy dừng, trang 5 ghi lỗi. Quá nhiệt: Chỉnh tay hạ nhiệt độ
+   xuống ≤ 30 °C (hoặc để Mô hình tự nguội, môi trường 28 °C) → hết lỗi.
 
 Trên PC, bước 5 của `sh tools/host_check/check.sh` chạy trọn 1 chu trình với cùng mô hình và in mốc từng giai đoạn:
 

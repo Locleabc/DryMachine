@@ -29,6 +29,7 @@ static const settings_param_t s_params[] = {
     P(PR, ctrl.end_temp,      "GĐ5: nhiệt độ dừng",  "°C",  20.0f,  60.0f, 1.0f,  0, NULL),
     P(PR, ctrl.comp_min_off,  "Máy nén chờ bật lại", "s",   10.0f, 600.0f, 5.0f,  0, NULL),
     P(PR, ctrl.temp_max,      "Nhiệt độ bảo vệ",     "°C",  50.0f,  95.0f, 1.0f,  0, NULL),
+    P(PR, ctrl.temp_recover,  "Quá nhiệt: nguội tới","°C",  20.0f,  60.0f, 1.0f,  0, NULL),
     /* ---- Menu kỹ thuật (ẩn) ---- */
     P(TE, ctrl.temp_hyst,     "Trễ nhiệt",           "°C",   0.5f,  10.0f, 0.5f,  1, NULL),
     P(TE, ctrl.p_high,        "Ngắt áp cao",         "bar",  5.0f,  45.0f, 0.5f,  1, NULL),
@@ -87,9 +88,10 @@ void Settings_Init(const flash_store_cfg_t *store)
     settings_t tmp;
     s_store = store;
     if (store && FlashStore_Read(store, &tmp, sizeof(tmp)) &&
-        tmp.magic == SETTINGS_MAGIC && tmp.version == SETTINGS_VERSION &&
+        tmp.magic == SETTINGS_MAGIC && (tmp.version == SETTINGS_VERSION || tmp.version == 4) &&
         tmp.size == sizeof(settings_t) && tmp.crc == calc_crc(&tmp)) {
         s_set = tmp;
+        if (tmp.version == 4) s_set.ctrl.temp_recover = 30.0f;   /* v4: ô này là hum_hyst cũ – giữ các cài đặt khác */
     } else {
         Settings_Default();
     }

@@ -13,8 +13,11 @@ int main(int argc, char **argv)
 {
     dryer_params_t p;
     DryerCtrl_DefaultParams(&p);
+    bool overtemp = (argc > 1 && strcmp(argv[1], "quanhiet") == 0);
     p.mode = (argc > 1 && strcmp(argv[1], "thucong") == 0) ? 1.0f : 0.0f;
     p.dry_time_h = 4.0f;
+    if (overtemp) p.temp_max = 50.0f;          /* đặt bảo vệ thấp hơn nhiệt độ sấy → chắc chắn quá nhiệt */
+    bool had_fault = false;
 
     dryer_ctrl_t c; dryer_output_t o; dryer_status_t st; sim_plant_t s;
     SimPlant_Init(&s, 30.0f, 65.0f);
@@ -44,7 +47,16 @@ int main(int argc, char **argv)
             last_ph = st.phase; last_st = st.state;
         }
         if (st.state == DRYER_IDLE && t > 10) break;
-        if (st.state == DRYER_FAULT) { printf("  LOI: %s\n", DryerCtrl_FaultText(st.faults)); break; }
+        if (st.state == DRYER_FAULT && !had_fault) {
+            printf("  LOI: %s\n", DryerCtrl_FaultText(st.faults));
+            had_fault = true;
+            if (!DryerCtrl_OvertempCooling(&c)) break;
+        }
+    }
+    if (overtemp) {
+        bool ok = had_fault && st.state == DRYER_IDLE && s.temp <= p.temp_recover;
+        printf("  Qua nhiet %.1f C -> lam mat toi %.1f C -> %s\n", tmax, s.temp, ok ? "HET LOI, DUNG MAY" : "SAI");
+        return ok ? 0 : 1;
     }
     printf("  Nhiet do cao nhat %.1f C, may nen khoi dong %lu lan, %s\n", tmax, (unsigned long)comp_starts,
            st.finished ? "HOAN THANH" : "chua xong");

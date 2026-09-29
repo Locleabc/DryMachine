@@ -168,7 +168,7 @@ void DryerCtrl_DefaultParams(dryer_params_t *p)
     p->temp_set      = 55.0f;
     p->temp_hyst     = 2.0f;
     p->hum_set       = 15.0f;
-    p->hum_hyst      = 3.0f;
+    p->temp_recover  = 30.0f;   /* quá nhiệt: nguội tới 30 °C mới hết lỗi */
     p->temp_max      = 75.0f;
     p->p_high        = 30.0f;   /* TODO: chỉnh theo gas và vị trí cảm biến */
     p->p_low         = 1.0f;
@@ -216,9 +216,13 @@ void DryerCtrl_Step(dryer_ctrl_t *c, const dryer_params_t *p, const dryer_input_
         else if (c->state == DRYER_STARTING || c->state == DRYER_RUNNING) cmd |= CMD_BIT(DRYER_CMD_STOP);
     }
     if ((cmd & CMD_BIT(DRYER_CMD_RESET_FAULT)) && c->state == DRYER_FAULT) {
-        c->faults = 0;
-        c->temp_bad_cnt = c->press_bad_cnt = 0;
-        enter(c, DRYER_IDLE);
+        /* quá nhiệt: chưa nguội (còn đo được và > nhiệt độ hết lỗi) thì không cho reset */
+        bool hot = (c->faults & DRYER_FAULT_OVERTEMP) && in->temp_ok && in->temp > DryerCtrl_RecoverTemp(p);
+        if (!hot) {
+            c->faults = 0;
+            c->temp_bad_cnt = c->press_bad_cnt = 0;
+            enter(c, DRYER_IDLE);
+        }
     }
 
     check_faults(c, p, in);
@@ -267,6 +271,22 @@ void DryerCtrl_Step(dryer_ctrl_t *c, const dryer_params_t *p, const dryer_input_
     case DRYER_STOPPING:
     case DRYER_FAULT: {
         comp_request(c, p, false, true);
+        if (c->state == DRYER_FAULT && (c->faults & DRYER_FAULT_OVERTEMP)) {
+            /* quá nhiệt: xả nhiệt tối đa liên tục tới khi nguội */
+            c->out.fan_evap  = true;
+            c->out.fan_level = DRYER_FAN_LEVELS;
+            if (in->temp_ok && in->temp <= DryerCtrl_RecoverTemp(p)) {
+                c->faults &= (uint16_t)~DRYER_FAULT_OVERTEMP;
+                if (c->faults == 0) {                       /* chỉ có quá nhiệt → hết lỗi, máy dừng */
+                    c->out.fan_evap  = false;
+                    c->out.fan_level = 0;
+                    enter(c, DRYER_IDLE);
+                } else {
+                    enter(c, DRYER_FAULT);                  /* còn lỗi khác: quạt chạy thêm fan_post như thường */
+                }
+            }
+            break;
+        }
         bool post = (now_ms - c->state_tick) < MS(p->fan_post);
         c->out.fan_evap = post;
         if (press_near_high(p, in) || (c->faults & DRYER_FAULT_PRESS_HIGH && post)) {
@@ -340,6 +360,18 @@ const char *DryerCtrl_PhaseName(dryer_phase_t ph)
     case PH_GD5:       return "GĐ5 – làm mát";
     default:           return "";
     }
+}
+
+float DryerCtrl_RecoverTemp(const dryer_params_t *p)
+{
+    float r = p->temp_recover;
+    if (r > p->temp_max - 5.0f) r = p->temp_max - 5.0f;
+    return r;
+}
+
+bool DryerCtrl_OvertempCooling(const dryer_ctrl_t *c)
+{
+    return c->state == DRYER_FAULT && (c->faults & DRYER_FAULT_OVERTEMP);
 }
 
 const char *DryerCtrl_FaultText(uint16_t f)

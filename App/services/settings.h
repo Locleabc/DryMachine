@@ -16,7 +16,7 @@
 #include <stdint.h>
 
 #define SETTINGS_MAGIC     0x44525934UL   /* "DRY4" */
-#define SETTINGS_VERSION   4
+#define SETTINGS_VERSION   5      /* v5: hum_hyst (không dùng) → temp_recover, đọc được v4 */
 
 /* Nhóm thông số (mỗi nhóm là 1 danh sách trên màn hình) */
 #define SETTINGS_GROUP_PROCESS  0      /* trang "Quạt dàn nóng / chu trình" */

@@ -22,6 +22,8 @@
  *
  *  Máy nén luôn có bảo vệ: nghỉ tối thiểu comp_min_off (chờ bật lại), chạy tối thiểu comp_min_on.
  *  Bảo vệ: quá nhiệt temp_max, áp cao/thấp, mất cảm biến nhiệt/áp.
+ *  Quá nhiệt: tắt máy nén, quạt dàn lạnh + quạt dàn nóng cấp 5 chạy liên tục tới khi nhiệt độ
+ *             ≤ temp_recover (mặc định 30 °C) → tự hết lỗi, về IDLE. Chưa nguội thì không reset được.
  */
 #ifndef DRYER_CTRL_H
 #define DRYER_CTRL_H
@@ -37,7 +39,7 @@ typedef struct {
     float temp_set;        /* °C   nhiệt độ sấy                                 */
     float temp_hyst;       /* °C   trễ nhiệt khi giữ nhiệt độ                   */
     float hum_set;         /* %RH  độ ẩm mục tiêu                               */
-    float hum_hyst;        /* %RH  (dự phòng)                                   */
+    float temp_recover;    /* °C   quá nhiệt: làm mát tới nhiệt độ này mới hết lỗi (thay hum_hyst cũ) */
     float temp_max;        /* °C   nhiệt độ bảo vệ → dừng máy                   */
     float p_high;          /* bar  ngắt áp cao                                  */
     float p_low;           /* bar  ngắt áp thấp (sau P_LOW_GRACE)               */
@@ -136,7 +138,9 @@ void DryerCtrl_GetStatus(const dryer_ctrl_t *c, dryer_status_t *st);
 
 const char *DryerCtrl_StateName(dryer_state_t s);
 const char *DryerCtrl_PhaseName(dryer_phase_t ph);    /* "GĐ2 – hút ẩm", "Tự động – giữ nhiệt"… */
-const char *DryerCtrl_FaultText(uint16_t faults);     /* tên lỗi ưu tiên cao nhất, "" nếu không lỗi */
+const char *DryerCtrl_FaultText(uint16_t faults);
+float       DryerCtrl_RecoverTemp(const dryer_params_t *p);  /* nhiệt độ hết quá nhiệt (≤ temp_max - 5) */
+bool        DryerCtrl_OvertempCooling(const dryer_ctrl_t *c); /* đang làm mát do quá nhiệt */     /* tên lỗi ưu tiên cao nhất, "" nếu không lỗi */
 void DryerCtrl_DefaultParams(dryer_params_t *p);
 
 #endif

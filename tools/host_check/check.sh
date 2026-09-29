@@ -54,4 +54,5 @@ gcc -std=c11 -IApp/control -IApp/services tools/host_check/sim_cycle.c App/contr
     App/services/sim_plant.c -o "$OUT/sim_cycle"
 "$OUT/sim_cycle"
 "$OUT/sim_cycle" thucong
+"$OUT/sim_cycle" quanhiet || fail=1
 exit $fail
