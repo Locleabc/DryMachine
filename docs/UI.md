@@ -26,7 +26,7 @@ Giao diện dùng font **Be Vietnam Pro** (SIL Open Font License 1.1) chuyển t
 | 3 Thời gian sấy | HH:MM (00:00 = không giới hạn). **Chỉ dùng cho chế độ Tự động**, Thủ công hiện "không áp dụng" | ENTER: chỉnh từng chữ số |
 | 4 Quạt dàn nóng | Chế độ Tự động / Thủ công, bảng 5 giai đoạn + cấp quạt, nhiệt độ bảo vệ, thời gian chờ máy nén | ENTER: danh sách cài đặt |
 | 5 Lịch sử lỗi | Lỗi đang có + 6 lỗi gần nhất (ngày giờ, tên lỗi) | ENTER: xoá lỗi đang có · Giữ EXIT 3 s: xoá lịch sử |
-| 6 Trạng thái đầu ra | 7 relay (máy nén, quạt dàn lạnh, quạt nóng cấp 1–5) kèm chân IN/GPIO, ô **ON** xanh / **OFF** xám. Dòng dưới: chân ra **ON = 0 V, OFF = 3.3 V** (module relay kích mức thấp). Giả lập với *Relay thật = Tắt*: ô vàng **ON\*** = bộ điều khiển yêu cầu bật nhưng relay không đóng | **ENTER: test đầu ra** (xem dưới) |
+| 6 Trạng thái đầu ra | 7 relay (máy nén, quạt dàn lạnh, quạt nóng cấp 1–5) kèm chân IN/GPIO, ô **ON** xanh / **OFF** xám. Dòng dưới: **nhiệt độ · độ ẩm · áp suất** hiện tại. Chân ra: ON = 0 V, OFF = 3.3 V (module relay kích mức thấp). Giả lập với *Relay thật = Tắt*: ô vàng **ON\*** = bộ điều khiển yêu cầu bật nhưng relay không đóng | **ENTER: test đầu ra** (xem dưới) |
 
 Ở mọi trang: **giữ ENTER 3 s → menu chế độ sấy**, EXIT → về trang chính.
 Header luôn hiện đồng hồ HH:MM:SS; footer hiện gợi ý phím, thông báo và số trang (6 ô vuông).
@@ -42,7 +42,7 @@ nên dùng được cả khi chưa gắn cảm biến).
 
 | Phím | Tác dụng |
 |------|----------|
-| ENTER | vào test (dòng đang chọn tô xanh) |
+| ENTER | vào test (dòng đang chọn tô xanh, footer hiện *TEST*) |
 | UP / DOWN | chọn đầu ra |
 | ENTER | bật / tắt đầu ra đang chọn |
 | EXIT | thoát test, **tắt hết** |

@@ -6,7 +6,9 @@
  *  Mỗi đầu ra có 2 bit trong view:
  *    out_cmd   – đang được yêu cầu BẬT (bộ điều khiển hoặc test)
  *    out_relay – relay thật đang đóng
- *  Giả lập với "Relay thật" = Tắt: yêu cầu BẬT nhưng relay không đóng → hiện "ON*".
+ *  Yêu cầu BẬT nhưng relay chưa đóng (giả lập Relay thật = Tắt / đang nghỉ đổi cấp quạt) → ô vàng "ON*".
+ *
+ *  Dòng dưới cùng: nhiệt độ · độ ẩm · áp suất hiện tại.
  *
  *  Test đầu ra (chỉ khi máy không chạy – app kiểm tra):
  *    ENTER        vào test
@@ -60,15 +62,28 @@ static void draw_values(bool full)
 {
     const ui_view_t *v = &g_ui.v;
     static uint8_t last_cmd = 0xFF, last_rly = 0xFF, last_cur = 0xFF;
-    static bool last_test, last_sim;
+    static bool last_test;
+    static char last_meas[3][12];
+    char meas[3][12], n[8];
 
     if (s_test && !v->out_test) s_test = false;          /* app đã thoát test (hết giờ / máy chạy) */
 
+    /* dòng số đo */
+    w_fmt_value(n, sizeof(n), v->temp_ok, v->temp);   snprintf(meas[0], sizeof(meas[0]), "%s°C", n);
+    w_fmt_value(n, sizeof(n), v->hum_ok, v->hum);     snprintf(meas[1], sizeof(meas[1]), "%s%%", n);
+    w_fmt_value(n, sizeof(n), v->press_ok, v->press); snprintf(meas[2], sizeof(meas[2]), "%s bar", n);
+    bool meas_chg = full || memcmp(meas, last_meas, sizeof(meas)) != 0;
+    if (meas_chg) {
+        memcpy(last_meas, meas, sizeof(meas));
+        w_text(X_NAME,        Y_NOTE, 96,  meas[0], UC_TEMP,  UC_BG, TEXT_LEFT);
+        w_text(X_NAME + 96,   Y_NOTE, 96,  meas[1], UC_HUM,   UC_BG, TEXT_LEFT);
+        w_text(X_NAME + 192,  Y_NOTE, TFT_WIDTH - 16 - 192, meas[2], UC_VALUE, UC_BG, TEXT_LEFT);
+    }
+
     bool labels = full || last_test != s_test || last_cur != s_cur;
-    if (!labels && last_cmd == v->out_cmd && last_rly == v->out_relay && last_sim == g_ui.sim_on) return;
+    if (!labels && last_cmd == v->out_cmd && last_rly == v->out_relay) return;
     last_cmd = v->out_cmd;
     last_rly = v->out_relay;
-    last_sim = g_ui.sim_on;
 
     if (labels) {
         for (uint8_t i = 0; i < out_count(); i++) draw_row_label(i, s_test && i == s_cur);
@@ -76,27 +91,16 @@ static void draw_values(bool full)
         last_cur = s_cur;
     }
 
-    bool mismatch = false;
     for (uint8_t i = 0; i < out_count(); i++) {
         bool cmd = (v->out_cmd >> i) & 1u;
         bool rly = (v->out_relay >> i) & 1u;
         int16_t y = (int16_t)(Y0 + i * LINE_H);
         if (cmd && !rly) {                                  /* yêu cầu bật nhưng relay chưa/không đóng */
             Text_Box(X_PILL, y, W_PILL, "ON*", F_TXT, C_BLACK, UC_WARN, TEXT_CENTER);
-            mismatch = true;
         } else {
             w_badge(X_PILL, y, W_PILL, rly ? "ON" : "OFF", rly);
         }
     }
-
-    if (s_test)
-        w_text(X_NAME, Y_NOTE, TFT_WIDTH - 16, "TEST · UP/DOWN chọn · ENTER bật/tắt", UC_CURSOR, UC_BG, TEXT_LEFT);
-    else if (mismatch && g_ui.sim_on)
-        w_text(X_NAME, Y_NOTE, TFT_WIDTH - 16, "* giả lập: relay không đóng", UC_WARN, UC_BG, TEXT_LEFT);
-    else if (mismatch)
-        w_text(X_NAME, Y_NOTE, TFT_WIDTH - 16, "* đang nghỉ đổi cấp quạt", UC_WARN, UC_BG, TEXT_LEFT);
-    else
-        w_text(X_NAME, Y_NOTE, TFT_WIDTH - 16, "Chân ra: ON = 0 V · OFF = 3.3 V", UC_LABEL, UC_BG, TEXT_LEFT);
 }
 
 static void key(ui_key_t k, ui_press_t p)
@@ -134,7 +138,7 @@ static void key(ui_key_t k, ui_press_t p)
 
 static const char *hint(void)
 {
-    return s_test ? "EXIT: thoát test, tắt hết" : "ENTER: test đầu ra · EXIT: về";
+    return s_test ? "TEST · ENTER bật/tắt · EXIT thoát" : "ENTER: test đầu ra · EXIT: về";
 }
 
 const ui_screen_t scr_outputs = {
