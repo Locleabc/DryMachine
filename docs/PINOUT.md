@@ -63,7 +63,12 @@ nếu motor không chịu được 2 đầu dây cùng có điện khi relay dí
   Đấu RC snubber / varistor song song cuộn contactor và quạt.
 * **MAX31865**: điện trở tham chiếu module thường là 430 Ω (PT100; module PT1000 là 4300 Ω).
   Firmware mặc định **PT100 3 dây** (`board_pt100.wires = 3` trong `App/board/board.c`) – module phải hàn jumper 3 dây
-  (cắt nối "2/3 wire", hàn "3" và "24|3"). PT100 2 hoặc 4 dây: để jumper mặc định và đổi `wires = 2` / `4`.
+  PT100 2 hoặc 4 dây: để jumper mặc định và đổi `wires = 2` / `4`.
+  Đấu PT100 **3 dây** (theo hướng dẫn module Adafruit, bản clone giống ký hiệu):
+  1. Hàn **nối** jumper `2/3 Wire` (cạnh cầu đấu F-/RTD-) → F- và RTD- thông nhau.
+  2. Jumper 3 chân `24 | 3` phía trên Rref: **cắt** đường mạch nhỏ giữa đệm giữa và `24`, rồi hàn nối đệm giữa với `3`.
+  3. Hai dây **cùng màu** (đo với nhau ≈ 0–2 Ω) → **F+** và **RTD+** (đổi chỗ hai dây này không sao).
+     Dây **khác màu** còn lại (đo với hai dây kia ≈ 110 Ω) → **F-** (hoặc RTD-, vì đã nối ở bước 1).
   Nguồn VIN 3.3–5 V, SDI → PB15, SDO → PB14, CLK → PB13, CS → PB12.
   Lỗi hiện ở trang chính:
   | Thông báo | Nguyên nhân thường gặp |
