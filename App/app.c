@@ -179,10 +179,38 @@ static const char *sht_diag_text(void)
     }
 }
 
-/* lý do mất PT100 / MAX31865 theo thanh ghi lỗi */
-static const char *pt100_diag_text(void)
+/* Lỗi "Mất cảm biến nhiệt" được GIỮ tới khi xoá tay (trang 5) – kể cả khi PT100 đọc lại được.
+ * Vì vậy lý do phải chụp lại lúc cảm biến hỏng, không lấy giá trị đang đo (đã có thể bình thường). */
+static struct {
+    bool    bad;              /* lần đọc gần nhất hỏng */
+    uint8_t fault;            /* thanh ghi lỗi MAX31865 lúc hỏng gần nhất */
+    float   r;                /* điện trở lúc hỏng gần nhất */
+    uint16_t count;           /* số lần chuyển OK → hỏng (đếm chập chờn) */
+} s_pt_bad;
+
+static void pt100_track(void)
 {
-    uint8_t f = Sensors_Data()->pt100_fault;
+    if (s_sim.mode != SIM_OFF) return;
+    const sensors_data_t *d = Sensors_Data();
+    if (!d->temp.ok) {
+        s_pt_bad.fault = d->pt100_fault;
+        s_pt_bad.r     = d->pt100_r;
+        if (!s_pt_bad.bad) {
+            char r[10];
+            if (s_pt_bad.count < 0xFFFF) s_pt_bad.count++;
+            Log_Printf("PT100 hong: F=0x%02X R=%s ohm (lan %u)", (unsigned)d->pt100_fault,
+                       Fmt_Float(r, sizeof(r), d->pt100_r, 1), (unsigned)s_pt_bad.count);
+        }
+    } else if (s_pt_bad.bad) {
+        Log_Printf("PT100 doc lai duoc");
+    }
+    s_pt_bad.bad = !d->temp.ok;
+}
+
+/* lý do mất PT100 / MAX31865 theo thanh ghi lỗi (chụp lúc hỏng) */
+static const char *pt100_cause_text(void)
+{
+    uint8_t f = s_pt_bad.fault;
     if (f == 0xFF) return "MAX31865 không phản hồi (SPI2)";
     if (f & 0x80)  return "PT100 hở mạch / đứt dây";
     if (f & 0x40)  return "PT100 chập mạch";
@@ -195,12 +223,21 @@ static const char *pt100_diag_text(void)
      *   còn lại     : nhiệt > 250 °C thật hoặc tiếp xúc kém                                        */
     static char txt[48];
     char r[10];
-    float ohm = Sensors_Data()->pt100_r;
+    float ohm = s_pt_bad.r;
     Fmt_Float(r, sizeof(r), ohm, 1);
     if (ohm < 60.0f)       snprintf(txt, sizeof(txt), "PT100 R=%s ohm thấp: chập / Rref?", r);
     else if (ohm >= 400.0f) snprintf(txt, sizeof(txt), "PT100 R=%s ohm cao: hở / PT1000?", r);
     else                    snprintf(txt, sizeof(txt), "PT100 R=%s ohm ngoài dải", r);
     return txt;
+}
+
+/* Dòng lỗi trang chính: PT100 đã đọc lại được nhưng lỗi còn giữ → luân phiên 2 s
+ * giữa lý do lúc hỏng và lời nhắc xoá lỗi. */
+static const char *pt100_diag_text(void)
+{
+    if (Sensors_Data()->temp.ok && (Board_Millis() / 2000u) % 2u)
+        return "PT100 đã OK lại · xoá lỗi ở trang 5";
+    return pt100_cause_text();
 }
 
 /* ================= Thời gian ================= */
@@ -368,6 +405,7 @@ static void task_buttons(uint32_t now)
 
 static void task_ctrl(uint32_t now)
 {
+    pt100_track();
     const settings_t *set = Settings_Get();
 
     sensors_calib_t cal = { set->temp_offset, set->hum_offset };

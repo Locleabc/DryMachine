@@ -85,6 +85,11 @@ nếu motor không chịu được 2 đầu dây cùng có điện khi relay dí
   | *PT100 R=… ohm cao: hở / PT1000?* (R ≥ 400 Ω) | Chưa nối / đứt dây PT100; hoặc đầu dò là PT1000 (≈ 1100 Ω ở 25 °C) → ADC bão hoà ≈ Rref 430 Ω |
   | *PT100 R=… ohm ngoài dải* | Nhiệt > 250 °C thật, hoặc tiếp xúc kém – đo lại bằng đồng hồ |
 
+  Lỗi *Mất cảm biến nhiệt* được **giữ** tới khi xoá tay (ENTER ở trang 5) để không bỏ sót tiếp xúc chập chờn:
+  nhiệt độ vẫn hiện bình thường nhưng dòng lỗi luân phiên giữa **lý do lúc hỏng** (chụp lại, không phải giá trị hiện tại)
+  và *PT100 đã OK lại · xoá lỗi ở trang 5*. Log UART ghi mỗi lần hỏng: `PT100 hong: F=.. R=.. ohm (lan N)` –
+  N tăng dần khi máy đang chạy → dây/jumper lỏng.
+
   Kiểm tra nhanh bằng đồng hồ (rút PT100 khỏi module): PT100 ≈ 108–112 Ω ở 25 °C (PT1000 ≈ 1080–1120 Ω);
   3 dây thì hai dây cùng màu đo với nhau ≈ 0–1 Ω. Điện trở Rref trên module: mã **431** = 430 Ω, **4301 / 432** = 4,3 kΩ.
 * **Nút bấm**: nối chân → nút → GND, dùng pull-up nội. PA15 chỉ dùng được khi tắt JTAG
