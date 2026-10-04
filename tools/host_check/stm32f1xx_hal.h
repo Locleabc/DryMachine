@@ -46,8 +46,11 @@ HAL_StatusTypeDef HAL_I2C_DeInit(I2C_HandleTypeDef*);
 typedef struct { uint32_t Pin, Mode, Pull, Speed; } GPIO_InitTypeDef;
 void HAL_GPIO_Init(GPIO_TypeDef*, GPIO_InitTypeDef*);
 #define GPIO_MODE_OUTPUT_OD 0x11
+#define GPIO_MODE_OUTPUT_PP 0x01
 #define GPIO_NOPULL 0
 #define GPIO_SPEED_FREQ_HIGH 3
+#define GPIO_SPEED_FREQ_LOW  2
+#define __HAL_RCC_GPIOA_CLK_ENABLE() ((void)0)
 #define FLASH_PAGE_SIZE 0x400U
 #define __HAL_RCC_I2C2_FORCE_RESET()   ((void)0)
 #define __HAL_RCC_I2C2_RELEASE_RESET() ((void)0)

@@ -112,6 +112,11 @@ void UI_Message(const char *msg)
     g_ui.msg_tick = g_ui.now;
 }
 
+void UI_Redraw(void)
+{
+    g_ui.redraw = true;
+}
+
 void UI_Key(ui_key_t key, ui_press_t press)
 {
     const ui_screen_t *s = s_screens[g_ui.scr];

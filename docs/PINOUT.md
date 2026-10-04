@@ -16,6 +16,7 @@ VCC TFT, nguồn cảm biến áp. 3.3V lấy từ LDO trên Blue Pill cho MAX31
 | PA5  | SPI1_SCK | – | TFT SCK |
 | PA6  | SPI1_MISO | – | TFT SDO (MISO) – không bắt buộc |
 | PA7  | SPI1_MOSI | – | TFT SDI (MOSI) |
+| PA11 | GPIO_Output (cấu hình trong `board.c`) | – | TFT **LED** (đèn nền, cao = sáng) – tự tắt màn hình |
 | PA8  | GPIO_Input (Pull-up) | BTN_ENTER | Nút ENTER → GND |
 | PA9  | USART1_TX | – | Debug log 115200 (USB-UART) |
 | PA10 | USART1_RX | – | Debug |
@@ -61,6 +62,9 @@ nếu motor không chịu được 2 đầu dây cùng có điện khi relay dí
 * **Relay**: module 5V opto kích mức THẤP. Tháo jumper VCC–JD-VCC: VCC (phía opto) nối 3.3V
   Blue Pill, JD-VCC nối 5V buck. K1 chỉ đóng cuộn contactor, contactor mới cấp cho máy nén.
   Đấu RC snubber / varistor song song cuộn contactor và quạt.
+* **Đèn nền TFT (PA11)**: module ILI9341 SPI 2.4"/2.8" (bo đỏ) thường có transistor đệm ở chân LED → nối thẳng PA11.
+  Nếu chân LED nối thẳng vào LED nền qua điện trở (không có transistor, dòng > 20 mA) thì đệm bằng NPN (S8050/2N2222,
+  base qua 1 kΩ từ PA11) hoặc MOSFET logic-level. Không nối PA11 thì vẫn để LED lên 3.3 V như cũ – tự tắt chỉ làm đen màn hình.
 * **MAX31865**: điện trở tham chiếu module thường là 430 Ω (PT100; module PT1000 là 4300 Ω).
   Firmware mặc định **PT100 3 dây** (`board_pt100.wires = 3` trong `App/board/board.c`) – module phải hàn jumper 3 dây
   PT100 2 hoặc 4 dây: để jumper mặc định và đổi `wires = 2` / `4`.

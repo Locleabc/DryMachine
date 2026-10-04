@@ -16,7 +16,7 @@
 #include <stdint.h>
 
 #define SETTINGS_MAGIC     0x44525934UL   /* "DRY4" */
-#define SETTINGS_VERSION   5      /* v5: hum_hyst (không dùng) → temp_recover, đọc được v4 */
+#define SETTINGS_VERSION   6      /* v6: + screen_off_min; v5: hum_hyst → temp_recover. Đọc được v4, v5 */
 
 /* Nhóm thông số (mỗi nhóm là 1 danh sách trên màn hình) */
 #define SETTINGS_GROUP_PROCESS  0      /* trang "Quạt dàn nóng / chu trình" */
@@ -28,6 +28,7 @@
 #define SETTINGS_HUM_MIN   5.0f
 #define SETTINGS_HUM_MAX   80.0f
 #define SETTINGS_DRY_MAX_MIN  (99u * 60u + 59u)   /* 99:59 */
+#define SETTINGS_SCREEN_OFF_DEF  5.0f             /* phút, mặc định tự tắt màn hình */
 
 typedef struct {
     uint32_t       magic;
@@ -40,7 +41,8 @@ typedef struct {
     uint8_t        reserved[3];
     float          preset_temp[PRESET_COUNT];   /* giá trị từng chế độ (sửa được) */
     float          preset_hum[PRESET_COUNT];
-    uint32_t       crc;
+    float          screen_off_min; /* phút không bấm nút → tắt màn hình, 0 = luôn sáng (v6) */
+    uint32_t       crc;           /* LUÔN là field cuối (bản cũ = tiền tố của bản mới) */
 } settings_t;
 
 typedef struct {

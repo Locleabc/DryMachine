@@ -30,6 +30,7 @@ static const settings_param_t s_params[] = {
     P(PR, ctrl.comp_min_off,  "Máy nén chờ bật lại", "s",   10.0f, 600.0f, 5.0f,  0, NULL),
     P(PR, ctrl.temp_max,      "Nhiệt độ bảo vệ",     "°C",  50.0f,  95.0f, 1.0f,  0, NULL),
     P(PR, ctrl.temp_recover,  "Quá nhiệt: nguội tới","°C",  20.0f,  60.0f, 1.0f,  0, NULL),
+    P(PR, screen_off_min,     "Tắt màn hình sau",    "phút", 0.0f,  60.0f, 1.0f,  0, NULL),   /* 0 = luôn sáng */
     /* ---- Menu kỹ thuật (ẩn) ---- */
     P(TE, ctrl.temp_hyst,     "Trễ nhiệt",           "°C",   0.5f,  10.0f, 0.5f,  1, NULL),
     P(TE, ctrl.p_high,        "Ngắt áp cao",         "bar",  5.0f,  45.0f, 0.5f,  1, NULL),
@@ -75,6 +76,7 @@ void Settings_Default(void)
     DryerCtrl_DefaultParams(&s_set.ctrl);
     s_set.temp_offset = 0.0f;
     s_set.hum_offset  = 0.0f;
+    s_set.screen_off_min = SETTINGS_SCREEN_OFF_DEF;
     for (uint8_t i = 0; i < PRESET_COUNT; i++) {
         s_set.preset_temp[i] = g_preset_defs[i].temp;
         s_set.preset_hum[i]  = g_preset_defs[i].hum;
@@ -83,16 +85,32 @@ void Settings_Default(void)
     stamp(&s_set);
 }
 
+/* v4/v5: cấu trúc = tiền tố của v6 tới hết preset_hum, CRC nằm ngay sau (đúng chỗ screen_off_min) */
+#define SETTINGS_V5_BODY  offsetof(settings_t, screen_off_min)
+
+static bool load_legacy(const settings_t *tmp)
+{
+    uint32_t crc;
+    if (tmp->magic != SETTINGS_MAGIC || (tmp->version != 4 && tmp->version != 5) ||
+        tmp->size != SETTINGS_V5_BODY + sizeof(uint32_t)) return false;
+    memcpy(&crc, (const uint8_t *)tmp + SETTINGS_V5_BODY, sizeof(crc));
+    if (crc != crc32_calc((const uint8_t *)tmp, SETTINGS_V5_BODY)) return false;
+    s_set = *tmp;
+    if (tmp->version == 4) s_set.ctrl.temp_recover = 30.0f;   /* v4: ô này là hum_hyst cũ – giữ các cài đặt khác */
+    s_set.screen_off_min = SETTINGS_SCREEN_OFF_DEF;
+    stamp(&s_set);
+    return true;
+}
+
 void Settings_Init(const flash_store_cfg_t *store)
 {
     settings_t tmp;
     s_store = store;
-    if (store && FlashStore_Read(store, &tmp, sizeof(tmp)) &&
-        tmp.magic == SETTINGS_MAGIC && (tmp.version == SETTINGS_VERSION || tmp.version == 4) &&
+    bool ok = store && FlashStore_Read(store, &tmp, sizeof(tmp));
+    if (ok && tmp.magic == SETTINGS_MAGIC && tmp.version == SETTINGS_VERSION &&
         tmp.size == sizeof(settings_t) && tmp.crc == calc_crc(&tmp)) {
         s_set = tmp;
-        if (tmp.version == 4) s_set.ctrl.temp_recover = 30.0f;   /* v4: ô này là hum_hyst cũ – giữ các cài đặt khác */
-    } else {
+    } else if (!(ok && load_legacy(&tmp))) {
         Settings_Default();
     }
     for (uint8_t i = 0; i < PARAM_COUNT; i++) Settings_SetValue(i, Settings_GetValue(i));  /* kẹp giới hạn */

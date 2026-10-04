@@ -149,5 +149,6 @@ void UI_Init(const ui_config_t *cfg);
 void UI_Key(ui_key_t key, ui_press_t press);
 void UI_Update(const ui_view_t *view, uint32_t now_ms);
 void UI_Message(const char *msg);            /* thông báo 2 s ở dòng trạng thái */
+void UI_Redraw(void);                        /* vẽ lại toàn màn hình ở lần UI_Update sau (sau khi bật lại màn hình) */
 
 #endif

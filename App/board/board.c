@@ -75,6 +75,27 @@ uint32_t Board_Millis(void)
     return HAL_GetTick();
 }
 
+/* Đèn nền TFT: chân LED của module → PA11 (đẩy-kéo, mức cao = sáng).
+ * Cấu hình ngay tại đây (không cần sửa CubeMX). Chưa nối PA11 thì màn hình vẫn tắt bằng cách tô đen. */
+#define LCD_BL_PORT  GPIOA
+#define LCD_BL_PIN   GPIO_PIN_11
+
+void Board_LcdBacklight(bool on)
+{
+    static bool init;
+    HAL_GPIO_WritePin(LCD_BL_PORT, LCD_BL_PIN, on ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    if (!init) {
+        GPIO_InitTypeDef g = {0};
+        __HAL_RCC_GPIOA_CLK_ENABLE();
+        g.Pin   = LCD_BL_PIN;
+        g.Mode  = GPIO_MODE_OUTPUT_PP;
+        g.Pull  = GPIO_NOPULL;
+        g.Speed = GPIO_SPEED_FREQ_LOW;
+        HAL_GPIO_Init(LCD_BL_PORT, &g);
+        init = true;
+    }
+}
+
 void Board_LedToggle(void)
 {
     HAL_GPIO_TogglePin(LED_RUN_GPIO_Port, LED_RUN_Pin);

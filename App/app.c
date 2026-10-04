@@ -543,6 +543,60 @@ static void build_view(ui_view_t *v)
     }
 }
 
+/* ================= Tự tắt màn hình =================
+ *  Không bấm nút sau "Tắt màn hình sau" (phút, 0 = luôn sáng) → tô đen + tắt đèn nền.
+ *  Bấm nút bất kỳ → sáng lại; phím dùng để đánh thức bị bỏ qua (giữ tới khi nhả hết nút).
+ *  Có lỗi mới → tự sáng lại để người vận hành thấy. */
+static struct {
+    bool     off;
+    bool     key_lock;        /* vừa đánh thức: bỏ phím cho tới khi nhả hết nút */
+    uint32_t last_act;
+    bool     had_fault;
+} s_scr;
+
+static bool any_button_down(void)
+{
+    for (uint8_t i = 0; i < BTN_ID_COUNT; i++) if (Button_IsPressed(i)) return true;
+    return false;
+}
+
+static void screen_set(bool on, uint32_t now)
+{
+    s_scr.last_act = now;
+    if (on == !s_scr.off) return;
+    s_scr.off = !on;
+    if (on) {
+        UI_Redraw();
+        Board_LcdBacklight(true);
+        Log_Printf("Man hinh: bat");
+    } else {
+        Board_LcdBacklight(false);
+        ILI9341_FillScreen(C_BLACK);         /* tối hẳn kể cả khi chưa nối chân đèn nền */
+        Log_Printf("Man hinh: tat");
+    }
+}
+
+/* true = phím được chuyển cho UI; false = phím chỉ dùng để đánh thức / đang khoá */
+static bool screen_on_key(uint32_t now)
+{
+    if (s_scr.off) { screen_set(true, now); s_scr.key_lock = true; }
+    s_scr.last_act = now;
+    return !s_scr.key_lock;
+}
+
+static void screen_process(const ui_view_t *v, uint32_t now)
+{
+    bool fault = (v->fault_text != NULL);
+    if (fault && !s_scr.had_fault) screen_set(true, now);     /* lỗi mới */
+    s_scr.had_fault = fault;
+
+    if (s_scr.key_lock && !any_button_down()) s_scr.key_lock = false;
+    if (!s_scr.off && any_button_down()) s_scr.last_act = now;
+
+    uint32_t tmo = (uint32_t)(Settings_Get()->screen_off_min + 0.5f) * 60000u;
+    if (!s_scr.off && tmo && now - s_scr.last_act >= tmo) screen_set(false, now);
+}
+
 static void task_ui(uint32_t now)
 {
     static const ui_key_t keymap[BTN_ID_COUNT] = {
@@ -557,11 +611,13 @@ static void task_ui(uint32_t now)
 
     build_view(&v);
     button_evt_t e;
+    if (s_scr.off && any_button_down()) screen_on_key(now);   /* ENTER/EXIT chỉ báo sự kiện khi nhả */
     while (Button_GetEvent(&e)) {
-        if (e.id < BTN_ID_COUNT) UI_Key(keymap[e.id], pressmap[e.type]);
+        if (screen_on_key(now) && e.id < BTN_ID_COUNT) UI_Key(keymap[e.id], pressmap[e.type]);
     }
     build_view(&v);                   /* lệnh vừa xử lý có thể đổi dữ liệu */
-    UI_Update(&v, now);
+    screen_process(&v, now);
+    if (!s_scr.off) UI_Update(&v, now);
 }
 
 static void task_log(uint32_t now)
@@ -606,6 +662,7 @@ void App_Init(void)
     Settings_Init(&board_settings_flash);
     FaultLog_Init(&board_faultlog_flash);
 
+    Board_LcdBacklight(true);
     ILI9341_Init(&board_lcd);
     ILI9341_FillScreen(C_BLACK);
     Text_Box(0, 92, TFT_WIDTH, "MÁY SẤY TÁCH ẨM", &font_vn16, C_WHITE, C_BLACK, TEXT_CENTER);
@@ -631,6 +688,7 @@ void App_Init(void)
         .output_names = s_out_names, .output_pins = s_out_pins, .output_count = RLY_ID_COUNT,
     };
     UI_Init(&ui_cfg);
+    s_scr.last_act = now;
     Sched_Init(s_tasks, TASK_COUNT, now);
 
     char pt_r[10];

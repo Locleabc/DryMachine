@@ -467,7 +467,7 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 <tr><td class="mono">SDI (MOSI)</td><td class="mono strong">PA7</td><td></td></tr>
 <tr><td class="mono">SCK</td><td class="mono strong">PA5</td><td></td></tr>
 <tr><td class="mono">SDO (MISO)</td><td class="mono strong">PA6</td><td>Không bắt buộc</td></tr>
-<tr><td class="mono">LED</td><td class="mono strong">3.3V</td><td>Đèn nền sáng liên tục</td></tr>
+<tr><td class="mono">LED</td><td class="mono strong">PA11</td><td>Đèn nền – firmware tắt khi không bấm nút (tự tắt màn hình). Không dùng: nối 3.3V</td></tr>
 <tr><td class="mono">T_CLK … T_IRQ</td><td class="mono strong">để trống</td><td>Cảm ứng chưa dùng</td></tr>
 </tbody></table></div></section>
 <section class="card"><h3><span class="dot f-bg-max"></span>MAX31865 + PT100 (SPI2)</h3><div class="tw"><table><thead><tr><th>Chân module</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
@@ -525,6 +525,7 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 <tr><td class="mono strong"><span class="dot f-bg-btn"></span>PA8</td><td>Nút ENTER</td><td class="mono">GPIO_Input, Pull-up</td><td class="mono">BTN_ENTER</td><td class="mono">–</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-dbg"></span>PA9</td><td>Log TX</td><td class="mono">USART1_TX</td><td class="mono">–</td><td class="mono">–</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-dbg"></span>PA10</td><td>Log RX</td><td class="mono">USART1_RX</td><td class="mono">–</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-tft"></span>PA11</td><td>Đèn nền TFT</td><td class="mono">GPIO_Output (board.c)</td><td class="mono">–</td><td class="mono">High (sáng)</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-dbg"></span>PA13</td><td>SWDIO</td><td class="mono">SYS_JTMS-SWDIO</td><td class="mono">–</td><td class="mono">–</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-dbg"></span>PA14</td><td>SWCLK</td><td class="mono">SYS_JTCK-SWCLK</td><td class="mono">–</td><td class="mono">–</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-btn"></span>PA15</td><td>Nút EXIT</td><td class="mono">GPIO_Input, Pull-up</td><td class="mono">BTN_EXIT</td><td class="mono">–</td></tr>

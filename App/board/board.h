@@ -40,6 +40,7 @@ extern const flash_store_cfg_t  board_faultlog_flash;
 
 uint32_t Board_Millis(void);
 void     Board_LedToggle(void);
+void     Board_LcdBacklight(bool on);   /* đèn nền TFT (chân LED của module) – PA11 */
 void     Board_LogWrite(const char *data, uint16_t len);
 void     Board_I2cRecover(void);        /* gỡ treo bus I2C của SHT45 */
 

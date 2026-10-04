@@ -83,6 +83,15 @@ Chung cho cả hai chế độ:
 * Mất cảm biến ẩm: Tự động chuyển sang giữ nhiệt; Thủ công bỏ qua GĐ2 (có cảnh báo).
 * Đổi chế độ khi máy đang chạy: áp dụng từ lần chạy sau.
 
+## Tự tắt màn hình
+
+* **Tắt màn hình sau** (phút, mặc định **5**, chỉnh ở trang 4, **0 = luôn sáng**): không bấm nút nào trong khoảng này
+  → màn hình tô đen và tắt đèn nền. Máy vẫn chạy bình thường.
+* Bấm **nút bất kỳ** → sáng lại đúng trang đang xem. Lần bấm đánh thức **không** thực hiện chức năng của nút
+  (kể cả khi giữ lâu) – bấm lại lần nữa mới tác dụng.
+* Có **lỗi mới** → màn hình tự sáng lại để người vận hành thấy.
+* Đèn nền chỉ tắt hẳn khi chân **LED** của module TFT nối **PA11** (xem PINOUT.md); chưa nối thì màn hình chỉ đen.
+
 ## Menu chế độ sấy (giữ ENTER 3 s)
 
 6 chế độ đặt sẵn + *Tự do* + *Chỉnh đồng hồ*. Dấu `*` là chế độ đang dùng.
