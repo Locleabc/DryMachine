@@ -447,6 +447,8 @@ static void build_view(ui_view_t *v)
     *v = (ui_view_t){0};
     v->temp_ok  = m.t_ok; v->temp  = m.t;
     v->hum_ok   = m.h_ok; v->hum   = m.h;
+    v->hum_temp_ok = Sensors_Data()->hum_temp.ok;
+    v->hum_temp    = Sensors_Data()->hum_temp.value;
     v->press_ok = m.p_ok; v->press = m.p;
     v->sim_text = (s_sim.mode != SIM_OFF) ? s_sim.text : NULL;
 

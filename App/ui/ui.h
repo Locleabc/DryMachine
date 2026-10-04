@@ -76,6 +76,7 @@ typedef struct {
     /* đo */
     bool  temp_ok;  float temp;
     bool  hum_ok;   float hum;
+    bool  hum_temp_ok; float hum_temp;       /* nhiệt độ đo tại cảm biến ẩm SHT (tham khảo) */
     bool  press_ok; float press;
     /* điểm đặt & chế độ */
     float   temp_set, hum_set;

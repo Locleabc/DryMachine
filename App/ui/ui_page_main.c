@@ -7,7 +7,7 @@
  *   │ 54.6°C              21.4%          │  (số lớn)
  *   │ Đặt 55°C            Đặt 15%        │
  *   │ ─────────────────────────────────  │
- *   │ Chế độ: Trái cây                   │
+ *   │ Chế độ: Trái cây         SHT 28.3°C│  (nhiệt độ tại cảm biến ẩm)
  *   │ Đang sấy            Đã sấy 01:23:45│
  *   │ [MN][QN][QL]        Còn    04:36:15│
  *   │ Lỗi / cảnh báo                     │
@@ -26,6 +26,7 @@
 #define Y_STATE  142
 #define Y_RELAY  166
 #define Y_ALARM  192
+#define X_SHT    222          /* nhiệt độ SHT bên phải dòng chế độ */
 #define X_TIME   180          /* cột thời gian bên phải */
 #define W_TIME   (TFT_WIDTH - 8 - X_TIME)
 
@@ -51,6 +52,11 @@ static void draw_values(bool full)
     snprintf(a, sizeof(a), "%s%%", b);
     w_num(COL_R, Y_BIG, COL_W, a, v->hum_ok ? (v->hum_reached ? UC_OK : UC_HUM) : UC_LABEL, UC_BG, TEXT_LEFT);
 
+    /* nhiệt độ tại cảm biến ẩm SHT (tham khảo, không dùng để điều khiển) */
+    if (v->hum_temp_ok) snprintf(a, sizeof(a), "SHT %s°C", Fmt_Float(b, sizeof(b), v->hum_temp, 1));
+    else                a[0] = '\0';
+    w_text(X_SHT, Y_MODE, TFT_WIDTH - 8 - X_SHT, a, UC_LABEL, UC_BG, TEXT_RIGHT);
+
     /* điểm đặt */
     snprintf(a, sizeof(a), "Đặt %s°C", Fmt_Float(b, sizeof(b), v->temp_set, 0));
     w_text(COL_L, Y_SET, COL_W, a, UC_VALUE, UC_BG, TEXT_LEFT);
@@ -59,7 +65,7 @@ static void draw_values(bool full)
 
     /* chế độ */
     const char *name = (v->preset < g_ui.cfg->preset_count) ? g_ui.cfg->preset_names[v->preset] : "?";
-    w_text(COL_L + 64, Y_MODE, TFT_WIDTH - 8 - (COL_L + 64), name, UC_ACCENT, UC_BG, TEXT_LEFT);
+    w_text(COL_L + 64, Y_MODE, X_SHT - (COL_L + 64), name, UC_ACCENT, UC_BG, TEXT_LEFT);
 
     /* trạng thái / giai đoạn + thời gian đã sấy */
     bool running = (v->state == UI_ST_RUNNING || v->state == UI_ST_STARTING);

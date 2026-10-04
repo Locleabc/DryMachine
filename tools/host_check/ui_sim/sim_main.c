@@ -98,6 +98,7 @@ int main(int argc, char **argv)
     v.auto_fan = 3; v.stage_fan[0] = 4; v.stage_fan[1] = 3; v.stage_fan[2] = 2; v.stage_fan[3] = 1; v.stage_fan[4] = 5;
     v.gd3_min = 120; v.gd4_min = 60; v.end_temp = 40; v.temp_max = 75; v.comp_restart_s = 60;
     v.run_s = 5025; v.dry_time_min = 360;
+    v.hum_temp_ok = true; v.hum_temp = 28.3f;
     v.clock_ok = true; v.year = 2026; v.mon = 9; v.day = 27; v.hour = 14; v.min = 5; v.sec = 32;
     v.hist_count = 3;
     strcpy(v.hist[0].when, "27/09 09:12"); v.hist[0].text = "Áp suất cao";
