@@ -25,6 +25,7 @@ static void sht_init(void)
     sht4x_status_t st = SHT4X_Init(&s_sht, s_cfg->sht);
     s_data.sht_status = (uint8_t)st;
     s_data.sht_addr   = s_sht.addr;
+    s_data.sht_family = (uint8_t)s_sht.family;
     if (st == SHT4X_OK) s_data.sht_serial = s_sht.serial;
 }
 

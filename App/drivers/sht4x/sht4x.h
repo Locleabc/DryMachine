@@ -1,6 +1,7 @@
 /**
  * @file    sht4x.h
- * @brief   Driver Sensirion SHT40/SHT41/SHT45 (I2C). Đo không chặn:
+ * @brief   Driver Sensirion SHT40/SHT41/SHT45 và SHT30/SHT31/SHT35 (I2C, tự nhận loại khi Init).
+ *          Đo không chặn:
  *          SHT4X_StartMeasure() → chờ SHT4X_MeasureTimeMs() → SHT4X_ReadResult().
  */
 #ifndef SHT4X_H
@@ -44,8 +45,11 @@ typedef struct {
     sht4x_prec_t       precision;
 } sht4x_cfg_t;
 
+typedef enum { SHT_FAMILY_4X = 0, SHT_FAMILY_3X } sht_family_t;
+
 typedef struct {
     const sht4x_cfg_t *cfg;
+    sht_family_t       family;     /* Init tự nhận: SHT4x (lệnh 1 byte) hay SHT3x (lệnh 2 byte) */
     uint8_t            addr;       /* địa chỉ đang dùng (Init tự thử 0x44 rồi 0x45) */
     uint32_t           serial;
     uint32_t           busy_ms;    /* thời gian chờ của lệnh vừa gửi */

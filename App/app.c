@@ -166,17 +166,29 @@ static const char *const s_out_pins[RLY_ID_COUNT] = {
     "IN1 · PB5", "IN2 · PB7", "IN3 · PB6", "IN4 · PA1", "IN5 · PA2", "IN6 · PA3", "IN7 · PB4",
 };
 
-/* lý do mất SHT45 (hiện ở dòng cảnh báo trang chính) */
+/* lý do mất cảm biến ẩm SHT3x/SHT4x (hiện ở dòng cảnh báo trang chính) */
 static const char *sht_diag_text(void)
 {
     if (s_sim.mode != SIM_OFF) return "Cảnh báo: mất cảm biến ẩm (giả lập)";
     switch (Sensors_Data()->sht_status) {
-    case SHT4X_ERR_NACK: return "SHT45 không trả lời – kiểm tra dây/nguồn";
-    case SHT4X_ERR_BUSY: return "SHT45: bus I2C bị giữ thấp (SDA/SCL)";
-    case SHT4X_ERR_CRC:  return "SHT45: sai CRC – nhiễu / dây dài";
-    case SHT4X_ERR_BUS:  return "SHT45: lỗi I2C (timeout)";
-    default:             return "Cảnh báo: mất cảm biến ẩm SHT45";
+    case SHT4X_ERR_NACK: return "SHT không trả lời – kiểm tra dây/nguồn";
+    case SHT4X_ERR_BUSY: return "SHT: bus I2C bị giữ thấp (SDA/SCL)";
+    case SHT4X_ERR_CRC:  return "SHT: sai CRC – nhiễu / dây dài";
+    case SHT4X_ERR_BUS:  return "SHT: lỗi I2C (timeout)";
+    default:             return "Cảnh báo: mất cảm biến ẩm";
     }
+}
+
+/* lý do mất PT100 / MAX31865 theo thanh ghi lỗi */
+static const char *pt100_diag_text(void)
+{
+    uint8_t f = Sensors_Data()->pt100_fault;
+    if (f == 0xFF) return "MAX31865 không phản hồi (SPI2)";
+    if (f & 0x80)  return "PT100 hở mạch / đứt dây";
+    if (f & 0x40)  return "PT100 chập mạch";
+    if (f & 0x38)  return "PT100 hở hoặc sai jumper 2/3/4 dây";
+    if (f & 0x04)  return "MAX31865: quá / thiếu áp đầu vào";
+    return "PT100: giá trị ngoài dải (sai Rref?)";
 }
 
 /* ================= Thời gian ================= */
@@ -479,6 +491,9 @@ static void build_view(ui_view_t *v)
     v->dry_time_min = Settings_DryTimeMin();
     v->comp_wait_s  = s_status.comp_demand ? s_status.comp_wait_s : 0;
     v->fault_text   = s_status.faults ? DryerCtrl_FaultText(s_status.faults) : NULL;
+    if (s_sim.mode == SIM_OFF && (s_status.faults & DRYER_FAULT_TEMP_SENSOR) &&
+        !(s_status.faults & (DRYER_FAULT_PRESS_HIGH | DRYER_FAULT_PRESS_LOW | DRYER_FAULT_OVERTEMP)))
+        v->fault_text = pt100_diag_text();
     if (DryerCtrl_OvertempCooling(&s_ctrl)) {
         static char ot[48];
         char t[6];
@@ -604,9 +619,11 @@ void App_Init(void)
     UI_Init(&ui_cfg);
     Sched_Init(s_tasks, TASK_COUNT, now);
 
-    Log_Printf("DryMachine boot, settings v%u, SHT45 @0x%02X st%u serial %08lX, log %u",
-               (unsigned)Settings_Get()->version, (unsigned)Sensors_Data()->sht_addr,
+    Log_Printf("DryMachine boot, settings v%u, SHT%s @0x%02X st%u serial %08lX, PT100 F=0x%02X, log %u",
+               (unsigned)Settings_Get()->version, Sensors_Data()->sht_family ? "3x" : "4x",
+               (unsigned)Sensors_Data()->sht_addr,
                (unsigned)Sensors_Data()->sht_status, (unsigned long)Sensors_Data()->sht_serial,
+               (unsigned)Sensors_Data()->pt100_fault,
                (unsigned)FaultLog_Count());
 }
 

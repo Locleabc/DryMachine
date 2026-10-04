@@ -61,21 +61,33 @@ nếu motor không chịu được 2 đầu dây cùng có điện khi relay dí
 * **Relay**: module 5V opto kích mức THẤP. Tháo jumper VCC–JD-VCC: VCC (phía opto) nối 3.3V
   Blue Pill, JD-VCC nối 5V buck. K1 chỉ đóng cuộn contactor, contactor mới cấp cho máy nén.
   Đấu RC snubber / varistor song song cuộn contactor và quạt.
-* **MAX31865**: điện trở tham chiếu module thường là 430 Ω (PT100). Chọn 2/3/4 dây bằng
-  `MAX31865_WIRES` và hàn jumper trên module tương ứng.
+* **MAX31865**: điện trở tham chiếu module thường là 430 Ω (PT100; module PT1000 là 4300 Ω).
+  Firmware mặc định **PT100 3 dây** (`board_pt100.wires = 3` trong `App/board/board.c`) – module phải hàn jumper 3 dây
+  (cắt nối "2/3 wire", hàn "3" và "24|3"). PT100 2 hoặc 4 dây: để jumper mặc định và đổi `wires = 2` / `4`.
+  Nguồn VIN 3.3–5 V, SDI → PB15, SDO → PB14, CLK → PB13, CS → PB12.
+  Lỗi hiện ở trang chính:
+  | Thông báo | Nguyên nhân thường gặp |
+  |-----------|------------------------|
+  | *MAX31865 không phản hồi (SPI2)* | Chưa cấp nguồn, sai/đảo SDI–SDO, CS không nối PB12 |
+  | *PT100 hở mạch / đứt dây* | Chưa nối PT100, đứt dây, bắt vít lỏng |
+  | *PT100 chập mạch* | Hai dây PT100 chạm nhau |
+  | *PT100 hở hoặc sai jumper 2/3/4 dây* | Jumper module không khớp số dây (`wires`) hoặc thiếu dây thứ 3 |
+  | *PT100: giá trị ngoài dải (sai Rref?)* | Module PT1000 (Rref 4300) nhưng firmware đặt 430, hoặc ngược lại |
 * **Nút bấm**: nối chân → nút → GND, dùng pull-up nội. PA15 chỉ dùng được khi tắt JTAG
   (SYS → Debug = Serial Wire).
 * **SHT45** (I2C, địa chỉ 0x44 với mã SHT45-AD1B, 0x45 với BD1B): nguồn 3.3 V, tụ 100 nF sát
   cảm biến. I2C không hợp chạy dây dài: giữ dây ≤ 1 m, dùng cáp xoắn (SDA+GND, SCL+VCC);
   xa hơn thì dùng IC mở rộng bus (P82B715 / PCA9615). Cảm biến chịu -40…125 °C.
   Không đặt cảm biến ngay luồng gió nóng ra dàn nóng; nên có vỏ lọc bụi (PTFE) để tránh bụi thực phẩm.
-* **SHT45 không đọc được** – dòng cảnh báo trang chính cho biết lý do:
+* **Cảm biến ẩm**: firmware tự nhận **SHT4x (SHT40/41/45)** hoặc **SHT3x (SHT30/31/35, module SHT31-D)**, địa chỉ 0x44 hoặc 0x45.
+  Module SHT31-D (GY-SHT31-D, Adafruit) có sẵn ổn áp + điện trở kéo lên → VIN 3.3–5 V, SCL → PB10, SDA → PB11, ADDR để trống (0x44).
+* **Cảm biến ẩm không đọc được** – dòng cảnh báo trang chính cho biết lý do:
   | Thông báo | Nguyên nhân thường gặp |
   |-----------|------------------------|
-  | *SHT45 không trả lời – kiểm tra dây/nguồn* | Chưa cấp nguồn / sai chân (SCL = **PB10**, SDA = **PB11**, hay bị đảo), GND chưa chung, đứt dây. Firmware tự thử cả 0x44 và 0x45 |
-  | *SHT45: bus I2C bị giữ thấp (SDA/SCL)* | Thiếu điện trở kéo lên 4.7 kΩ lên 3.3 V, chập SDA/SCL xuống GND, cảm biến hỏng |
-  | *SHT45: sai CRC – nhiễu / dây dài* | Dây quá dài / gần dây động lực quạt, máy nén |
-  | *SHT45: lỗi I2C (timeout)* | Pull-up quá yếu (> 10 kΩ), dây dài, tụ lớn trên đường tín hiệu |
+  | *SHT không trả lời – kiểm tra dây/nguồn* | Chưa cấp nguồn / sai chân (SCL = **PB10**, SDA = **PB11**, hay bị đảo), GND chưa chung, đứt dây. Firmware tự thử cả 0x44 và 0x45 |
+  | *SHT: bus I2C bị giữ thấp (SDA/SCL)* | Thiếu điện trở kéo lên 4.7 kΩ lên 3.3 V, chập SDA/SCL xuống GND, cảm biến hỏng |
+  | *SHT: sai CRC – nhiễu / dây dài* | Dây quá dài / gần dây động lực quạt, máy nén |
+  | *SHT: lỗi I2C (timeout)* | Pull-up quá yếu (> 10 kΩ), dây dài, tụ lớn trên đường tín hiệu |
   Đo bằng đồng hồ khi cấp điện, chưa giao tiếp: SDA và SCL phải ≈ 3.3 V. Nguồn SHT45 **tối đa 3.6 V** –
-  module trần không có ổn áp mà cấp 5 V có thể đã hỏng cảm biến. Log UART lúc khởi động in `SHT45 @0x44 st0 serial …`
+  module trần không có ổn áp mà cấp 5 V có thể đã hỏng cảm biến. Log UART lúc khởi động in `SHT3x @0x44 st0 …` (3x/4x = loại cảm biến nhận được)
   (st0 = OK, 1 lỗi I2C, 2 CRC, 3 không trả lời, 4 bus bận).

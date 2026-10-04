@@ -46,6 +46,7 @@ typedef struct {
     uint32_t     sht_serial;
     uint8_t      sht_status;   /* sht4x_status_t lần đọc gần nhất (chẩn đoán) */
     uint8_t      sht_addr;     /* địa chỉ I2C đang dùng */
+    uint8_t      sht_family;   /* 0 = SHT4x, 1 = SHT3x */
 } sensors_data_t;
 
 void Sensors_Init(const sensors_cfg_t *cfg);
