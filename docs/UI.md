@@ -85,7 +85,7 @@ Chung cho cả hai chế độ:
 
 ## Tự tắt màn hình
 
-* **Tắt màn hình sau** (phút, mặc định **5**, chỉnh ở trang 4, **0 = luôn sáng**): không bấm nút nào trong khoảng này
+* **Tắt màn hình sau** (phút, mặc định **5**, chỉnh trong **menu kỹ thuật – giữ EXIT 3 s ở trang chính**, **0 = luôn sáng**): không bấm nút nào trong khoảng này
   → màn hình tô đen và tắt đèn nền. Máy vẫn chạy bình thường.
 * Bấm **nút bất kỳ** → sáng lại đúng trang đang xem. Lần bấm đánh thức **không** thực hiện chức năng của nút
   (kể cả khi giữ lâu) – bấm lại lần nữa mới tác dụng.
@@ -114,7 +114,7 @@ Nhiệt độ được giới hạn 30–75 °C, độ ẩm 5–80 %RH (ngoài k
 
 ## Menu kỹ thuật (giữ EXIT 3 s ở trang chính)
 
-Trễ nhiệt/ẩm, quá nhiệt, áp cao/thấp, thời gian bảo vệ máy nén, quạt, bù sai số cảm biến.
+Trễ nhiệt/ẩm, quá nhiệt, áp cao/thấp, thời gian bảo vệ máy nén, quạt, bù sai số cảm biến, *Tắt màn hình sau* (phút, 0 = luôn sáng).
 ENTER: sửa · UP/DOWN: đổi theo bước · ENTER: xác nhận · EXIT: lưu & thoát.
 
 ![Menu kỹ thuật](ui/10_tech.png)
