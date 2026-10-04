@@ -72,7 +72,12 @@ nếu motor không chịu được 2 đầu dây cùng có điện khi relay dí
   | *PT100 hở mạch / đứt dây* | Chưa nối PT100, đứt dây, bắt vít lỏng |
   | *PT100 chập mạch* | Hai dây PT100 chạm nhau |
   | *PT100 hở hoặc sai jumper 2/3/4 dây* | Jumper module không khớp số dây (`wires`) hoặc thiếu dây thứ 3 |
-  | *PT100: giá trị ngoài dải (sai Rref?)* | Module PT1000 (Rref 4300) nhưng firmware đặt 430, hoặc ngược lại |
+  | *PT100 R=… ohm thấp: chập / Rref?* (R < 60 Ω) | Hai dây PT100 chạm nhau; hoặc module có Rref 4300 Ω (bản PT1000) mà firmware đặt 430 → R đọc ra chỉ ≈ 1/10 (≈ 11 Ω) |
+  | *PT100 R=… ohm cao: hở / PT1000?* (R ≥ 400 Ω) | Chưa nối / đứt dây PT100; hoặc đầu dò là PT1000 (≈ 1100 Ω ở 25 °C) → ADC bão hoà ≈ Rref 430 Ω |
+  | *PT100 R=… ohm ngoài dải* | Nhiệt > 250 °C thật, hoặc tiếp xúc kém – đo lại bằng đồng hồ |
+
+  Kiểm tra nhanh bằng đồng hồ (rút PT100 khỏi module): PT100 ≈ 108–112 Ω ở 25 °C (PT1000 ≈ 1080–1120 Ω);
+  3 dây thì hai dây cùng màu đo với nhau ≈ 0–1 Ω. Điện trở Rref trên module: mã **431** = 430 Ω, **4301 / 432** = 4,3 kΩ.
 * **Nút bấm**: nối chân → nút → GND, dùng pull-up nội. PA15 chỉ dùng được khi tắt JTAG
   (SYS → Debug = Serial Wire).
 * **SHT45** (I2C, địa chỉ 0x44 với mã SHT45-AD1B, 0x45 với BD1B): nguồn 3.3 V, tụ 100 nF sát

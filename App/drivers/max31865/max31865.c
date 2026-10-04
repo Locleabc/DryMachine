@@ -88,6 +88,9 @@ bool MAX31865_Read(max31865_t *dev, max31865_result_t *out)
 
     out->ok = false;
     out->fault = 0;
+    out->raw = 0;
+    out->r_ohm = 0.0f;
+    out->temp_c = 0.0f;
     if (rtd & 0x0001) {                       /* bit lỗi */
         read_regs(c, REG_FAULT, &out->fault, 1);
         write_reg(c, REG_CONFIG, base_config(c) | CFG_FAULTCLR);
@@ -99,6 +102,7 @@ bool MAX31865_Read(max31865_t *dev, max31865_result_t *out)
     }
 
     rtd >>= 1;
+    out->raw    = rtd;
     out->r_ohm  = (float)rtd * c->rref / 32768.0f;
     out->temp_c = MAX31865_ResistanceToTemp(out->r_ohm, c->r0);
     out->ok     = (out->temp_c > -50.0f && out->temp_c < 250.0f);

@@ -188,7 +188,19 @@ static const char *pt100_diag_text(void)
     if (f & 0x40)  return "PT100 chập mạch";
     if (f & 0x38)  return "PT100 hở hoặc sai jumper 2/3/4 dây";
     if (f & 0x04)  return "MAX31865: quá / thiếu áp đầu vào";
-    return "PT100: giá trị ngoài dải (sai Rref?)";
+
+    /* không có bit lỗi nhưng nhiệt độ ngoài -50..250 °C → hiện điện trở đo được để tìm nguyên nhân
+     *   R < 60 Ω   : chập dây, hoặc module Rref 4300 (PT1000) mà firmware đặt 430 (R đọc ra ≈ 1/10)
+     *   R ≥ 400 Ω  : hở dây / chưa nối, hoặc đầu dò PT1000 trên cấu hình PT100 (ADC bão hoà ≈ Rref)
+     *   còn lại     : nhiệt > 250 °C thật hoặc tiếp xúc kém                                        */
+    static char txt[48];
+    char r[10];
+    float ohm = Sensors_Data()->pt100_r;
+    Fmt_Float(r, sizeof(r), ohm, 1);
+    if (ohm < 60.0f)       snprintf(txt, sizeof(txt), "PT100 R=%s ohm thấp: chập / Rref?", r);
+    else if (ohm >= 400.0f) snprintf(txt, sizeof(txt), "PT100 R=%s ohm cao: hở / PT1000?", r);
+    else                    snprintf(txt, sizeof(txt), "PT100 R=%s ohm ngoài dải", r);
+    return txt;
 }
 
 /* ================= Thời gian ================= */
@@ -621,11 +633,13 @@ void App_Init(void)
     UI_Init(&ui_cfg);
     Sched_Init(s_tasks, TASK_COUNT, now);
 
-    Log_Printf("DryMachine boot, settings v%u, SHT%s @0x%02X st%u serial %08lX, PT100 F=0x%02X, log %u",
+    char pt_r[10];
+    Log_Printf("DryMachine boot, settings v%u, SHT%s @0x%02X st%u serial %08lX, PT100 F=0x%02X R=%s, log %u",
                (unsigned)Settings_Get()->version, Sensors_Data()->sht_family ? "3x" : "4x",
                (unsigned)Sensors_Data()->sht_addr,
                (unsigned)Sensors_Data()->sht_status, (unsigned long)Sensors_Data()->sht_serial,
                (unsigned)Sensors_Data()->pt100_fault,
+               Fmt_Float(pt_r, sizeof(pt_r), Sensors_Data()->pt100_r, 1),
                (unsigned)FaultLog_Count());
 }
 

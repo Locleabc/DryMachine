@@ -42,6 +42,7 @@ typedef struct {
     sensor_val_t press;      /* bar */
     float        press_volt;
     uint8_t      pt100_fault;
+    float        pt100_r;      /* Ohm đo được lần gần nhất (chẩn đoán, 0 = không có) */
     uint32_t     sht_errors;
     uint32_t     sht_serial;
     uint8_t      sht_status;   /* sht4x_status_t lần đọc gần nhất (chẩn đoán) */

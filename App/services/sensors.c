@@ -51,6 +51,7 @@ static void process_fast(void)
     s_data.temp.ok     = r.ok;
     s_data.temp.value  = r.temp_c + s_cal.temp_offset;
     s_data.pt100_fault = r.fault;
+    s_data.pt100_r     = r.r_ohm;
 
     float v = PressAnalog_ReadVolt(&s_press);
     if (!s_press_init) { s_press_filt = v; s_press_init = true; }

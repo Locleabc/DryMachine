@@ -28,6 +28,7 @@ typedef struct {
     float   temp_c;
     float   r_ohm;
     uint8_t fault;          /* thanh ghi lỗi (0xFF = không đọc được chip) */
+    uint16_t raw;           /* mã ADC 15 bit (chẩn đoán) */
 } max31865_result_t;
 
 void MAX31865_Init(max31865_t *dev, const max31865_cfg_t *cfg);
