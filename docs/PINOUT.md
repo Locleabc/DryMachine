@@ -69,3 +69,13 @@ nếu motor không chịu được 2 đầu dây cùng có điện khi relay dí
   cảm biến. I2C không hợp chạy dây dài: giữ dây ≤ 1 m, dùng cáp xoắn (SDA+GND, SCL+VCC);
   xa hơn thì dùng IC mở rộng bus (P82B715 / PCA9615). Cảm biến chịu -40…125 °C.
   Không đặt cảm biến ngay luồng gió nóng ra dàn nóng; nên có vỏ lọc bụi (PTFE) để tránh bụi thực phẩm.
+* **SHT45 không đọc được** – dòng cảnh báo trang chính cho biết lý do:
+  | Thông báo | Nguyên nhân thường gặp |
+  |-----------|------------------------|
+  | *SHT45 không trả lời – kiểm tra dây/nguồn* | Chưa cấp nguồn / sai chân (SCL = **PB10**, SDA = **PB11**, hay bị đảo), GND chưa chung, đứt dây. Firmware tự thử cả 0x44 và 0x45 |
+  | *SHT45: bus I2C bị giữ thấp (SDA/SCL)* | Thiếu điện trở kéo lên 4.7 kΩ lên 3.3 V, chập SDA/SCL xuống GND, cảm biến hỏng |
+  | *SHT45: sai CRC – nhiễu / dây dài* | Dây quá dài / gần dây động lực quạt, máy nén |
+  | *SHT45: lỗi I2C (timeout)* | Pull-up quá yếu (> 10 kΩ), dây dài, tụ lớn trên đường tín hiệu |
+  Đo bằng đồng hồ khi cấp điện, chưa giao tiếp: SDA và SCL phải ≈ 3.3 V. Nguồn SHT45 **tối đa 3.6 V** –
+  module trần không có ổn áp mà cấp 5 V có thể đã hỏng cảm biến. Log UART lúc khởi động in `SHT45 @0x44 st0 serial …`
+  (st0 = OK, 1 lỗi I2C, 2 CRC, 3 không trả lời, 4 bus bận).

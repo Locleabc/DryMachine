@@ -20,17 +20,26 @@ static uint8_t     s_sht_consec_err;
 static bool        s_press_init;
 static float       s_press_filt;
 
-static void sht_error(void)
+static void sht_init(void)
 {
+    sht4x_status_t st = SHT4X_Init(&s_sht, s_cfg->sht);
+    s_data.sht_status = (uint8_t)st;
+    s_data.sht_addr   = s_sht.addr;
+    if (st == SHT4X_OK) s_data.sht_serial = s_sht.serial;
+}
+
+static void sht_error(sht4x_status_t st)
+{
+    s_data.sht_status = (uint8_t)st;
     s_data.sht_errors++;
-    if (s_sht_consec_err < 255) s_sht_consec_err++;
+    if (++s_sht_consec_err >= 250) s_sht_consec_err = SENSORS_SHT_MAX_ERR;   /* không tràn, vẫn giữ trạng thái lỗi */
     if (s_sht_consec_err >= SENSORS_SHT_MAX_ERR) {
         s_data.hum.ok = false;
         s_data.hum_temp.ok = false;
     }
     if ((s_sht_consec_err % SENSORS_SHT_RECOVER) == 0) {
         if (s_cfg->bus_recover) s_cfg->bus_recover();
-        if (SHT4X_Init(&s_sht, s_cfg->sht) == SHT4X_OK) s_data.sht_serial = s_sht.serial;
+        sht_init();
     }
 }
 
@@ -55,11 +64,12 @@ static void process_sht(uint32_t now)
     case SHT_IDLE:
         if (now - s_sht_tick >= SENSORS_SHT_MS) {
             s_sht_tick = now;
-            if (SHT4X_StartMeasure(&s_sht) == SHT4X_OK) {
+            sht4x_status_t st = SHT4X_StartMeasure(&s_sht);
+            if (st == SHT4X_OK) {
                 s_sht_start = now;
                 s_sht_phase = SHT_BUSY;
             } else {
-                sht_error();
+                sht_error(st);
             }
         }
         break;
@@ -67,7 +77,9 @@ static void process_sht(uint32_t now)
     case SHT_BUSY:
         if (now - s_sht_start >= SHT4X_BusyTimeMs(&s_sht)) {
             sht4x_result_t r;
-            if (SHT4X_ReadResult(&s_sht, &r) == SHT4X_OK) {
+            sht4x_status_t st = SHT4X_ReadResult(&s_sht, &r);
+            if (st == SHT4X_OK) {
+                s_data.sht_status     = SHT4X_OK;
                 float rh = r.rh + s_cal.hum_offset;
                 if (rh < 0.0f)   rh = 0.0f;
                 if (rh > 100.0f) rh = 100.0f;
@@ -77,7 +89,7 @@ static void process_sht(uint32_t now)
                 s_data.hum_temp.ok    = true;
                 s_sht_consec_err = 0;
             } else {
-                sht_error();
+                sht_error(st);
             }
             s_sht_phase = SHT_IDLE;
         }
@@ -96,7 +108,8 @@ void Sensors_Init(const sensors_cfg_t *cfg)
 
     MAX31865_Init(&s_pt100, cfg->pt100);
     PressAnalog_Init(&s_press, cfg->press);
-    if (SHT4X_Init(&s_sht, cfg->sht) == SHT4X_OK) s_data.sht_serial = s_sht.serial;
+    if (cfg->bus_recover) cfg->bus_recover();      /* gỡ cờ BUSY kẹt của I2C F1 (sau reset giữa giao dịch) */
+    sht_init();
 
     s_fast_tick = s_sht_tick = 0;
 }

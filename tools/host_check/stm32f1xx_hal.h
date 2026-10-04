@@ -7,7 +7,8 @@ typedef struct { int dummy; } GPIO_TypeDef;
 typedef struct { int dummy; } SPI_HandleTypeDef;
 typedef struct { int dummy; } UART_HandleTypeDef;
 typedef struct { int dummy; } ADC_HandleTypeDef;
-typedef struct { int dummy; } I2C_HandleTypeDef;
+typedef struct { uint32_t ErrorCode; } I2C_HandleTypeDef;
+#define HAL_I2C_ERROR_AF  0x04U
 typedef enum { GPIO_PIN_RESET = 0, GPIO_PIN_SET } GPIO_PinState;
 typedef enum { HAL_OK = 0, HAL_ERROR, HAL_BUSY, HAL_TIMEOUT } HAL_StatusTypeDef;
 typedef struct { uint32_t TypeErase, Banks, PageAddress, NbPages; } FLASH_EraseInitTypeDef;

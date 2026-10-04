@@ -19,31 +19,32 @@ static uint8_t crc8(const uint8_t *d, uint8_t len)
     return crc;
 }
 
+static sht4x_status_t hal_err(const sht4x_t *dev, HAL_StatusTypeDef r)
+{
+    if (r == HAL_OK)   return SHT4X_OK;
+    if (r == HAL_BUSY) return SHT4X_ERR_BUSY;
+    if (dev->cfg->hi2c->ErrorCode & HAL_I2C_ERROR_AF) return SHT4X_ERR_NACK;
+    return SHT4X_ERR_BUS;
+}
+
 static sht4x_status_t send_cmd(sht4x_t *dev, uint8_t cmd)
 {
-    const sht4x_cfg_t *c = dev->cfg;
-    if (HAL_I2C_Master_Transmit(c->hi2c, (uint16_t)(c->addr << 1), &cmd, 1, I2C_TIMEOUT) != HAL_OK)
-        return SHT4X_ERR_BUS;
-    return SHT4X_OK;
+    return hal_err(dev, HAL_I2C_Master_Transmit(dev->cfg->hi2c, (uint16_t)(dev->addr << 1), &cmd, 1, I2C_TIMEOUT));
 }
 
 static sht4x_status_t read6(sht4x_t *dev, uint8_t buf[6])
 {
-    const sht4x_cfg_t *c = dev->cfg;
-    if (HAL_I2C_Master_Receive(c->hi2c, (uint16_t)(c->addr << 1), buf, 6, I2C_TIMEOUT) != HAL_OK)
-        return SHT4X_ERR_BUS;
+    sht4x_status_t st = hal_err(dev, HAL_I2C_Master_Receive(dev->cfg->hi2c, (uint16_t)(dev->addr << 1), buf, 6, I2C_TIMEOUT));
+    if (st != SHT4X_OK) return st;
     if (crc8(&buf[0], 2) != buf[2] || crc8(&buf[3], 2) != buf[5])
         return SHT4X_ERR_CRC;
     return SHT4X_OK;
 }
 
-sht4x_status_t SHT4X_Init(sht4x_t *dev, const sht4x_cfg_t *cfg)
+static sht4x_status_t init_at(sht4x_t *dev, uint8_t addr)
 {
     uint8_t buf[6];
-    dev->cfg = cfg;
-    dev->serial = 0;
-    dev->busy_ms = 0;
-
+    dev->addr = addr;
     sht4x_status_t st = send_cmd(dev, CMD_SOFT_RESET);
     if (st != SHT4X_OK) return st;
     HAL_Delay(2);                                   /* soft reset ≤ 1 ms */
@@ -55,6 +56,20 @@ sht4x_status_t SHT4X_Init(sht4x_t *dev, const sht4x_cfg_t *cfg)
     if (st != SHT4X_OK) return st;
     dev->serial = ((uint32_t)buf[0] << 24) | ((uint32_t)buf[1] << 16) | ((uint32_t)buf[3] << 8) | buf[4];
     return SHT4X_OK;
+}
+
+sht4x_status_t SHT4X_Init(sht4x_t *dev, const sht4x_cfg_t *cfg)
+{
+    dev->cfg = cfg;
+    dev->serial = 0;
+    dev->busy_ms = 0;
+    sht4x_status_t st = init_at(dev, cfg->addr);
+    if (st == SHT4X_ERR_NACK) {                     /* không trả lời → thử địa chỉ còn lại */
+        uint8_t other = (cfg->addr == SHT4X_ADDR_A) ? SHT4X_ADDR_B : SHT4X_ADDR_A;
+        if (init_at(dev, other) == SHT4X_OK) return SHT4X_OK;
+        dev->addr = cfg->addr;
+    }
+    return st;
 }
 
 sht4x_status_t SHT4X_StartMeasure(sht4x_t *dev)

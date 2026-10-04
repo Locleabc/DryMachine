@@ -166,6 +166,19 @@ static const char *const s_out_pins[RLY_ID_COUNT] = {
     "IN1 · PB5", "IN2 · PB7", "IN3 · PB6", "IN4 · PA1", "IN5 · PA2", "IN6 · PA3", "IN7 · PB4",
 };
 
+/* lý do mất SHT45 (hiện ở dòng cảnh báo trang chính) */
+static const char *sht_diag_text(void)
+{
+    if (s_sim.mode != SIM_OFF) return "Cảnh báo: mất cảm biến ẩm (giả lập)";
+    switch (Sensors_Data()->sht_status) {
+    case SHT4X_ERR_NACK: return "SHT45 không trả lời – kiểm tra dây/nguồn";
+    case SHT4X_ERR_BUSY: return "SHT45: bus I2C bị giữ thấp (SDA/SCL)";
+    case SHT4X_ERR_CRC:  return "SHT45: sai CRC – nhiễu / dây dài";
+    case SHT4X_ERR_BUS:  return "SHT45: lỗi I2C (timeout)";
+    default:             return "Cảnh báo: mất cảm biến ẩm SHT45";
+    }
+}
+
 /* ================= Thời gian ================= */
 static bool clock_now(uint32_t *epoch)
 {
@@ -467,13 +480,13 @@ static void build_view(ui_view_t *v)
     v->comp_wait_s  = s_status.comp_demand ? s_status.comp_wait_s : 0;
     v->fault_text   = s_status.faults ? DryerCtrl_FaultText(s_status.faults) : NULL;
     if (DryerCtrl_OvertempCooling(&s_ctrl)) {
-        static char ot[40];
-        char t[8];
+        static char ot[48];
+        char t[6];
         Fmt_Float(t, sizeof(t), DryerCtrl_RecoverTemp(&set->ctrl), 0);
         snprintf(ot, sizeof(ot), "Quá nhiệt · làm mát tới %s°C", t);
         v->fault_text = ot;
     }
-    v->warn_text    = (s_status.warnings & DRYER_WARN_HUM_SENSOR) ? "Cảnh báo: mất cảm biến ẩm SHT45" : NULL;
+    v->warn_text    = (s_status.warnings & DRYER_WARN_HUM_SENSOR) ? sht_diag_text() : NULL;
 
     uint32_t epoch;
     v->clock_ok = clock_now(&epoch);
@@ -529,14 +542,14 @@ static void task_log(uint32_t now)
     meas_t m;
     get_meas(&m);
     char t[12], h[12], p[12];
-    Log_Printf("%sT=%s H=%s P=%s ST=%s PH=%d MN=%d QN=%d QL=%d F=0x%02X W=0x%02X SHTerr=%lu",
+    Log_Printf("%sT=%s H=%s P=%s ST=%s PH=%d MN=%d QN=%d QL=%d F=0x%02X W=0x%02X SHTerr=%lu/st%u",
                s_sim.mode ? "[SIM] " : "",
                m.t_ok ? Fmt_Float(t, sizeof(t), m.t, 1) : "ERR",
                m.h_ok ? Fmt_Float(h, sizeof(h), m.h, 1) : "ERR",
                m.p_ok ? Fmt_Float(p, sizeof(p), m.p, 2) : "ERR",
                DryerCtrl_StateName(s_status.state), (int)s_status.phase,
                s_status.out.comp, s_fan_actual, s_status.out.fan_evap,
-               s_status.faults, s_status.warnings, (unsigned long)d->sht_errors);
+               s_status.faults, s_status.warnings, (unsigned long)d->sht_errors, (unsigned)d->sht_status);
 }
 
 static void task_led(uint32_t now)
@@ -591,8 +604,9 @@ void App_Init(void)
     UI_Init(&ui_cfg);
     Sched_Init(s_tasks, TASK_COUNT, now);
 
-    Log_Printf("DryMachine boot, settings v%u, SHT45 serial %08lX, log %u",
-               (unsigned)Settings_Get()->version, (unsigned long)Sensors_Data()->sht_serial,
+    Log_Printf("DryMachine boot, settings v%u, SHT45 @0x%02X st%u serial %08lX, log %u",
+               (unsigned)Settings_Get()->version, (unsigned)Sensors_Data()->sht_addr,
+               (unsigned)Sensors_Data()->sht_status, (unsigned long)Sensors_Data()->sht_serial,
                (unsigned)FaultLog_Count());
 }
 

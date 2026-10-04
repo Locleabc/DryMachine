@@ -32,8 +32,10 @@ typedef enum {
 
 typedef enum {
     SHT4X_OK = 0,
-    SHT4X_ERR_BUS,
-    SHT4X_ERR_CRC,
+    SHT4X_ERR_BUS,        /* lỗi I2C khác (timeout, mất trọng tài) */
+    SHT4X_ERR_CRC,        /* dữ liệu sai CRC – nhiễu / dây dài */
+    SHT4X_ERR_NACK,       /* không có thiết bị trả lời ở địa chỉ – dây, nguồn, sai địa chỉ */
+    SHT4X_ERR_BUSY,       /* bus bận: SDA/SCL bị giữ mức thấp, thiếu pull-up */
 } sht4x_status_t;
 
 typedef struct {
@@ -44,6 +46,7 @@ typedef struct {
 
 typedef struct {
     const sht4x_cfg_t *cfg;
+    uint8_t            addr;       /* địa chỉ đang dùng (Init tự thử 0x44 rồi 0x45) */
     uint32_t           serial;
     uint32_t           busy_ms;    /* thời gian chờ của lệnh vừa gửi */
 } sht4x_t;
@@ -53,7 +56,7 @@ typedef struct {
     float rh;                      /* đã kẹp 0..100 %RH */
 } sht4x_result_t;
 
-sht4x_status_t SHT4X_Init(sht4x_t *dev, const sht4x_cfg_t *cfg);     /* soft reset + đọc serial */
+sht4x_status_t SHT4X_Init(sht4x_t *dev, const sht4x_cfg_t *cfg);     /* soft reset + đọc serial; thử cả 0x44/0x45 */
 sht4x_status_t SHT4X_StartMeasure(sht4x_t *dev);
 sht4x_status_t SHT4X_StartHeater(sht4x_t *dev, sht4x_heater_t heat);
 uint32_t       SHT4X_BusyTimeMs(const sht4x_t *dev);                 /* chờ bao lâu trước khi đọc */
