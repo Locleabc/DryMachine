@@ -41,6 +41,22 @@ static void read_regs(const max31865_cfg_t *c, uint8_t reg, uint8_t *dst, uint8_
     cs(c, false);
 }
 
+static uint8_t read_reg(const max31865_cfg_t *c, uint8_t reg)
+{
+    uint8_t v = 0;
+    read_regs(c, reg, &v, 1);
+    return v;
+}
+
+/* Đưa SPI về trạng thái nghỉ: CS cao, phát 1 byte giả để SCK về đúng mức CPOL
+ * (lần truyền đầu sau khi bật SPI trên F1 có thể có xung SCK thừa làm lệch khung) */
+static void spi_sync(const max31865_cfg_t *c)
+{
+    uint8_t dummy = 0xFF;
+    cs(c, false);
+    HAL_SPI_Transmit(c->hspi, &dummy, 1, SPI_TIMEOUT);
+}
+
 static uint8_t base_config(const max31865_cfg_t *c)
 {
     uint8_t v = CFG_VBIAS | CFG_AUTO;
@@ -70,12 +86,22 @@ float MAX31865_ResistanceToTemp(float r, float r0)
     return t;
 }
 
+uint8_t MAX31865_ExpectedConfig(const max31865_cfg_t *cfg)
+{
+    return base_config(cfg);
+}
+
 void MAX31865_Init(max31865_t *dev, const max31865_cfg_t *cfg)
 {
     dev->cfg = cfg;
-    cs(cfg, false);
+    spi_sync(cfg);
     HAL_Delay(10);
-    write_reg(cfg, REG_CONFIG, base_config(cfg) | CFG_FAULTCLR);
+    for (uint8_t i = 0; i < 3; i++) {           /* ghi + đọc lại, thử tối đa 3 lần */
+        write_reg(cfg, REG_CONFIG, base_config(cfg) | CFG_FAULTCLR);
+        if (read_reg(cfg, REG_CONFIG) == base_config(cfg)) break;
+        spi_sync(cfg);
+        HAL_Delay(10);
+    }
     HAL_Delay(70);              /* chờ chuyển đổi đầu tiên */
 }
 
@@ -83,21 +109,33 @@ bool MAX31865_Read(max31865_t *dev, max31865_result_t *out)
 {
     const max31865_cfg_t *c = dev->cfg;
     uint8_t buf[2];
-    read_regs(c, REG_RTD_MSB, buf, 2);
-    uint16_t rtd = (uint16_t)((buf[0] << 8) | buf[1]);
 
     out->ok = false;
     out->fault = 0;
     out->raw = 0;
     out->r_ohm = 0.0f;
     out->temp_c = 0.0f;
+    out->reinit = false;
+
+    /* chip mất cấu hình (cấp nguồn lại, sụt áp, nhiễu) → ghi lại, kết quả có ở lần đọc sau */
+    out->cfg = read_reg(c, REG_CONFIG);
+    if (out->cfg != base_config(c)) {
+        spi_sync(c);
+        write_reg(c, REG_CONFIG, base_config(c) | CFG_FAULTCLR);
+        out->reinit = true;
+        out->fault = 0xFF;
+        return false;
+    }
+
+    read_regs(c, REG_RTD_MSB, buf, 2);
+    uint16_t rtd = (uint16_t)((buf[0] << 8) | buf[1]);
+    if (rtd == 0x0000 || rtd == 0xFFFF || rtd == 0xFFFE) {   /* không có chip / MISO kẹt */
+        out->fault = 0xFF;
+        return false;
+    }
     if (rtd & 0x0001) {                       /* bit lỗi */
         read_regs(c, REG_FAULT, &out->fault, 1);
         write_reg(c, REG_CONFIG, base_config(c) | CFG_FAULTCLR);
-        return false;
-    }
-    if (rtd == 0x0000 || rtd == 0xFFFE) {     /* không có chip / SPI lỗi */
-        out->fault = 0xFF;
         return false;
     }
 

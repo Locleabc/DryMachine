@@ -55,6 +55,8 @@ static void process_fast(void)
         s_data.temp.value  = r.temp_c + s_cal.temp_offset;
         s_data.pt100_fault = r.fault;
         s_data.pt100_r     = r.r_ohm;
+        s_data.pt100_cfg   = r.cfg;
+        if (r.reinit && s_data.pt100_reinit < 0xFFFF) s_data.pt100_reinit++;
         s_data.pt100_ready = true;
     }
 

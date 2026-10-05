@@ -184,6 +184,7 @@ static const char *sht_diag_text(void)
 static struct {
     bool    bad;              /* lần đọc gần nhất hỏng */
     uint8_t fault;            /* thanh ghi lỗi MAX31865 lúc hỏng gần nhất */
+    uint8_t cfg;              /* thanh ghi cấu hình đọc lại lúc hỏng */
     float   r;                /* điện trở lúc hỏng gần nhất */
     uint16_t count;           /* số lần chuyển OK → hỏng (đếm chập chờn) */
 } s_pt_bad;
@@ -195,11 +196,14 @@ static void pt100_track(void)
     if (!d->temp.ok) {
         s_pt_bad.fault = d->pt100_fault;
         s_pt_bad.r     = d->pt100_r;
+        s_pt_bad.cfg   = d->pt100_cfg;
         if (!s_pt_bad.bad) {
             char r[10];
             if (s_pt_bad.count < 0xFFFF) s_pt_bad.count++;
-            Log_Printf("PT100 hong: F=0x%02X R=%s ohm (lan %u)", (unsigned)d->pt100_fault,
-                       Fmt_Float(r, sizeof(r), d->pt100_r, 1), (unsigned)s_pt_bad.count);
+            Log_Printf("PT100 hong: F=0x%02X CFG=0x%02X R=%s ohm (lan %u, ghi lai cfg %u)",
+                       (unsigned)d->pt100_fault, (unsigned)d->pt100_cfg,
+                       Fmt_Float(r, sizeof(r), d->pt100_r, 1), (unsigned)s_pt_bad.count,
+                       (unsigned)d->pt100_reinit);
         }
     } else if (s_pt_bad.bad) {
         Log_Printf("PT100 doc lai duoc");
@@ -211,7 +215,13 @@ static void pt100_track(void)
 static const char *pt100_cause_text(void)
 {
     uint8_t f = s_pt_bad.fault;
-    if (f == 0xFF) return "MAX31865 không phản hồi (SPI2)";
+    if (f == 0xFF) {
+        static char t[44];
+        uint8_t c = s_pt_bad.cfg;
+        if (c == 0x00 || c == 0xFF) snprintf(t, sizeof(t), "MAX31865 không phản hồi (CFG=%02X)", (unsigned)c);
+        else                        snprintf(t, sizeof(t), "MAX31865 sai cấu hình (CFG=%02X)", (unsigned)c);
+        return t;
+    }
     if (f & 0x80)  return "PT100 hở mạch / đứt dây";
     if (f & 0x40)  return "PT100 chập mạch";
     if (f & 0x38)  return "PT100 hở hoặc sai jumper 2/3/4 dây";

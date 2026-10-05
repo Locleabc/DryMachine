@@ -43,6 +43,8 @@ typedef struct {
     sensor_val_t press;      /* bar */
     float        press_volt;
     uint8_t      pt100_fault;
+    uint8_t      pt100_cfg;    /* thanh ghi cấu hình MAX31865 đọc lại (chẩn đoán) */
+    uint16_t     pt100_reinit; /* số lần tự ghi lại cấu hình (chip mất cấu hình) */
     bool         pt100_ready;  /* false trong SENSORS_PT100_START_MS đầu: chưa đọc, không tính là lỗi */
     float        pt100_r;      /* Ohm đo được lần gần nhất (chẩn đoán, 0 = không có) */
     uint32_t     sht_errors;

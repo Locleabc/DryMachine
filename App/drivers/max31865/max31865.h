@@ -29,10 +29,16 @@ typedef struct {
     float   r_ohm;
     uint8_t fault;          /* thanh ghi lỗi (0xFF = không đọc được chip) */
     uint16_t raw;           /* mã ADC 15 bit (chẩn đoán) */
+    uint8_t cfg;            /* thanh ghi cấu hình đọc lại (chẩn đoán; đúng = MAX31865_ExpectedConfig) */
+    bool    reinit;         /* lần đọc này phát hiện chip mất cấu hình → đã ghi lại */
 } max31865_result_t;
 
 void MAX31865_Init(max31865_t *dev, const max31865_cfg_t *cfg);
 bool MAX31865_Read(max31865_t *dev, max31865_result_t *out);
 float MAX31865_ResistanceToTemp(float r_ohm, float r0);    /* hàm thuần, dùng lại được */
+
+/* Mỗi lần Read đều đọc lại thanh ghi cấu hình: chip vừa cấp nguồn lại / bị nhiễu (cấu hình về 0x00,
+ * VBIAS tắt → RTD đọc ra 0) thì tự ghi lại cấu hình, lần đọc sau (≥ 70 ms) sẽ có giá trị. */
+uint8_t MAX31865_ExpectedConfig(const max31865_cfg_t *cfg);
 
 #endif

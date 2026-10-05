@@ -77,7 +77,9 @@ nếu motor không chịu được 2 đầu dây cùng có điện khi relay dí
   Lỗi hiện ở trang chính:
   | Thông báo | Nguyên nhân thường gặp |
   |-----------|------------------------|
-  | *MAX31865 không phản hồi (SPI2)* | Chưa cấp nguồn, sai/đảo SDI–SDO, CS không nối PB12 |
+  | *MAX31865 không phản hồi (CFG=FF)* | MISO (SDO→PB14) kẹt cao: chưa cấp nguồn module, đứt/đảo SDI–SDO, CS không nối PB12 |
+  | *MAX31865 không phản hồi (CFG=00)* | Chip không nhận lệnh ghi: chip bị treo lúc cấp nguồn (xem dưới), hoặc đứt SDI (PB15) / SCK (PB13) |
+  | *MAX31865 sai cấu hình (CFG=xx)* | Nhiễu SPI / dây dài – firmware tự ghi lại, nếu lặp lại thì rút ngắn dây, thêm tụ 100 nF tại VIN module |
   | *PT100 hở mạch / đứt dây* | Chưa nối PT100, đứt dây, bắt vít lỏng |
   | *PT100 chập mạch* | Hai dây PT100 chạm nhau |
   | *PT100 hở hoặc sai jumper 2/3/4 dây* | Jumper module không khớp số dây (`wires`) hoặc thiếu dây thứ 3 |
@@ -87,6 +89,13 @@ nếu motor không chịu được 2 đầu dây cùng có điện khi relay dí
 
   Sau khi bật nguồn firmware **chờ 5 s** mới khởi tạo và đọc MAX31865 (`SENSORS_PT100_START_MS` trong `sensors.h`)
   – trong lúc chờ trang chính hiện *Đang chờ cảm biến nhiệt…*, bộ điều khiển chưa chạy (relay nhả), không báo lỗi.
+  Mỗi lần đọc (500 ms) firmware đọc lại thanh ghi cấu hình; chip mất cấu hình (vừa cấp nguồn lại, sụt áp) thì **tự ghi lại**
+  – không cần rút nguồn module. Nếu vẫn *không phản hồi (CFG=00)* tới khi rút/cắm nguồn module thì chip bị **treo khi cấp nguồn**
+  (thường do chân SPI/CS của STM32 có điện trước khi module có nguồn → dòng ngược vào chip):
+  * cấp nguồn module **từ chân 3.3V của Blue Pill** (cùng nguồn với STM32), không lấy 5V/nguồn riêng; dây GND chung ngắn;
+  * thêm tụ 10 µF + 100 nF sát chân VIN–GND của module;
+  * vẫn bị: cấp nguồn module qua công tắc do firmware điều khiển (PNP/P-MOSFET từ chân trống PB3) để firmware tự tắt/bật lại module.
+
   Lỗi *Mất cảm biến nhiệt* được **giữ** tới khi xoá tay (ENTER ở trang 5) để không bỏ sót tiếp xúc chập chờn:
   nhiệt độ vẫn hiện bình thường nhưng dòng lỗi luân phiên giữa **lý do lúc hỏng** (chụp lại, không phải giá trị hiện tại)
   và *PT100 đã OK lại · xoá lỗi ở trang 5*. Log UART ghi mỗi lần hỏng: `PT100 hong: F=.. R=.. ohm (lan N)` –
