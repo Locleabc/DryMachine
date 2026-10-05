@@ -14,6 +14,7 @@
 
 #define SENSORS_FAST_MS       500    /* PT100 + áp suất */
 #define SENSORS_SHT_MS        1000   /* SHT45 */
+#define SENSORS_PT100_START_MS 5000  /* sau khi bật nguồn chờ 5 s mới khởi tạo + đọc MAX31865 (nguồn/bias ổn định) */
 #define SENSORS_SHT_MAX_ERR   3      /* lỗi liên tiếp → báo mất cảm biến ẩm */
 #define SENSORS_SHT_RECOVER   5      /* lỗi liên tiếp → khôi phục bus I2C + init lại */
 #define SENSORS_PRESS_ALPHA   0.3f   /* lọc EMA áp suất */
@@ -42,6 +43,7 @@ typedef struct {
     sensor_val_t press;      /* bar */
     float        press_volt;
     uint8_t      pt100_fault;
+    bool         pt100_ready;  /* false trong SENSORS_PT100_START_MS đầu: chưa đọc, không tính là lỗi */
     float        pt100_r;      /* Ohm đo được lần gần nhất (chẩn đoán, 0 = không có) */
     uint32_t     sht_errors;
     uint32_t     sht_serial;

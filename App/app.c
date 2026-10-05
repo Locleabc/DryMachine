@@ -190,8 +190,8 @@ static struct {
 
 static void pt100_track(void)
 {
-    if (s_sim.mode != SIM_OFF) return;
     const sensors_data_t *d = Sensors_Data();
+    if (s_sim.mode != SIM_OFF || !d->pt100_ready) return;
     if (!d->temp.ok) {
         s_pt_bad.fault = d->pt100_fault;
         s_pt_bad.r     = d->pt100_r;
@@ -417,6 +417,10 @@ static void task_ctrl(uint32_t now)
     uint16_t speed = (s_sim.mode != SIM_OFF) ? s_sim_speed[s_sim.speed_idx] : 1;
     s_vclock += dt * speed;
 
+    /* 5 s đầu sau bật nguồn PT100 chưa đọc (SENSORS_PT100_START_MS): chưa chạy bộ điều khiển
+     * → relay vẫn nhả, không đếm "Mất cảm biến nhiệt"; lệnh bấm trong lúc chờ được xử lý sau đó */
+    if (s_sim.mode == SIM_OFF && !Sensors_Data()->pt100_ready) return;
+
     meas_t m;
     get_meas(&m);
     dryer_input_t in = {
@@ -554,6 +558,7 @@ static void build_view(ui_view_t *v)
         v->fault_text = ot;
     }
     v->warn_text    = (s_status.warnings & DRYER_WARN_HUM_SENSOR) ? sht_diag_text() : NULL;
+    if (s_sim.mode == SIM_OFF && !Sensors_Data()->pt100_ready) v->warn_text = "Đang chờ cảm biến nhiệt…";
 
     uint32_t epoch;
     v->clock_ok = clock_now(&epoch);

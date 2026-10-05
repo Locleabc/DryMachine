@@ -85,6 +85,8 @@ nếu motor không chịu được 2 đầu dây cùng có điện khi relay dí
   | *PT100 R=… ohm cao: hở / PT1000?* (R ≥ 400 Ω) | Chưa nối / đứt dây PT100; hoặc đầu dò là PT1000 (≈ 1100 Ω ở 25 °C) → ADC bão hoà ≈ Rref 430 Ω |
   | *PT100 R=… ohm ngoài dải* | Nhiệt > 250 °C thật, hoặc tiếp xúc kém – đo lại bằng đồng hồ |
 
+  Sau khi bật nguồn firmware **chờ 5 s** mới khởi tạo và đọc MAX31865 (`SENSORS_PT100_START_MS` trong `sensors.h`)
+  – trong lúc chờ trang chính hiện *Đang chờ cảm biến nhiệt…*, bộ điều khiển chưa chạy (relay nhả), không báo lỗi.
   Lỗi *Mất cảm biến nhiệt* được **giữ** tới khi xoá tay (ENTER ở trang 5) để không bỏ sót tiếp xúc chập chờn:
   nhiệt độ vẫn hiện bình thường nhưng dòng lỗi luân phiên giữa **lý do lúc hỏng** (chụp lại, không phải giá trị hiện tại)
   và *PT100 đã OK lại · xoá lỗi ở trang 5*. Log UART ghi mỗi lần hỏng: `PT100 hong: F=.. R=.. ohm (lan N)` –

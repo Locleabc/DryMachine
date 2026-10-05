@@ -18,6 +18,8 @@ static uint32_t    s_fast_tick, s_sht_tick, s_sht_start;
 static sht_phase_t s_sht_phase;
 static uint8_t     s_sht_consec_err;
 static bool        s_press_init;
+static bool        s_pt_started, s_t0_set;
+static uint32_t    s_t0;
 static float       s_press_filt;
 
 static void sht_init(void)
@@ -46,12 +48,15 @@ static void sht_error(sht4x_status_t st)
 
 static void process_fast(void)
 {
-    max31865_result_t r;
-    MAX31865_Read(&s_pt100, &r);
-    s_data.temp.ok     = r.ok;
-    s_data.temp.value  = r.temp_c + s_cal.temp_offset;
-    s_data.pt100_fault = r.fault;
-    s_data.pt100_r     = r.r_ohm;
+    if (s_pt_started) {
+        max31865_result_t r;
+        MAX31865_Read(&s_pt100, &r);
+        s_data.temp.ok     = r.ok;
+        s_data.temp.value  = r.temp_c + s_cal.temp_offset;
+        s_data.pt100_fault = r.fault;
+        s_data.pt100_r     = r.r_ohm;
+        s_data.pt100_ready = true;
+    }
 
     float v = PressAnalog_ReadVolt(&s_press);
     if (!s_press_init) { s_press_filt = v; s_press_init = true; }
@@ -108,7 +113,7 @@ void Sensors_Init(const sensors_cfg_t *cfg)
     s_sht_consec_err = 0;
     s_press_init = false;
 
-    MAX31865_Init(&s_pt100, cfg->pt100);
+    s_pt_started = s_t0_set = false;           /* MAX31865 khởi tạo sau SENSORS_PT100_START_MS (Sensors_Process) */
     PressAnalog_Init(&s_press, cfg->press);
     if (cfg->bus_recover) cfg->bus_recover();      /* gỡ cờ BUSY kẹt của I2C F1 (sau reset giữa giao dịch) */
     sht_init();
@@ -123,6 +128,12 @@ void Sensors_SetCalib(const sensors_calib_t *cal)
 
 void Sensors_Process(uint32_t now)
 {
+    if (!s_t0_set) { s_t0 = now; s_t0_set = true; }
+    if (!s_pt_started && now - s_t0 >= SENSORS_PT100_START_MS) {
+        MAX31865_Init(&s_pt100, s_cfg->pt100);     /* ghi cấu hình + xoá lỗi, chờ chuyển đổi đầu tiên */
+        s_pt_started = true;
+        s_fast_tick = now - SENSORS_FAST_MS;       /* đọc ngay ở dưới */
+    }
     if (now - s_fast_tick >= SENSORS_FAST_MS) {
         s_fast_tick = now;
         process_fast();
