@@ -166,11 +166,16 @@ static void test_fan_speed(void)
     printf("\n--- QUAT 5 CAP ---\n");
     fan_speed_t f;
     FanSpeed_Init(&f, 1000);
-    EXPECT(FanSpeed_Step(&f, 3, 1000) == 3, "Bat lan dau: dong ngay cap 3");
-    EXPECT(FanSpeed_Step(&f, 5, 1100) == 0, "Doi cap: tat het truoc");
-    EXPECT(FanSpeed_Step(&f, 5, 1600) == 0, "Chua du 1 s nghi: van tat");
-    EXPECT(FanSpeed_Step(&f, 5, 2100) == 5, "Du 1 s: dong cap 5");
-    EXPECT(FanSpeed_Step(&f, 0, 2200) == 0, "Tat quat: tat ngay");
+    EXPECT(FanSpeed_Step(&f, 3, 1000) == 1, "Bat lan dau: dong ngay relay 1");
+    EXPECT(FanSpeed_Step(&f, 3, 1500) == 1, "Chua du 1 s: van 1 relay");
+    EXPECT(FanSpeed_Step(&f, 3, 2000) == 2, "Du 1 s: them relay 2");
+    EXPECT(FanSpeed_Step(&f, 3, 3000) == 3, "Them relay 3 -> cap 3");
+    EXPECT(FanSpeed_Step(&f, 3, 9000) == 3, "Giu cap 3");
+    EXPECT(FanSpeed_RelayOn(3, 1) && FanSpeed_RelayOn(3, 3) && !FanSpeed_RelayOn(3, 4), "Cap 3 = relay 1,2,3");
+    EXPECT(FanSpeed_Step(&f, 5, 9100) == 4 && FanSpeed_Step(&f, 5, 9500) == 4, "Len cap 5: them relay 4, cho");
+    EXPECT(FanSpeed_Step(&f, 5, 10100) == 5, "Them relay 5 -> cap 5");
+    EXPECT(FanSpeed_Step(&f, 2, 10200) == 2, "Giam cap: nha ngay relay 3..5");
+    EXPECT(FanSpeed_Step(&f, 0, 10300) == 0, "Tat quat: tat ngay");
 }
 
 int main(void)

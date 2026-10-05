@@ -47,7 +47,8 @@ nên dùng được cả khi chưa gắn cảm biến).
 | ENTER | bật / tắt đầu ra đang chọn |
 | EXIT | thoát test, **tắt hết** |
 
-* Quạt dàn nóng vẫn qua khoá liên động: bật cấp mới thì cấp cũ tự tắt, nghỉ 1 s (ô **ON\*** vàng trong lúc nghỉ).
+* Quạt dàn nóng cộng dồn: ENTER ở dòng *Quạt nóng cấp N* → đóng relay cấp 1…N (thêm từng relay cách 1 s, ô **ON\*** vàng trong lúc chờ);
+  ENTER lại ở dòng đang bật cao nhất → về cấp N−1.
 * Máy nén vẫn giữ thời gian chờ bật lại (*Máy nén chờ … s*), kể cả ngay sau khi cấp điện.
 * Luôn đóng relay thật (kể cả khi đang giả lập với *Relay thật = Tắt*).
 * Đang test thì không chạy sấy được; 10 phút không bấm phím → tự thoát và tắt hết.
@@ -79,7 +80,8 @@ Chung cho cả hai chế độ:
   chỉnh ở trang 4, luôn ≤ nhiệt độ bảo vệ − 5) → tự hết lỗi, máy dừng (cần bấm chạy lại). Chưa nguội thì ENTER ở trang 5
   không xoá được lỗi (báo *Chờ nguội về 30°C*), test đầu ra cũng bị khoá. Mất cảm biến nhiệt trong lúc làm mát → quạt vẫn chạy,
   xoá lỗi bằng tay. ⚠ Nếu trời nóng hơn 30 °C buồng sẽ không nguội tới 30 °C → quạt chạy mãi: tăng giá trị này (vd 35 °C).
-* Quạt dàn lạnh chạy suốt chu trình. Quạt dàn nóng 5 cấp: chỉ 1 relay đóng, đổi cấp nghỉ 1 s.
+* Quạt dàn lạnh chạy suốt chu trình. Quạt dàn nóng 5 cấp **cộng dồn**: cấp N = relay cấp 1…N cùng đóng
+  (cấp 1 = 1 relay … cấp 5 = 5 relay); tăng cấp đóng thêm từng relay cách 1 s, giảm cấp nhả ngay.
 * Mất cảm biến ẩm: Tự động chuyển sang giữ nhiệt; Thủ công bỏ qua GĐ2 (có cảnh báo).
 * Đổi chế độ khi máy đang chạy: áp dụng từ lần chạy sau.
 

@@ -50,10 +50,19 @@ Chân trống dự phòng: PB3 (+ IN8 của module relay 8 kênh).
 
 ## Quạt dàn nóng 5 cấp
 
-Motor quạt nhiều đầu dây tốc độ: dây chung (COM motor) lên N/L theo sơ đồ motor, mỗi đầu dây tốc độ đi qua
-tiếp điểm NO của 1 relay (IN3…IN7). Firmware chỉ đóng **đúng 1** relay tốc độ, khi đổi cấp thì tắt hết
-1 giây rồi mới đóng cấp mới (`control/fan_speed.c`). Nên thêm khoá liên động cứng (dùng tiếp điểm NC nối tiếp)
-nếu motor không chịu được 2 đầu dây cùng có điện khi relay dính.
+Kiểu **cộng dồn** (`control/fan_speed.c`): cấp N đóng relay IN3…(IN3+N−1) – cấp 1 = 1 relay, cấp 5 = cả 5 relay.
+Tăng cấp: đóng thêm từng relay, cách nhau 1 s (giảm dòng khởi động). Giảm cấp / tắt: nhả ngay các relay thừa.
+
+| Cấp | IN3 (S1) | IN4 (S2) | IN5 (S3) | IN6 (S4) | IN7 (S5) |
+|-----|----------|----------|----------|----------|----------|
+| 1 | ON | | | | |
+| 2 | ON | ON | | | |
+| 3 | ON | ON | ON | | |
+| 4 | ON | ON | ON | ON | |
+| 5 | ON | ON | ON | ON | ON |
+
+⚠ Mỗi relay phải cấp cho **một tải riêng** (5 quạt / 5 nhánh song song). **Không** dùng cho motor nhiều đầu dây tốc độ:
+nhiều đầu dây tốc độ cùng có điện sẽ chập cuộn dây motor.
 
 ## Lưu ý phần cứng
 

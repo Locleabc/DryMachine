@@ -258,7 +258,7 @@ static bool clock_now(uint32_t *epoch)
 
 /* ================= Test đầu ra (trang 6) =================
  *  Bật/tắt tay từng relay khi máy KHÔNG chạy (Đang dừng hoặc Lỗi).
- *  - quạt dàn nóng vẫn qua khoá liên động: chỉ 1 cấp, đổi cấp nghỉ 1 s
+ *  - quạt dàn nóng cộng dồn: bấm dòng cấp N → đóng relay 1..N (bấm lại → về cấp N-1), tăng từng relay cách 1 s
  *  - máy nén vẫn giữ thời gian chờ bật lại (comp_min_off)
  *  - luôn đóng relay thật (kể cả khi giả lập), thoát test hoặc 10 phút không bấm → tắt hết */
 #define OUT_TEST_TIMEOUT_MS  (10u * 60u * 1000u)
@@ -304,7 +304,7 @@ static bool out_test_cmd(uint8_t op, uint8_t idx)
             s_test.evap = !s_test.evap;
         } else if (idx >= RLY_ID_FAN_S1 && idx < RLY_ID_FAN_S1 + DRYER_FAN_LEVELS) {
             uint8_t lv = (uint8_t)(idx - RLY_ID_FAN_S1 + 1);
-            s_test.fan = (s_test.fan == lv) ? 0 : lv;          /* chỉ 1 cấp: bật cấp mới tự tắt cấp cũ */
+            s_test.fan = (s_test.fan >= lv) ? (uint8_t)(lv - 1) : lv;   /* cộng dồn: cấp N = relay 1..N */
         } else {
             return false;
         }
@@ -458,7 +458,7 @@ static void task_ctrl(uint32_t now)
     bool    want_evap = s_test.on ? s_test.evap : out.fan_evap;
     uint8_t want_fan  = s_test.on ? s_test.fan  : out.fan_level;
 
-    /* quạt dàn nóng 5 cấp: chỉ 1 relay đóng, đổi cấp có khoảng nghỉ (thời gian thật) */
+    /* quạt dàn nóng 5 cấp cộng dồn: cấp N = relay 1..N, tăng thêm từng relay cách 1 s (thời gian thật) */
     s_fan_actual = FanSpeed_Step(&s_fan, want_fan, now);
 
     if (s_sim.mode != SIM_OFF) {
@@ -473,15 +473,13 @@ static void task_ctrl(uint32_t now)
     Relay_Set(RLY_ID_COMP,     drive && want_comp);
     Relay_Set(RLY_ID_FAN_EVAP, drive && want_evap);
     for (uint8_t i = 0; i < DRYER_FAN_LEVELS; i++) {
-        Relay_Set((uint8_t)(RLY_ID_FAN_S1 + i), drive && s_fan_actual == i + 1);
+        Relay_Set((uint8_t)(RLY_ID_FAN_S1 + i), drive && FanSpeed_RelayOn(s_fan_actual, (uint8_t)(i + 1)));
     }
     if (comp_was && !Relay_Get(RLY_ID_COMP)) s_comp_off_tick = now;
 
     s_out_cmd = (uint8_t)((want_comp ? 1u << RLY_ID_COMP : 0u) | (want_evap ? 1u << RLY_ID_FAN_EVAP : 0u));
-    if (s_fan_actual >= 1 && s_fan_actual <= DRYER_FAN_LEVELS)
-        s_out_cmd |= (uint8_t)(1u << (RLY_ID_FAN_S1 + s_fan_actual - 1));
-    else if (want_fan >= 1 && want_fan <= DRYER_FAN_LEVELS)          /* đang nghỉ đổi cấp */
-        s_out_cmd |= (uint8_t)(1u << (RLY_ID_FAN_S1 + want_fan - 1));
+    for (uint8_t i = 0; i < DRYER_FAN_LEVELS; i++)                  /* yêu cầu: relay 1..want_fan */
+        if (FanSpeed_RelayOn(want_fan, (uint8_t)(i + 1))) s_out_cmd |= (uint8_t)(1u << (RLY_ID_FAN_S1 + i));
 
     log_new_faults();
     if (s_status.finished && !s_prev_finished) {

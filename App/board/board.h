@@ -18,7 +18,7 @@
 enum {
     RLY_ID_COMP = 0,        /* máy nén (qua contactor) */
     RLY_ID_FAN_EVAP,        /* quạt dàn lạnh */
-    RLY_ID_FAN_S1,          /* quạt dàn nóng cấp 1..5 – chỉ 1 relay đóng tại một thời điểm */
+    RLY_ID_FAN_S1,          /* quạt dàn nóng cấp 1..5 – cộng dồn: cấp N đóng relay S1..SN */
     RLY_ID_FAN_S2,
     RLY_ID_FAN_S3,
     RLY_ID_FAN_S4,
