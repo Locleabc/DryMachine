@@ -47,9 +47,9 @@ const sht4x_cfg_t board_sht45 = {
     .hi2c = &hi2c2, .addr = SHT4X_ADDR_A, .precision = SHT4X_PREC_HIGH,
 };
 
-/* ---------------- NTC dàn lạnh 20k@25 °C (ADC1) – phân áp 20k 1% lên 3.3V ----------------
- * code < 20: chập (> ~200 °C) · code > 4050: hở / chưa cắm (< ~ −50 °C) */
-#define NTC_COMMON  .hadc = &hadc1, .r_fixed = 20000.0f, .r25 = 20000.0f, .adc_max = 4095.0f, \
+/* ---------------- NTC dàn lạnh 20k@25 °C (ADC1) – phân áp 10k 1% lên 3.3V ----------------
+ * code < 20: chập · code > 4050: hở / chưa cắm (< ~ −40 °C) */
+#define NTC_COMMON  .hadc = &hadc1, .r_fixed = 10000.0f, .r25 = 20000.0f, .adc_max = 4095.0f, \
                     .code_min = 20, .code_max = 4050, .oversample = 8
 const ntc_cfg_t board_ntc_evap1 = { NTC_COMMON, .channel = ADC_CHANNEL_0 };   /* PA0 */
 const ntc_cfg_t board_ntc_evap2 = { NTC_COMMON, .channel = ADC_CHANNEL_6 };   /* PA6 */

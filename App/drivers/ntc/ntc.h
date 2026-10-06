@@ -2,7 +2,7 @@
  * @file    ntc.h
  * @brief   Nhiệt điện trở NTC qua ADC, mạch phân áp tỉ lệ (không phụ thuộc Vref):
  *
- *              3.3V ── R_fixed (20k 1%) ──┬── chân ADC ──┬── 100 nF ── GND
+ *              3.3V ── R_fixed (10k 1%) ──┬── chân ADC ──┬── 100 nF ── GND
  *                                         └── NTC ───────┴── GND
  *
  *          R_ntc = R_fixed · code / (code_max − code).  T = 1 / (1/T25 + ln(R/R25)/B) − 273.15

@@ -10,7 +10,7 @@ MCU: **STM32F103C8T6** (72 MHz, 64 KB Flash) – IDE: **Keil MDK-ARM (AC6)** + S
 | 2 | Độ ẩm (+ nhiệt độ phụ) | **SHT45** (I2C2) |
 | 3 | Quạt dàn nóng | Relay trung gian |
 | 4 | Máy nén | Relay trung gian (khuyến nghị qua contactor) |
-| 5 | Nhiệt độ dàn lạnh ×2 | NTC 20k (B 3950) → phân áp 20k → ADC1_IN0 (PA0), ADC1_IN6 (PA6) |
+| 5 | Nhiệt độ dàn lạnh ×2 | NTC 20k (B 3950) → phân áp 10k → ADC1_IN0 (PA0), ADC1_IN6 (PA6) |
 | 6 | Quạt dàn lạnh | Relay trung gian |
 | 7 | Màn hình | TFT 3.2" ILI9341 320x240 (SPI1) |
 | 8 | Nút bấm | UP / DOWN / ENTER / EXIT |
