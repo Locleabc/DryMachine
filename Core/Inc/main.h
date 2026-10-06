@@ -59,8 +59,10 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define LED_RUN_Pin GPIO_PIN_13
 #define LED_RUN_GPIO_Port GPIOC
-#define PRESS_ADC_Pin GPIO_PIN_0
-#define PRESS_ADC_GPIO_Port GPIOA
+#define NTC_EVAP1_Pin GPIO_PIN_0
+#define NTC_EVAP1_GPIO_Port GPIOA
+#define NTC_EVAP2_Pin GPIO_PIN_6
+#define NTC_EVAP2_GPIO_Port GPIOA
 #define RLY_FAN_S2_Pin GPIO_PIN_7
 #define RLY_FAN_S2_GPIO_Port GPIOB
 #define RLY_FAN_S3_Pin GPIO_PIN_1

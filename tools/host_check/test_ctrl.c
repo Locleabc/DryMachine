@@ -36,26 +36,26 @@ static void test_no_sensor_then_sim(void)
 {
     printf("\n--- CHUA CO CAM BIEN -> GIA LAP ---\n");
     DryerCtrl_DefaultParams(&p);
-    p.press_enable = 0.0f;                                  /* chưa gắn cảm biến áp suất */
-    dryer_input_t in = { false, 0.0f, false, 0.0f, false, 0.0f };
+    p.evap_protect = 0.0f;                                  /* chưa gắn NTC dàn lạnh */
+    dryer_input_t in = { false, 0.0f, false, 0.0f, { false, false }, { 0.0f, 0.0f } };
     now = 1000;
     DryerCtrl_Init(&c, now);
     run(&in, 3000);
     EXPECT(st.state == DRYER_FAULT, "Khong co cam bien nhiet -> loi, khoa may");
-    in = (dryer_input_t){ true, 30.0f, true, 65.0f, false, 0.0f };   /* giá trị nhập tay */
+    in = (dryer_input_t){ true, 30.0f, true, 65.0f, { false, false }, { 0.0f, 0.0f } };   /* giá trị nhập tay */
     DryerCtrl_Command(&c, DRYER_CMD_RESET_FAULT);
     run(&in, 1000);
     EXPECT(st.state == DRYER_IDLE, "Bat gia lap: xoa loi -> san sang");
     DryerCtrl_Command(&c, DRYER_CMD_TOGGLE);
     run(&in, 1000);
-    EXPECT(st.state == DRYER_STARTING, "Chay duoc khi khong co cam bien ap suat (bao ve ap = Tat)");
+    EXPECT(st.state == DRYER_STARTING, "Chay duoc khi khong co NTC dan lanh (chong dong bang = Tat)");
 }
 
 static void test_auto(void)
 {
     printf("\n--- TU DONG ---\n");
     DryerCtrl_DefaultParams(&p);
-    dryer_input_t in = { true, 30.0f, true, 60.0f, true, 15.0f };
+    dryer_input_t in = { true, 30.0f, true, 60.0f, { true, true }, { 3.0f, 3.0f } };
     now = 1000;
     DryerCtrl_Init(&c, now);
     run(&in, 1000);
@@ -92,7 +92,7 @@ static void test_manual(void)
     DryerCtrl_DefaultParams(&p);
     p.mode = 1; p.gd3_min = 2; p.gd4_min = 1; p.dry_time_h = 0.01f;   /* thời gian sấy phải bị bỏ qua */
     p.stage_fan[0] = 4; p.stage_fan[1] = 3; p.stage_fan[2] = 2; p.stage_fan[3] = 1; p.stage_fan[4] = 5;
-    dryer_input_t in = { true, 30.0f, true, 60.0f, true, 15.0f };
+    dryer_input_t in = { true, 30.0f, true, 60.0f, { true, true }, { 3.0f, 3.0f } };
     now = 1000;
     DryerCtrl_Init(&c, now);
     DryerCtrl_Command(&c, DRYER_CMD_START); run(&in, 1000);
@@ -127,7 +127,7 @@ static void test_protect(void)
 {
     printf("\n--- BAO VE ---\n");
     DryerCtrl_DefaultParams(&p);
-    dryer_input_t in = { true, 40.0f, true, 60.0f, true, 15.0f };
+    dryer_input_t in = { true, 40.0f, true, 60.0f, { true, true }, { 3.0f, 3.0f } };
     now = 1000;
     DryerCtrl_Init(&c, now);
     DryerCtrl_Command(&c, DRYER_CMD_START); run(&in, 62000);
@@ -150,15 +150,42 @@ static void test_protect(void)
     in.temp = 40.0f;
 
     DryerCtrl_Command(&c, DRYER_CMD_START); run(&in, 62000);
-    in.press = 31.0f; run(&in, 200);
-    EXPECT(st.state == DRYER_FAULT && (st.faults & DRYER_FAULT_PRESS_HIGH) && out.fan_level == 5, "Ap cao -> loi, quat nong cap 5");
-    in.press = 15.0f; DryerCtrl_Command(&c, DRYER_CMD_RESET_FAULT); run(&in, 61000);
 
     DryerCtrl_Command(&c, DRYER_CMD_START); run(&in, 62000);
     DryerCtrl_Command(&c, DRYER_CMD_TOGGLE); run(&in, 400);
     EXPECT(st.state == DRYER_STOPPING && !out.comp && out.fan_evap, "Dung tay -> tat may nen, quat chay them");
     run(&in, 61000);
     EXPECT(st.state == DRYER_IDLE && !st.finished, "Het fan_post -> IDLE (khong tinh la hoan thanh)");
+}
+
+static void test_defrost(void)
+{
+    printf("\n--- CHONG DONG BANG DAN LANH ---\n");
+    DryerCtrl_DefaultParams(&p);                 /* −2 °C / 60 s → xả đá, ≥ 5 °C chạy lại */
+    dryer_input_t in = { true, 30.0f, true, 60.0f, { true, true }, { 3.0f, 3.0f } };
+    now = 1000;
+    DryerCtrl_Init(&c, now);
+    DryerCtrl_Command(&c, DRYER_CMD_START);
+    run(&in, 125000);                            /* chạy trước 60 s + chờ MN 60 s */
+    EXPECT(st.state == DRYER_RUNNING && out.comp, "Dang say, may nen chay");
+    in.evap[0] = -3.0f;                          /* 1 NTC xuống −3 °C (thấp nhất được dùng) */
+    run(&in, 30000);
+    EXPECT(out.comp && !st.defrost, "Duoi -2 C chua du 60 s: van chay");
+    run(&in, 31000);
+    EXPECT(!out.comp && st.defrost && (st.warnings & DRYER_WARN_DEFROST) && st.state == DRYER_RUNNING && out.fan_evap,
+           "Du 60 s -> XA DA: tat may nen, quat van chay, khong loi");
+    in.evap[0] = 4.0f; in.evap[1] = 4.0f; run(&in, 5000);
+    EXPECT(!out.comp && st.defrost, "4 C < 5 C: van xa da");
+    in.evap[0] = 5.5f; in.evap[1] = 6.0f; run(&in, 1000);
+    EXPECT(!st.defrost && !(st.warnings & DRYER_WARN_DEFROST), "Dan lanh >= 5 C -> het xa da");
+    run(&in, 61000);
+    EXPECT(out.comp && st.defrost_count == 1, "May nen chay lai sau thoi gian cho");
+    in.evap_ok[1] = false; run(&in, 1000);
+    EXPECT((st.warnings & DRYER_WARN_EVAP_SENSOR) && st.state == DRYER_RUNNING, "Mat 1 NTC: chi canh bao, van chay");
+    in.evap_ok[0] = false; in.evap[0] = -10.0f; run(&in, 120000);
+    EXPECT(!st.defrost && st.state == DRYER_RUNNING, "Mat ca 2 NTC: khong xa da, khong dung may");
+    p.evap_protect = 0.0f; run(&in, 1000);
+    EXPECT(!(st.warnings & DRYER_WARN_EVAP_SENSOR), "Tat chong dong bang: het canh bao NTC");
 }
 
 static void test_fan_speed(void)
@@ -184,6 +211,7 @@ int main(void)
     test_auto();
     test_manual();
     test_protect();
+    test_defrost();
     test_fan_speed();
     printf("\n%s (%d loi)\n", fails ? "CO LOI" : "TAT CA PASS", fails);
     return fails;

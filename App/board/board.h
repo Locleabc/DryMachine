@@ -10,7 +10,7 @@
 #include "button.h"
 #include "max31865.h"
 #include "sht4x.h"
-#include "press_analog.h"
+#include "ntc.h"
 #include "ili9341.h"
 #include "flash_store.h"
 
@@ -33,7 +33,8 @@ extern const relay_hw_t         board_relays[RLY_ID_COUNT];
 extern const button_hw_t        board_buttons[BTN_ID_COUNT];
 extern const max31865_cfg_t     board_pt100;
 extern const sht4x_cfg_t        board_sht45;
-extern const press_analog_cfg_t board_press;
+extern const ntc_cfg_t          board_ntc_evap1;   /* NTC dàn lạnh 1 – PA0 */
+extern const ntc_cfg_t          board_ntc_evap2;   /* NTC dàn lạnh 2 – PA6 */
 extern const ili9341_cfg_t      board_lcd;
 extern const flash_store_cfg_t  board_settings_flash;
 extern const flash_store_cfg_t  board_faultlog_flash;

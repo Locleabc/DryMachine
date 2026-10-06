@@ -18,7 +18,8 @@ void SimPlant_Init(sim_plant_t *s, float temp, float hum)
     s->amb_hum  = 70.0f;
     s->temp  = temp;
     s->hum   = hum;
-    s->press = 10.0f;
+    s->evap  = temp;
+    s->icing = false;
 }
 
 void SimPlant_Step(sim_plant_t *s, float dt, bool comp, uint8_t fan_level, bool fan_evap)
@@ -38,8 +39,8 @@ void SimPlant_Step(sim_plant_t *s, float dt, bool comp, uint8_t fan_level, bool 
         if (s->hum < s->amb_hum) s->hum += WET_RATE * dt;
     }
 
-    /* áp suất đích: MN chạy ~ 15 bar + theo nhiệt độ buồng; tắt → cân bằng ~10 bar */
-    float p_target = comp ? (15.0f + 0.1f * (s->temp - s->amb_temp) - 0.5f * (float)fan_level) : 10.0f;
-    float k = dt / 5.0f; if (k > 1.0f) k = 1.0f;
-    s->press += (p_target - s->press) * k;
+    /* dàn lạnh: MN chạy → 2 °C (đóng băng −8 °C), tắt → về nhiệt độ buồng; hằng số thời gian 30 s */
+    float e_target = comp ? (s->icing ? -8.0f : 2.0f) : s->temp;
+    float k = dt / 30.0f; if (k > 1.0f) k = 1.0f;
+    s->evap += (e_target - s->evap) * k;
 }

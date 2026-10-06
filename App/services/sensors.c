@@ -12,15 +12,15 @@ static sensors_data_t  s_data;
 
 static max31865_t   s_pt100;
 static sht4x_t      s_sht;
-static press_analog_t s_press;
+static ntc_t        s_ntc[SENSORS_EVAP_COUNT];
 
 static uint32_t    s_fast_tick, s_sht_tick, s_sht_start;
 static sht_phase_t s_sht_phase;
 static uint8_t     s_sht_consec_err;
-static bool        s_press_init;
+static bool        s_ntc_init[SENSORS_EVAP_COUNT];
 static bool        s_pt_started, s_t0_set;
 static uint32_t    s_t0;
-static float       s_press_filt;
+static float       s_ntc_filt[SENSORS_EVAP_COUNT];
 
 static void sht_init(void)
 {
@@ -60,11 +60,24 @@ static void process_fast(void)
         s_data.pt100_ready = true;
     }
 
-    float v = PressAnalog_ReadVolt(&s_press);
-    if (!s_press_init) { s_press_filt = v; s_press_init = true; }
-    else s_press_filt += SENSORS_PRESS_ALPHA * (v - s_press_filt);
-    s_data.press_volt = s_press_filt;
-    s_data.press.ok = PressAnalog_VoltToBar(s_cfg->press, s_press_filt, &s_data.press.value);
+    for (uint8_t i = 0; i < SENSORS_EVAP_COUNT; i++) {
+        sensor_val_t *e = &s_data.evap[i];
+        float ohm;
+        if (!s_cfg->evap[i]) { e->ok = false; continue; }
+        uint16_t code = NTC_ReadCode(&s_ntc[i]);
+        if (!NTC_CodeToOhm(s_cfg->evap[i], code, &ohm)) {         /* hở / chập */
+            e->ok = false;
+            s_data.evap_r[i] = 0.0f;
+            s_ntc_init[i] = false;
+            continue;
+        }
+        s_data.evap_r[i] = ohm;
+        float t = NTC_OhmToTemp(ohm, s_cfg->evap[i]->r25, s_cal.ntc_beta) + s_cal.evap_offset[i];
+        if (!s_ntc_init[i]) { s_ntc_filt[i] = t; s_ntc_init[i] = true; }
+        else s_ntc_filt[i] += SENSORS_NTC_ALPHA * (t - s_ntc_filt[i]);
+        e->value = s_ntc_filt[i];
+        e->ok = (t > -50.0f && t < 120.0f);
+    }
 }
 
 static void process_sht(uint32_t now)
@@ -113,10 +126,11 @@ void Sensors_Init(const sensors_cfg_t *cfg)
     memset(&s_cal, 0, sizeof(s_cal));
     s_sht_phase = SHT_IDLE;
     s_sht_consec_err = 0;
-    s_press_init = false;
+    memset(s_ntc_init, 0, sizeof(s_ntc_init));
+    s_cal.ntc_beta = 3950.0f;
 
     s_pt_started = s_t0_set = false;           /* MAX31865 khởi tạo sau SENSORS_PT100_START_MS (Sensors_Process) */
-    PressAnalog_Init(&s_press, cfg->press);
+    for (uint8_t i = 0; i < SENSORS_EVAP_COUNT; i++) if (cfg->evap[i]) NTC_Init(&s_ntc[i], cfg->evap[i]);
     if (cfg->bus_recover) cfg->bus_recover();      /* gỡ cờ BUSY kẹt của I2C F1 (sau reset giữa giao dịch) */
     sht_init();
 

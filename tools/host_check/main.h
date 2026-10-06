@@ -7,8 +7,8 @@ extern UART_HandleTypeDef huart1;
 extern ADC_HandleTypeDef  hadc1;
 extern I2C_HandleTypeDef  hi2c2;
 /* User Label – giống CubeMX sinh ra theo docs/PINOUT.md */
-#define PRESS_ADC_Pin 0x0001
-#define PRESS_ADC_GPIO_Port GPIOA
+#define NTC_EVAP1_Pin 0x0001
+#define NTC_EVAP1_GPIO_Port GPIOA
 #define TFT_CS_Pin 0x0010
 #define TFT_CS_GPIO_Port GPIOA
 #define BTN_ENTER_Pin 0x0100

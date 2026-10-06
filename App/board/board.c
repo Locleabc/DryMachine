@@ -47,14 +47,12 @@ const sht4x_cfg_t board_sht45 = {
     .hi2c = &hi2c2, .addr = SHT4X_ADDR_A, .precision = SHT4X_PREC_HIGH,
 };
 
-/* ---------------- Áp suất 0.5–4.5 V qua phân áp 10k/20k (ADC1_IN0) ---------------- */
-const press_analog_cfg_t board_press = {
-    .hadc = &hadc1, .vref = 3.3f, .adc_max = 4095.0f, .divider = 1.5f,
-    .v_min = 0.5f, .v_max = 4.5f,
-    .p_min = 0.0f, .p_max = 34.5f,          /* 500 psi – chỉnh theo cảm biến thực tế */
-    .v_fault_low = 0.25f, .v_fault_high = 4.8f,
-    .oversample = 8,
-};
+/* ---------------- NTC dàn lạnh 20k@25 °C (ADC1) – phân áp 20k 1% lên 3.3V ----------------
+ * code < 20: chập (> ~200 °C) · code > 4050: hở / chưa cắm (< ~ −50 °C) */
+#define NTC_COMMON  .hadc = &hadc1, .r_fixed = 20000.0f, .r25 = 20000.0f, .adc_max = 4095.0f, \
+                    .code_min = 20, .code_max = 4050, .oversample = 8
+const ntc_cfg_t board_ntc_evap1 = { NTC_COMMON, .channel = ADC_CHANNEL_0 };   /* PA0 */
+const ntc_cfg_t board_ntc_evap2 = { NTC_COMMON, .channel = ADC_CHANNEL_6 };   /* PA6 */
 
 /* ---------------- TFT ILI9341 (SPI1) ---------------- */
 const ili9341_cfg_t board_lcd = {

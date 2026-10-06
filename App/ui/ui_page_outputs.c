@@ -63,15 +63,17 @@ static void draw_values(bool full)
     const ui_view_t *v = &g_ui.v;
     static uint8_t last_cmd = 0xFF, last_rly = 0xFF, last_cur = 0xFF;
     static bool last_test;
-    static char last_meas[3][12];
-    char meas[3][12], n[8];
+    static char last_meas[3][20];
+    char meas[3][20], n[8], n2[8];
 
     if (s_test && !v->out_test) s_test = false;          /* app đã thoát test (hết giờ / máy chạy) */
 
     /* dòng số đo */
     w_fmt_value(n, sizeof(n), v->temp_ok, v->temp);   snprintf(meas[0], sizeof(meas[0]), "%s°C", n);
     w_fmt_value(n, sizeof(n), v->hum_ok, v->hum);     snprintf(meas[1], sizeof(meas[1]), "%s%%", n);
-    w_fmt_value(n, sizeof(n), v->press_ok, v->press); snprintf(meas[2], sizeof(meas[2]), "%s bar", n);
+    w_fmt_value(n, sizeof(n), v->evap_ok[0], v->evap[0]);
+    w_fmt_value(n2, sizeof(n2), v->evap_ok[1], v->evap[1]);
+    snprintf(meas[2], sizeof(meas[2]), "DL %s/%s", n, n2);                /* dàn lạnh 1/2 °C */
     bool meas_chg = full || memcmp(meas, last_meas, sizeof(meas)) != 0;
     if (meas_chg) {
         memcpy(last_meas, meas, sizeof(meas));

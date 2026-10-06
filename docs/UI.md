@@ -26,7 +26,7 @@ Giao diện dùng font **Be Vietnam Pro** (SIL Open Font License 1.1) chuyển t
 | 3 Thời gian sấy | HH:MM (00:00 = không giới hạn). **Chỉ dùng cho chế độ Tự động**, Thủ công hiện "không áp dụng" | ENTER: chỉnh từng chữ số |
 | 4 Quạt dàn nóng | Chế độ Tự động / Thủ công, bảng 5 giai đoạn + cấp quạt, nhiệt độ bảo vệ, thời gian chờ máy nén | ENTER: danh sách cài đặt |
 | 5 Lịch sử lỗi | Lỗi đang có + 6 lỗi gần nhất (ngày giờ, tên lỗi) | ENTER: xoá lỗi đang có · Giữ EXIT 3 s: xoá lịch sử |
-| 6 Trạng thái đầu ra | 7 relay (máy nén, quạt dàn lạnh, quạt nóng cấp 1–5) kèm chân IN/GPIO, ô **ON** xanh / **OFF** xám. Dòng dưới: **nhiệt độ · độ ẩm · áp suất** hiện tại. Chân ra: ON = 0 V, OFF = 3.3 V (module relay kích mức thấp). Giả lập với *Relay thật = Tắt*: ô vàng **ON\*** = bộ điều khiển yêu cầu bật nhưng relay không đóng | **ENTER: test đầu ra** (xem dưới) |
+| 6 Trạng thái đầu ra | 7 relay (máy nén, quạt dàn lạnh, quạt nóng cấp 1–5) kèm chân IN/GPIO, ô **ON** xanh / **OFF** xám. Dòng dưới: **nhiệt độ · độ ẩm · DL dàn lạnh 1/2 (°C)** hiện tại. Chân ra: ON = 0 V, OFF = 3.3 V (module relay kích mức thấp). Giả lập với *Relay thật = Tắt*: ô vàng **ON\*** = bộ điều khiển yêu cầu bật nhưng relay không đóng | **ENTER: test đầu ra** (xem dưới) |
 
 Ở mọi trang: **giữ ENTER 3 s → menu chế độ sấy**, EXIT → về trang chính.
 Header luôn hiện đồng hồ HH:MM:SS; footer hiện gợi ý phím, thông báo và số trang (6 ô vuông).
@@ -80,6 +80,11 @@ Chung cho cả hai chế độ:
   chỉnh ở trang 4, luôn ≤ nhiệt độ bảo vệ − 5) → tự hết lỗi, máy dừng (cần bấm chạy lại). Chưa nguội thì ENTER ở trang 5
   không xoá được lỗi (báo *Chờ nguội về 30°C*), test đầu ra cũng bị khoá. Mất cảm biến nhiệt trong lúc làm mát → quạt vẫn chạy,
   xoá lỗi bằng tay. ⚠ Nếu trời nóng hơn 30 °C buồng sẽ không nguội tới 30 °C → quạt chạy mãi: tăng giá trị này (vd 35 °C).
+* **Chống đóng băng dàn lạnh** (menu kỹ thuật, mặc định Bật): lấy nhiệt độ **thấp nhất** của 2 NTC dàn lạnh. Máy nén đang chạy
+  mà dàn lạnh ≤ *Dàn lạnh: xả đá ≤* (mặc định **−2 °C**) liên tục *Dàn lạnh: chờ* (mặc định **60 s**) → **xả đá**: tắt máy nén,
+  quạt vẫn chạy, giai đoạn vẫn tính giờ; dàn lạnh ≥ *Dàn lạnh: chạy lại ≥* (mặc định **5 °C**) → chạy tiếp (vẫn giữ thời gian chờ
+  bật lại máy nén). Đang xả đá: dòng cảnh báo *Xả đá dàn lạnh x°C · chạy lại ≥5°C*. Không phải lỗi – không dừng máy.
+  Mất 1 NTC: cảnh báo, dùng NTC còn lại; mất cả 2: không chống đóng băng được (chỉ cảnh báo).
 * Quạt dàn lạnh chạy suốt chu trình. Quạt dàn nóng 5 cấp **cộng dồn**: cấp N = relay cấp 1…N cùng đóng
   (cấp 1 = 1 relay … cấp 5 = 5 relay); tăng cấp đóng thêm từng relay cách 1 s, giảm cấp nhả ngay.
 * Mất cảm biến ẩm: Tự động chuyển sang giữ nhiệt; Thủ công bỏ qua GĐ2 (có cảnh báo).
@@ -116,7 +121,7 @@ Nhiệt độ được giới hạn 30–75 °C, độ ẩm 5–80 %RH (ngoài k
 
 ## Menu kỹ thuật (giữ EXIT 3 s ở trang chính)
 
-Trễ nhiệt/ẩm, quá nhiệt, áp cao/thấp, thời gian bảo vệ máy nén, quạt, bù sai số cảm biến, *Tắt màn hình sau* (phút, 0 = luôn sáng).
+Trễ nhiệt/ẩm, quá nhiệt, chống đóng băng dàn lạnh, thời gian bảo vệ máy nén, quạt, bù sai số cảm biến, *Tắt màn hình sau* (phút, 0 = luôn sáng).
 ENTER: sửa · UP/DOWN: đổi theo bước · ENTER: xác nhận · EXIT: lưu & thoát.
 
 ![Menu kỹ thuật](ui/10_tech.png)
@@ -138,15 +143,15 @@ Vào: trang 2 **Chạy / Dừng** → **giữ EXIT 3 s** → danh sách *GIẢ L
 trang chính hiện dòng `GIẢ LẬP · Mô hình x60`. Giả lập chỉ nằm trong RAM: tắt nguồn / reset là tắt.
 
 Chưa gắn cảm biến nhiệt: lúc khởi động máy báo lỗi *Mất cảm biến nhiệt* và khoá chạy. **Bật giả lập sẽ tự xoá lỗi này**
-(giá trị giả lập luôn hợp lệ) → ENTER ở trang 2 là chạy được. Chưa gắn cảm biến áp suất: đặt *Bảo vệ áp suất = Tắt*
+(giá trị giả lập luôn hợp lệ) → ENTER ở trang 2 là chạy được. Chưa gắn NTC dàn lạnh: đặt *Chống đóng băng = Tắt*
 trong menu kỹ thuật (trang 1, giữ EXIT 3 s) – cài đặt này lưu Flash.
 
 | Mục | Giá trị | Ý nghĩa |
 |-----|---------|---------|
-| Giả lập | Tắt / **Mô hình** / **Chỉnh tay** | Mô hình: nhiệt độ, độ ẩm, áp suất tự thay đổi theo máy nén + quạt. Chỉnh tay: bạn tự đặt nhiệt độ, độ ẩm |
+| Giả lập | Tắt / **Mô hình** / **Chỉnh tay** | Mô hình: nhiệt độ, độ ẩm, dàn lạnh tự thay đổi theo máy nén + quạt. Chỉnh tay: bạn tự đặt nhiệt độ, độ ẩm |
 | Tua nhanh | x1 / x10 / x60 / x300 | Đồng hồ bộ điều khiển chạy nhanh hơn (GĐ3 120 phút ở x300 còn 24 giây). Quạt 5 cấp vẫn nghỉ 1 s thật khi đổi cấp |
 | Nhiệt độ, Độ ẩm | °C, %RH | Chỉnh tay: giá trị đưa vào bộ điều khiển. Mô hình: đặt lại điểm xuất phát |
-| Tạo lỗi | Không / Mất CB nhiệt / Mất CB ẩm / Áp suất cao | Thử các bảo vệ và lịch sử lỗi |
+| Tạo lỗi | Không / Mất CB nhiệt / Mất CB ẩm / Đóng băng | Thử các bảo vệ và lịch sử lỗi |
 | Relay thật | Tắt / **Bật** | Mặc định chân ra + relay chạy theo bộ điều khiển khi giả lập → đo được điện áp thực tế. **Tháo dây máy nén / quạt (hoặc nguồn tải) nếu không muốn thiết bị chạy thật.** Tắt = chỉ hiện trên màn hình. |
 
 Cách thử từng giai đoạn:
@@ -154,7 +159,7 @@ Cách thử từng giai đoạn:
 2. Giả lập = **Mô hình**, Tua nhanh = **x60** → EXIT → ENTER để chạy. Theo dõi trang 1, 2, 4 (GĐ đang chạy được tô).
 3. Muốn ép chuyển giai đoạn: Giả lập = **Chỉnh tay**, đặt nhiệt độ ≥ nhiệt độ đặt (qua GĐ1), độ ẩm ≤ độ ẩm đặt (qua GĐ2),
    nhiệt độ ≤ nhiệt độ dừng (kết thúc GĐ5).
-4. Tạo lỗi *Áp suất cao* hoặc đặt nhiệt độ > nhiệt độ bảo vệ → máy dừng, trang 5 ghi lỗi. Quá nhiệt: Chỉnh tay hạ nhiệt độ
+4. Tạo lỗi *Đóng băng* (dàn lạnh xuống −8 °C → xả đá) hoặc đặt nhiệt độ > nhiệt độ bảo vệ → máy dừng, trang 5 ghi lỗi. Quá nhiệt: Chỉnh tay hạ nhiệt độ
    xuống ≤ 30 °C (hoặc để Mô hình tự nguội, môi trường 28 °C) → hết lỗi.
 
 Trên PC, bước 5 của `sh tools/host_check/check.sh` chạy trọn 1 chu trình với cùng mô hình và in mốc từng giai đoạn:

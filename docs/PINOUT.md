@@ -5,16 +5,16 @@ Sơ đồ đấu dây trực quan (mở bằng trình duyệt): [wiring.html](wi
 ## Nguồn
 
 220VAC → CB 10A + cầu chì → nguồn tổ ong 12V → buck 5V (≥ 2A) → chân 5V Blue Pill, JD-VCC relay,
-VCC TFT, nguồn cảm biến áp. 3.3V lấy từ LDO trên Blue Pill cho MAX31865, SHT45, VCC opto relay.
+VCC TFT. 3.3V lấy từ LDO trên Blue Pill cho MAX31865, SHT45, VCC opto relay.
 
 ## Gán chân
 
 | Chân | CubeMX mode | User Label | Nối tới |
 |------|-------------|------------|---------|
-| PA0  | ADC1_IN0 | PRESS_ADC | Cảm biến áp suất qua phân áp (xem dưới) |
+| PA0  | ADC1_IN0 | NTC_EVAP1 | NTC dàn lạnh 1 (20k) – phân áp 20k lên 3.3V (xem dưới) |
 | PA4  | GPIO_Output | TFT_CS | TFT CS |
 | PA5  | SPI1_SCK | – | TFT SCK |
-| PA6  | SPI1_MISO | – | TFT SDO (MISO) – không bắt buộc |
+| PA6  | ADC1_IN6 | NTC_EVAP2 | NTC dàn lạnh 2 (20k) – phân áp 20k lên 3.3V. SPI1 chỉ phát → TFT SDO để trống |
 | PA7  | SPI1_MOSI | – | TFT SDI (MOSI) |
 | PA11 | GPIO_Output (cấu hình trong `board.c`) | – | TFT **LED** (đèn nền, cao = sáng) – tự tắt màn hình |
 | PA8  | GPIO_Input (Pull-up) | BTN_ENTER | Nút ENTER → GND |
@@ -66,8 +66,9 @@ nhiều đầu dây tốc độ cùng có điện sẽ chập cuộn dây motor.
 
 ## Lưu ý phần cứng
 
-* **Áp suất 0.5–4.5 V**: ADC STM32 chỉ chịu 3.3 V. Dùng phân áp R1 = 10 kΩ (nối tín hiệu) –
-  R2 = 20 kΩ (xuống GND) → hệ số 1.5 (`PRESS_DIVIDER_RATIO`). Thêm tụ 100 nF tại PA0.
+* **NTC dàn lạnh 20 kΩ @25 °C (B = 3950)**, mỗi đầu dò: 3.3V – điện trở **20 kΩ 1%** – chân ADC (PA0 / PA6) – NTC – GND,
+  thêm tụ **100 nF** từ chân ADC xuống GND. 25 °C ≈ 1.65 V, 0 °C ≈ 2.5 V, hở dây ≈ 3.3 V (firmware báo *Mất NTC*).
+  Kẹp đầu dò sát ống đồng dàn lạnh, bọc cách nhiệt. Sai số / hệ số B chỉnh trong menu kỹ thuật (*NTC dàn lạnh: B*, *Bù dàn lạnh 1/2*).
 * **Relay**: module 5V opto kích mức THẤP. Tháo jumper VCC–JD-VCC: VCC (phía opto) nối 3.3V
   Blue Pill, JD-VCC nối 5V buck. K1 chỉ đóng cuộn contactor, contactor mới cấp cho máy nén.
   Đấu RC snubber / varistor song song cuộn contactor và quạt.

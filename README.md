@@ -10,7 +10,7 @@ MCU: **STM32F103C8T6** (72 MHz, 64 KB Flash) – IDE: **Keil MDK-ARM (AC6)** + S
 | 2 | Độ ẩm (+ nhiệt độ phụ) | **SHT45** (I2C2) |
 | 3 | Quạt dàn nóng | Relay trung gian |
 | 4 | Máy nén | Relay trung gian (khuyến nghị qua contactor) |
-| 5 | Áp suất gas | Cảm biến 0.5–4.5 V → phân áp → ADC1_IN0 |
+| 5 | Nhiệt độ dàn lạnh ×2 | NTC 20k (B 3950) → phân áp 20k → ADC1_IN0 (PA0), ADC1_IN6 (PA6) |
 | 6 | Quạt dàn lạnh | Relay trung gian |
 | 7 | Màn hình | TFT 3.2" ILI9341 320x240 (SPI1) |
 | 8 | Nút bấm | UP / DOWN / ENTER / EXIT |
@@ -28,7 +28,7 @@ App/
  ├─ app.c/.h              Keo nối: nơi DUY NHẤT biết tất cả module
  ├─ board/                Gán chân, handle HAL, bảng phần cứng (chỉ file này include main.h)
  ├─ drivers/              Driver thiết bị – mỗi driver 1 thư mục, chỉ phụ thuộc HAL
- │   ├─ button/  relay/  max31865/  sht4x/  press_analog/  ili9341/  flash_store/
+ │   ├─ button/  relay/  max31865/  sht4x/  ntc/  ili9341/  flash_store/
  ├─ services/             sensors, settings, presets, fault_log, datetime, log, sched, util_fmt
  ├─ control/              dryer_ctrl – logic điều khiển THUẦN C, không HAL (test được trên PC)
  └─ ui/                   Giao diện TFT – mỗi màn hình 1 file, nhận ui_view_t, trả lệnh qua callback

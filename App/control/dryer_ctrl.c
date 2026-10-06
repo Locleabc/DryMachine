@@ -5,8 +5,6 @@
 #include <string.h>
 
 #define SENSOR_FAULT_CYCLES   5         /* số lần Step lỗi liên tiếp mới báo */
-#define P_LOW_GRACE_MS        60000UL   /* bỏ qua áp thấp 60 s đầu sau khi bật máy nén */
-#define P_HIGH_PRE_RATIO      0.9f      /* ≥ 90% áp cao → quạt dàn nóng luôn chạy */
 
 #define MS(sec)    ((uint32_t)((sec) * 1000.0f))
 #define CMD_BIT(c) ((uint8_t)(1u << (c)))
@@ -64,23 +62,39 @@ static void check_faults(dryer_ctrl_t *c, const dryer_params_t *p, const dryer_i
 
     if (in->temp_ok && in->temp > p->temp_max) c->faults |= DRYER_FAULT_OVERTEMP;
 
-    if (p->press_enable > 0.5f) {
-        if (!in->press_ok) { if (c->press_bad_cnt < 255) c->press_bad_cnt++; }
-        else c->press_bad_cnt = 0;
-        if (c->press_bad_cnt >= SENSOR_FAULT_CYCLES) c->faults |= DRYER_FAULT_PRESS_SENSOR;
-
-        if (in->press_ok && in->press > p->p_high) c->faults |= DRYER_FAULT_PRESS_HIGH;
-        if (in->press_ok && c->out.comp && (c->now - c->comp_on_tick > P_LOW_GRACE_MS) &&
-            in->press < p->p_low) c->faults |= DRYER_FAULT_PRESS_LOW;
+    /* nhiệt độ dàn lạnh = thấp nhất trong các NTC đọc được */
+    bool all_ok = true;
+    c->evap_ok = false;
+    for (uint8_t i = 0; i < DRYER_EVAP_COUNT; i++) {
+        if (!in->evap_ok[i]) { all_ok = false; continue; }
+        if (!c->evap_ok || in->evap[i] < c->evap_min) c->evap_min = in->evap[i];
+        c->evap_ok = true;
     }
+    if (p->evap_protect > 0.5f && !all_ok) c->warnings |= DRYER_WARN_EVAP_SENSOR;
+    else c->warnings &= (uint16_t)~DRYER_WARN_EVAP_SENSOR;
 
     if (!in->hum_ok) c->warnings |= DRYER_WARN_HUM_SENSOR;
     else c->warnings &= (uint16_t)~DRYER_WARN_HUM_SENSOR;
 }
 
-static bool press_near_high(const dryer_params_t *p, const dryer_input_t *in)
+/* Chống đóng băng dàn lạnh: chỉ đếm khi máy nén đang chạy; xả đá → máy nén tắt tới khi ấm lại */
+static void defrost_update(dryer_ctrl_t *c, const dryer_params_t *p)
 {
-    return in->press_ok && in->press >= p->p_high * P_HIGH_PRE_RATIO;
+    if (p->evap_protect < 0.5f) { c->defrost = false; c->freezing = false; return; }
+    if (c->defrost) {
+        if (!c->evap_ok || c->evap_min >= p->evap_resume) c->defrost = false;
+        return;
+    }
+    if (c->out.comp && c->evap_ok && c->evap_min <= p->evap_freeze) {
+        if (!c->freezing) { c->freezing = true; c->freeze_tick = c->now; }
+        if (c->now - c->freeze_tick >= MS(p->evap_freeze_s)) {
+            c->defrost = true;
+            c->freezing = false;
+            if (c->defrost_count < 0xFFFF) c->defrost_count++;
+        }
+    } else {
+        c->freezing = false;
+    }
 }
 
 /* Vào giai đoạn làm mát (máy nén tắt) */
@@ -153,7 +167,9 @@ static void run_phase(dryer_ctrl_t *c, const dryer_params_t *p, const dryer_inpu
     }
 
     if (c->phase == PH_AUTO_COOL || c->phase == PH_GD5) return;   /* vừa chuyển sang làm mát */
-    comp_request(c, p, comp_on, false);
+    defrost_update(c, p);
+    if (c->defrost) comp_request(c, p, false, true);              /* xả đá: tắt ngay, bỏ qua chạy tối thiểu */
+    else            comp_request(c, p, comp_on, false);
 
     /* Tự động: hết thời gian sấy → làm mát */
     if (!c->manual && p->dry_time_h > 0.0f && (c->now - c->run_start) >= MS(p->dry_time_h * 3600.0f)) {
@@ -170,9 +186,10 @@ void DryerCtrl_DefaultParams(dryer_params_t *p)
     p->hum_set       = 15.0f;
     p->temp_recover  = 30.0f;   /* quá nhiệt: nguội tới 30 °C mới hết lỗi */
     p->temp_max      = 75.0f;
-    p->p_high        = 30.0f;   /* TODO: chỉnh theo gas và vị trí cảm biến */
-    p->p_low         = 1.0f;
-    p->press_enable  = 1.0f;
+    p->evap_freeze   = -2.0f;   /* dàn lạnh ≤ −2 °C … */
+    p->evap_freeze_s = 60.0f;   /* … liên tục 60 s → xả đá */
+    p->evap_resume   = 5.0f;    /* dàn lạnh ≥ 5 °C → chạy lại */
+    p->evap_protect  = 1.0f;
     p->comp_min_off  = 60.0f;   /* chờ bật lại máy nén */
     p->comp_min_on   = 30.0f;
     p->start_delay   = 60.0f;   /* quạt chạy 60 s rồi mới bật máy nén */
@@ -220,7 +237,7 @@ void DryerCtrl_Step(dryer_ctrl_t *c, const dryer_params_t *p, const dryer_input_
         bool hot = (c->faults & DRYER_FAULT_OVERTEMP) && in->temp_ok && in->temp > DryerCtrl_RecoverTemp(p);
         if (!hot) {
             c->faults = 0;
-            c->temp_bad_cnt = c->press_bad_cnt = 0;
+            c->temp_bad_cnt = 0;
             enter(c, DRYER_IDLE);
         }
     }
@@ -289,9 +306,7 @@ void DryerCtrl_Step(dryer_ctrl_t *c, const dryer_params_t *p, const dryer_input_
         }
         bool post = (now_ms - c->state_tick) < MS(p->fan_post);
         c->out.fan_evap = post;
-        if (press_near_high(p, in) || (c->faults & DRYER_FAULT_PRESS_HIGH && post)) {
-            c->out.fan_level = DRYER_FAN_LEVELS;                 /* áp cao: xả nhiệt tối đa */
-        } else if (post) {
+        if (post) {
             if (c->out.fan_level == 0) c->out.fan_level = DRYER_FAN_LEVELS;
         } else {
             c->out.fan_level = 0;
@@ -301,9 +316,9 @@ void DryerCtrl_Step(dryer_ctrl_t *c, const dryer_params_t *p, const dryer_input_
     }
     }
 
-    /* áp gần ngưỡng cao khi máy chạy → quạt dàn nóng tối thiểu cấp 1 */
-    if ((c->state == DRYER_RUNNING || c->state == DRYER_STARTING) && press_near_high(p, in) &&
-        c->out.fan_level == 0) c->out.fan_level = 1;
+    if (c->state != DRYER_RUNNING) { c->defrost = false; c->freezing = false; }   /* chỉ xả đá khi đang sấy */
+    if (c->defrost) c->warnings |= DRYER_WARN_DEFROST;
+    else            c->warnings &= (uint16_t)~DRYER_WARN_DEFROST;
 
     c->target_reached = in->hum_ok && (in->hum <= p->hum_set);
     *out = c->out;
@@ -320,6 +335,10 @@ void DryerCtrl_GetStatus(const dryer_ctrl_t *c, dryer_status_t *st)
     st->comp_demand    = c->comp_demand ||
                          (c->state == DRYER_RUNNING && (c->phase == PH_AUTO_DRY || c->phase == PH_GD1));
     st->target_reached = c->target_reached;
+    st->defrost        = c->defrost;
+    st->evap_ok        = c->evap_ok;
+    st->evap_min       = c->evap_min;
+    st->defrost_count  = c->defrost_count;
     st->finished       = c->finished;
 
     uint32_t off_for = c->now - c->comp_off_tick;
@@ -376,10 +395,8 @@ bool DryerCtrl_OvertempCooling(const dryer_ctrl_t *c)
 
 const char *DryerCtrl_FaultText(uint16_t f)
 {
-    if (f & DRYER_FAULT_PRESS_HIGH)   return "Áp suất cao";
-    if (f & DRYER_FAULT_PRESS_LOW)    return "Áp suất thấp";
     if (f & DRYER_FAULT_OVERTEMP)     return "Quá nhiệt";
     if (f & DRYER_FAULT_TEMP_SENSOR)  return "Mất cảm biến nhiệt";
-    if (f & DRYER_FAULT_PRESS_SENSOR) return "Mất cảm biến áp";
+    if (f & DRYER_FAULT_OLD_PRESS)    return "Áp suất (bản cũ)";
     return "";
 }

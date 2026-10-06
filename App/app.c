@@ -39,18 +39,18 @@ static bool           s_prev_cooling;    /* đang làm mát do quá nhiệt (bư
 
 /* ================= Chạy giả lập (không cần cảm biến) =================
  * Mở: giữ EXIT 3 s ở trang 2 (Chạy/Dừng). Chỉ lưu RAM – khởi động lại luôn TẮT giả lập.
- *  - Mô hình : nhiệt độ/độ ẩm/áp suất do sim_plant tính theo máy nén + quạt
+ *  - Mô hình : nhiệt độ/độ ẩm/dàn lạnh do sim_plant tính theo máy nén + quạt
  *  - Chỉnh tay: người dùng đặt nhiệt độ/độ ẩm trong danh sách GIẢ LẬP
  *  - Tua nhanh: đồng hồ của bộ điều khiển chạy x1/x10/x60/x300 (quạt 5 cấp vẫn theo thời gian thật)
- *  - Tạo lỗi : mất cảm biến nhiệt / ẩm, áp suất cao – để thử bảo vệ
+ *  - Tạo lỗi : mất cảm biến nhiệt / ẩm, dàn lạnh đóng băng – để thử bảo vệ
  *  - Relay thật: mặc định BẬT – chân ra + relay đóng theo bộ điều khiển để đo điện áp thực tế;
  *                 chuyển Tắt (danh sách GIẢ LẬP hoặc ENTER ở trang 6) để chỉ hiện trên màn hình */
 enum { SIM_OFF = 0, SIM_MODEL, SIM_MANUAL };
-enum { SIMF_NONE = 0, SIMF_TEMP, SIMF_HUM, SIMF_PRESS };
+enum { SIMF_NONE = 0, SIMF_TEMP, SIMF_HUM, SIMF_ICING };
 static const char *const s_sim_mode_ch[]  = { "Tắt", "Mô hình", "Chỉnh tay" };
 static const char *const s_sim_speed_ch[] = { "x1", "x10", "x60", "x300" };
 static const uint16_t    s_sim_speed[]    = { 1, 10, 60, 300 };
-static const char *const s_sim_fault_ch[] = { "Không", "Mất CB nhiệt", "Mất CB ẩm", "Áp suất cao" };
+static const char *const s_sim_fault_ch[] = { "Không", "Mất CB nhiệt", "Mất CB ẩm", "Đóng băng" };
 static const char *const s_onoff_ch[]     = { "Tắt", "Bật" };
 
 static struct {
@@ -62,7 +62,7 @@ static struct {
 
 static uint32_t s_vclock, s_last_tick;     /* đồng hồ của bộ điều khiển (có thể tua nhanh) */
 
-typedef struct { bool t_ok, h_ok, p_ok; float t, h, p; } meas_t;
+typedef struct { bool t_ok, h_ok; float t, h; bool e_ok[DRYER_EVAP_COUNT]; float e[DRYER_EVAP_COUNT]; } meas_t;
 
 static void get_meas(meas_t *m)
 {
@@ -70,17 +70,17 @@ static void get_meas(meas_t *m)
         const sensors_data_t *d = Sensors_Data();
         m->t_ok = d->temp.ok;  m->t = d->temp.value;
         m->h_ok = d->hum.ok;   m->h = d->hum.value;
-        m->p_ok = d->press.ok; m->p = d->press.value;
+        for (uint8_t i = 0; i < DRYER_EVAP_COUNT; i++) { m->e_ok[i] = d->evap[i].ok; m->e[i] = d->evap[i].value; }
         return;
     }
-    m->t_ok = m->h_ok = m->p_ok = true;
-    m->p = s_sim.plant.press;
+    m->t_ok = m->h_ok = true;
+    s_sim.plant.icing = (s_sim.fault == SIMF_ICING);
+    for (uint8_t i = 0; i < DRYER_EVAP_COUNT; i++) { m->e_ok[i] = true; m->e[i] = s_sim.plant.evap + 0.3f * i; }
     if (s_sim.mode == SIM_MODEL) { m->t = s_sim.plant.temp; m->h = s_sim.plant.hum; }
     else                         { m->t = s_sim.man_temp;   m->h = s_sim.man_hum;   }
     switch (s_sim.fault) {
     case SIMF_TEMP:  m->t_ok = false; break;
     case SIMF_HUM:   m->h_ok = false; break;
-    case SIMF_PRESS: m->p = Settings_Get()->ctrl.p_high + 2.0f; break;
     default: break;
     }
 }
@@ -418,7 +418,8 @@ static void task_ctrl(uint32_t now)
     pt100_track();
     const settings_t *set = Settings_Get();
 
-    sensors_calib_t cal = { set->temp_offset, set->hum_offset };
+    sensors_calib_t cal = { set->temp_offset, set->hum_offset, set->ntc_beta,
+                            { set->evap_offset[0], set->evap_offset[1] } };
     Sensors_SetCalib(&cal);
 
     /* đồng hồ bộ điều khiển: ×1 bình thường, tua nhanh khi giả lập */
@@ -436,7 +437,7 @@ static void task_ctrl(uint32_t now)
     dryer_input_t in = {
         .temp_ok  = m.t_ok, .temp  = m.t,
         .hum_ok   = m.h_ok, .hum   = m.h,
-        .press_ok = m.p_ok, .press = m.p,
+        .evap_ok  = { m.e_ok[0], m.e_ok[1] }, .evap = { m.e[0], m.e[1] },
     };
     dryer_output_t out;
     DryerCtrl_Step(&s_ctrl, &set->ctrl, &in, s_vclock, &out);
@@ -511,7 +512,7 @@ static void build_view(ui_view_t *v)
     v->hum_ok   = m.h_ok; v->hum   = m.h;
     v->hum_temp_ok = Sensors_Data()->hum_temp.ok;
     v->hum_temp    = Sensors_Data()->hum_temp.value;
-    v->press_ok = m.p_ok; v->press = m.p;
+    for (uint8_t i = 0; i < DRYER_EVAP_COUNT; i++) { v->evap_ok[i] = m.e_ok[i]; v->evap[i] = m.e[i]; }
     v->sim_text = (s_sim.mode != SIM_OFF) ? s_sim.text : NULL;
 
     v->temp_set = set->ctrl.temp_set;
@@ -556,7 +557,7 @@ static void build_view(ui_view_t *v)
     v->comp_wait_s  = s_status.comp_demand ? s_status.comp_wait_s : 0;
     v->fault_text   = s_status.faults ? DryerCtrl_FaultText(s_status.faults) : NULL;
     if (s_sim.mode == SIM_OFF && (s_status.faults & DRYER_FAULT_TEMP_SENSOR) &&
-        !(s_status.faults & (DRYER_FAULT_PRESS_HIGH | DRYER_FAULT_PRESS_LOW | DRYER_FAULT_OVERTEMP)))
+        !(s_status.faults & DRYER_FAULT_OVERTEMP))
         v->fault_text = pt100_diag_text();
     if (DryerCtrl_OvertempCooling(&s_ctrl)) {
         static char ot[48];
@@ -566,6 +567,20 @@ static void build_view(ui_view_t *v)
         v->fault_text = ot;
     }
     v->warn_text    = (s_status.warnings & DRYER_WARN_HUM_SENSOR) ? sht_diag_text() : NULL;
+    if (s_status.warnings & DRYER_WARN_EVAP_SENSOR) {
+        bool b0 = !m.e_ok[0], b1 = !m.e_ok[1];
+        v->warn_text = (b0 && b1) ? "Mất cả 2 NTC dàn lạnh – không chống đóng băng"
+                     : b0 ? "Mất NTC dàn lạnh 1 (PA0)" : "Mất NTC dàn lạnh 2 (PA6)";
+    }
+    if (s_status.warnings & DRYER_WARN_DEFROST) {
+        static char df[48];
+        char a[8], b[8];
+        Fmt_Float(a, sizeof(a), s_status.evap_min, 1);
+        Fmt_Float(b, sizeof(b), set->ctrl.evap_resume, 0);
+        snprintf(df, sizeof(df), "Xả đá dàn lạnh %s°C · chạy lại ≥%s°C", a, b);
+        v->warn_text = df;
+    }
+    v->defrost = s_status.defrost;
     if (s_sim.mode == SIM_OFF && !Sensors_Data()->pt100_ready) v->warn_text = "Đang chờ cảm biến nhiệt…";
 
     uint32_t epoch;
@@ -677,12 +692,14 @@ static void task_log(uint32_t now)
     const sensors_data_t *d = Sensors_Data();
     meas_t m;
     get_meas(&m);
-    char t[12], h[12], p[12];
-    Log_Printf("%sT=%s H=%s P=%s ST=%s PH=%d MN=%d QN=%d QL=%d F=0x%02X W=0x%02X SHTerr=%lu/st%u",
+    char t[12], h[12], e1[12], e2[12];
+    Log_Printf("%sT=%s H=%s DL=%s/%s%s ST=%s PH=%d MN=%d QN=%d QL=%d F=0x%02X W=0x%02X SHTerr=%lu/st%u",
                s_sim.mode ? "[SIM] " : "",
                m.t_ok ? Fmt_Float(t, sizeof(t), m.t, 1) : "ERR",
                m.h_ok ? Fmt_Float(h, sizeof(h), m.h, 1) : "ERR",
-               m.p_ok ? Fmt_Float(p, sizeof(p), m.p, 2) : "ERR",
+               m.e_ok[0] ? Fmt_Float(e1, sizeof(e1), m.e[0], 1) : "ERR",
+               m.e_ok[1] ? Fmt_Float(e2, sizeof(e2), m.e[1], 1) : "ERR",
+               s_status.defrost ? " XA-DA" : "",
                DryerCtrl_StateName(s_status.state), (int)s_status.phase,
                s_status.out.comp, s_fan_actual, s_status.out.fan_evap,
                s_status.faults, s_status.warnings, (unsigned long)d->sht_errors, (unsigned)d->sht_status);
@@ -720,7 +737,7 @@ void App_Init(void)
     Text_Box(0, 124, TFT_WIDTH, "Đang khởi động…", &font_vn16, C_GRAY, C_BLACK, TEXT_CENTER);
 
     static const sensors_cfg_t sensors_cfg = {
-        .pt100 = &board_pt100, .sht = &board_sht45, .press = &board_press,
+        .pt100 = &board_pt100, .sht = &board_sht45, .evap = { &board_ntc_evap1, &board_ntc_evap2 },
         .bus_recover = Board_I2cRecover,
     };
     Sensors_Init(&sensors_cfg);

@@ -40,23 +40,28 @@ Mở `MDK-ARM/DryMachine.uvprojx` → **Build (F7)**.
    * APB1 Prescaler = **/2** (36 MHz), ADC Prescaler = **/6** (12 MHz)
    * RTC Clock Mux = **LSE**
 6. **Connectivity**:
-   * **SPI1**: Mode = Full-Duplex Master, Prescaler = 4 (18 Mbit/s), CPOL Low, CPHA 1 Edge
+   * **SPI1**: Mode = **Transmit Only Master** (PA6 dành cho NTC 2), Prescaler = 4 (18 Mbit/s), CPOL Low, CPHA 1 Edge
    * **SPI2**: Mode = Full-Duplex Master, Prescaler = 16, **CPOL Low, CPHA 2 Edge**
    * **I2C2**: I2C, Standard Mode 100 kHz
    * **USART1**: Asynchronous, 115200 8N1
-7. **Analog → ADC1**: tick **IN0**; Rank 1 Sampling Time = **239.5 Cycles**
+7. **Analog → ADC1**: tick **IN0** và **IN6**; Rank 1 Sampling Time = **239.5 Cycles** (firmware tự chọn kênh mỗi lần đọc)
 8. **GPIO**: bấm chuột trái lên từng chân trong sơ đồ chip → chọn chế độ; chuột phải → *Enter User Label*.
    Rồi vào System Core → GPIO chỉnh mức khởi động / pull-up:
 
    | Chân | Chế độ | User Label | GPIO output level / Pull |
    |------|--------|------------|--------------------------|
-   | PA0 | ADC1_IN0 | PRESS_ADC | – |
+   | PA0 | ADC1_IN0 | NTC_EVAP1 | – |
+   | PA6 | ADC1_IN6 | NTC_EVAP2 | – |
    | PA4 | GPIO_Output | TFT_CS | **High** |
    | PB0 | GPIO_Output | TFT_DC | Low |
    | PB1 | GPIO_Output | TFT_RST | **High** |
-   | PB5 | GPIO_Output | RLY_COMP | **High** (relay nhả) |
-   | PB6 | GPIO_Output | RLY_FAN_COND | **High** |
-   | PB7 | GPIO_Output | RLY_FAN_EVAP | **High** |
+   | PB4 | GPIO_Output | RLY_COMP | **High** (relay nhả) |
+   | PB5 | GPIO_Output | RLY_FAN_EVAP | **High** |
+   | PB6 | GPIO_Output | RLY_FAN_S1 | **High** |
+   | PB7 | GPIO_Output | RLY_FAN_S2 | **High** |
+   | PA1 | GPIO_Output | RLY_FAN_S3 | **High** |
+   | PA2 | GPIO_Output | RLY_FAN_S4 | **High** |
+   | PA3 | GPIO_Output | RLY_FAN_S5 | **High** |
    | PB12 | GPIO_Output | MAX_CS | **High** |
    | PC13 | GPIO_Output | LED_RUN | **High** (LED tắt) |
    | PA8 | GPIO_Input | BTN_ENTER | **Pull-up** |
@@ -87,7 +92,7 @@ Mở `MDK-ARM/DryMachine.uvprojx`.
      |-------|------|
      | App/app | `App/app.c` |
      | App/board | `App/board/board.c` |
-     | App/drivers | mọi `.c` trong `App/drivers/button`, `flash_store`, `ili9341` (2 file), `max31865`, `press_analog`, `relay`, `sht4x` |
+     | App/drivers | mọi `.c` trong `App/drivers/button`, `flash_store`, `ili9341` (2 file), `max31865`, `ntc`, `relay`, `sht4x` |
      | App/services | `datetime.c`, `fault_log.c`, `log.c`, `presets.c`, `sched.c`, `sensors.c`, `settings.c`, `util_fmt.c` |
      | App/control | `dryer_ctrl.c` |
      | App/ui | `ui_core.c`, `ui_edit.c`, `ui_menu_preset.c`, `ui_menu_tech.c`, `ui_page_faults.c`, `ui_page_main.c`, `ui_page_run.c`, `ui_page_timer.c`, `ui_widgets.c` |
@@ -101,7 +106,7 @@ Mở `MDK-ARM/DryMachine.uvprojx`.
      * Language C = **gnu11**
      * **Include Paths** → bấm nút `...` → thêm từng thư mục, hoặc dán nối vào cuối ô (cách nhau bằng `;`):
        ```
-       ../App;../App/board;../App/control;../App/services;../App/ui;../App/drivers/button;../App/drivers/relay;../App/drivers/max31865;../App/drivers/sht4x;../App/drivers/press_analog;../App/drivers/ili9341;../App/drivers/flash_store
+       ../App;../App/board;../App/control;../App/services;../App/ui;../App/drivers/button;../App/drivers/relay;../App/drivers/max31865;../App/drivers/sht4x;../App/drivers/ntc;../App/drivers/ili9341;../App/drivers/flash_store
        ```
    * Tab **Debug**: chọn *ST-Link Debugger* → Settings → Port = **SW**
    * Tab **Utilities**: tick *Use Debug Driver*

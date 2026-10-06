@@ -34,6 +34,12 @@ HAL_StatusTypeDef HAL_ADC_Stop(ADC_HandleTypeDef*);
 HAL_StatusTypeDef HAL_ADC_PollForConversion(ADC_HandleTypeDef*, uint32_t);
 uint32_t HAL_ADC_GetValue(ADC_HandleTypeDef*);
 HAL_StatusTypeDef HAL_ADCEx_Calibration_Start(ADC_HandleTypeDef*);
+typedef struct { uint32_t Channel, Rank, SamplingTime; } ADC_ChannelConfTypeDef;
+HAL_StatusTypeDef HAL_ADC_ConfigChannel(ADC_HandleTypeDef*, ADC_ChannelConfTypeDef*);
+#define ADC_CHANNEL_0 0u
+#define ADC_CHANNEL_6 6u
+#define ADC_REGULAR_RANK_1 1u
+#define ADC_SAMPLETIME_239CYCLES_5 7u
 HAL_StatusTypeDef HAL_FLASH_Unlock(void);
 HAL_StatusTypeDef HAL_FLASH_Lock(void);
 HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef*, uint32_t*);

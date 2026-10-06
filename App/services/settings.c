@@ -32,13 +32,17 @@ static const settings_param_t s_params[] = {
     P(PR, ctrl.temp_recover,  "Quá nhiệt: nguội tới","°C",  20.0f,  60.0f, 1.0f,  0, NULL),
     /* ---- Menu kỹ thuật (ẩn) ---- */
     P(TE, ctrl.temp_hyst,     "Trễ nhiệt",           "°C",   0.5f,  10.0f, 0.5f,  1, NULL),
-    P(TE, ctrl.p_high,        "Ngắt áp cao",         "bar",  5.0f,  45.0f, 0.5f,  1, NULL),
-    P(TE, ctrl.p_low,         "Ngắt áp thấp",        "bar",  0.0f,  10.0f, 0.1f,  1, NULL),
-    P(TE, ctrl.press_enable,  "Bảo vệ áp suất",      "",     0.0f,   1.0f, 1.0f,  0, s_onoff_ch),
+    P(TE, ctrl.evap_protect,  "Chống đóng băng",     "",     0.0f,   1.0f, 1.0f,  0, s_onoff_ch),
+    P(TE, ctrl.evap_freeze,   "Dàn lạnh: xả đá ≤",   "°C", -15.0f,  10.0f, 0.5f,  1, NULL),
+    P(TE, ctrl.evap_freeze_s, "Dàn lạnh: chờ",       "s",    0.0f, 600.0f, 10.0f, 0, NULL),
+    P(TE, ctrl.evap_resume,   "Dàn lạnh: chạy lại ≥","°C",   0.0f,  25.0f, 0.5f,  1, NULL),
     P(TE, ctrl.comp_min_on,   "Máy nén chạy min",    "s",   10.0f, 600.0f, 10.0f, 0, NULL),
     P(TE, ctrl.fan_post,      "Quạt chạy thêm",      "s",    0.0f, 300.0f, 5.0f,  0, NULL),
     P(TE, temp_offset,        "Bù nhiệt PT100",      "°C",  -5.0f,   5.0f, 0.1f,  1, NULL),
     P(TE, hum_offset,         "Bù độ ẩm",            "%",  -10.0f,  10.0f, 0.5f,  1, NULL),
+    P(TE, ntc_beta,           "NTC dàn lạnh: B",     "",  3000.0f, 4500.0f, 5.0f,  0, NULL),
+    P(TE, evap_offset[0],     "Bù dàn lạnh 1",       "°C",  -5.0f,   5.0f, 0.1f,  1, NULL),
+    P(TE, evap_offset[1],     "Bù dàn lạnh 2",       "°C",  -5.0f,   5.0f, 0.1f,  1, NULL),
     P(TE, screen_off_min,     "Tắt màn hình sau",    "phút", 0.0f,  60.0f, 1.0f,  0, NULL),   /* 0 = luôn sáng */
 };
 
@@ -77,6 +81,7 @@ void Settings_Default(void)
     s_set.temp_offset = 0.0f;
     s_set.hum_offset  = 0.0f;
     s_set.screen_off_min = SETTINGS_SCREEN_OFF_DEF;
+    s_set.ntc_beta = SETTINGS_NTC_BETA_DEF;
     for (uint8_t i = 0; i < PRESET_COUNT; i++) {
         s_set.preset_temp[i] = g_preset_defs[i].temp;
         s_set.preset_hum[i]  = g_preset_defs[i].hum;
@@ -85,19 +90,53 @@ void Settings_Default(void)
     stamp(&s_set);
 }
 
-/* v4/v5: cấu trúc = tiền tố của v6 tới hết preset_hum, CRC nằm ngay sau (đúng chỗ screen_off_min) */
-#define SETTINGS_V5_BODY  offsetof(settings_t, screen_off_min)
-
-static bool load_legacy(const settings_t *tmp)
-{
+/* ---- Đọc cài đặt bản cũ (v4..v6) ----
+ * v4..v6: dryer_params_t có 23 float (ô 5..7 là áp cao / áp thấp / bật bảo vệ áp – nay là dàn lạnh).
+ * v6 = v4/v5 + screen_off_min; CRC luôn nằm ngay sau phần dữ liệu. */
+#define OLD_CTRL_N  23
+typedef struct {
+    uint32_t magic;
+    uint16_t version, size;
+    float    ctrl[OLD_CTRL_N];
+    float    temp_offset, hum_offset;
+    uint8_t  preset, reserved[3];
+    float    preset_temp[PRESET_COUNT], preset_hum[PRESET_COUNT];
+    float    screen_off_min;          /* chỉ v6 */
     uint32_t crc;
-    if (tmp->magic != SETTINGS_MAGIC || (tmp->version != 4 && tmp->version != 5) ||
-        tmp->size != SETTINGS_V5_BODY + sizeof(uint32_t)) return false;
-    memcpy(&crc, (const uint8_t *)tmp + SETTINGS_V5_BODY, sizeof(crc));
-    if (crc != crc32_calc((const uint8_t *)tmp, SETTINGS_V5_BODY)) return false;
-    s_set = *tmp;
-    if (tmp->version == 4) s_set.ctrl.temp_recover = 30.0f;   /* v4: ô này là hum_hyst cũ – giữ các cài đặt khác */
-    s_set.screen_off_min = SETTINGS_SCREEN_OFF_DEF;
+} settings_old_t;
+
+typedef char old_fits_check[(sizeof(settings_old_t) <= sizeof(settings_t)) ? 1 : -1];   /* ARMCC5: không có _Static_assert */
+
+static bool load_legacy(const uint8_t *raw)
+{
+    settings_old_t o;
+    uint32_t crc, body;
+    memcpy(&o, raw, sizeof(o));
+    if (o.magic != SETTINGS_MAGIC) return false;
+    if (o.version == 4 || o.version == 5) body = offsetof(settings_old_t, screen_off_min);
+    else if (o.version == 6)              body = offsetof(settings_old_t, crc);
+    else return false;
+    if (o.size != body + sizeof(uint32_t)) return false;
+    memcpy(&crc, raw + body, sizeof(crc));
+    if (crc != crc32_calc(raw, body)) return false;
+
+    Settings_Default();                                       /* field mới = mặc định */
+    memcpy(&s_set.ctrl, o.ctrl, sizeof(o.ctrl));
+    {   /* 3 ô áp suất cũ → thông số dàn lạnh mặc định */
+        dryer_params_t d;
+        DryerCtrl_DefaultParams(&d);
+        s_set.ctrl.evap_freeze  = d.evap_freeze;
+        s_set.ctrl.evap_resume  = d.evap_resume;
+        s_set.ctrl.evap_protect = d.evap_protect;
+        s_set.ctrl.evap_freeze_s = d.evap_freeze_s;
+    }
+    if (o.version == 4) s_set.ctrl.temp_recover = 30.0f;     /* v4: ô này là hum_hyst cũ */
+    s_set.temp_offset = o.temp_offset;
+    s_set.hum_offset  = o.hum_offset;
+    s_set.preset      = o.preset;
+    memcpy(s_set.preset_temp, o.preset_temp, sizeof(o.preset_temp));
+    memcpy(s_set.preset_hum,  o.preset_hum,  sizeof(o.preset_hum));
+    if (o.version == 6) s_set.screen_off_min = o.screen_off_min;
     stamp(&s_set);
     return true;
 }
@@ -110,7 +149,7 @@ void Settings_Init(const flash_store_cfg_t *store)
     if (ok && tmp.magic == SETTINGS_MAGIC && tmp.version == SETTINGS_VERSION &&
         tmp.size == sizeof(settings_t) && tmp.crc == calc_crc(&tmp)) {
         s_set = tmp;
-    } else if (!(ok && load_legacy(&tmp))) {
+    } else if (!(ok && load_legacy((const uint8_t *)&tmp))) {
         Settings_Default();
     }
     for (uint8_t i = 0; i < PARAM_COUNT; i++) Settings_SetValue(i, Settings_GetValue(i));  /* kẹp giới hạn */

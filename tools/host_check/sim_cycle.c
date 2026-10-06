@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     uint32_t comp_starts = 0; bool prev_comp = false;
     for (uint32_t t = 0; t < 12 * 3600; t++) {
         now += 1000;
-        dryer_input_t in = { true, s.temp, true, s.hum, true, s.press };
+        dryer_input_t in = { true, s.temp, true, s.hum, { true, true }, { s.evap, s.evap } };
         DryerCtrl_Step(&c, &p, &in, now, &o);
         DryerCtrl_GetStatus(&c, &st);
         SimPlant_Step(&s, 1.0f, o.comp, o.fan_level, o.fan_evap);
@@ -41,8 +41,8 @@ int main(int argc, char **argv)
         if (o.comp && !prev_comp) comp_starts++;
         prev_comp = o.comp;
         if ((int)st.phase != last_ph || (int)st.state != last_st) {
-            printf("  %6.1f phut  %-10s %-24s T=%5.1f H=%5.1f P=%4.1f quat=%d MN=%d\n", t / 60.0,
-                   DryerCtrl_StateName(st.state), DryerCtrl_PhaseName(st.phase), s.temp, s.hum, s.press,
+            printf("  %6.1f phut  %-10s %-24s T=%5.1f H=%5.1f DL=%5.1f quat=%d MN=%d\n", t / 60.0,
+                   DryerCtrl_StateName(st.state), DryerCtrl_PhaseName(st.phase), s.temp, s.hum, s.evap,
                    o.fan_level, o.comp);
             last_ph = st.phase; last_st = st.state;
         }

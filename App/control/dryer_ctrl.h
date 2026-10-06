@@ -21,7 +21,11 @@
  *    GD5 : tắt máy nén, quạt chạy tới khi nhiệt độ ≤ gd5_end_temp → kết thúc
  *
  *  Máy nén luôn có bảo vệ: nghỉ tối thiểu comp_min_off (chờ bật lại), chạy tối thiểu comp_min_on.
- *  Bảo vệ: quá nhiệt temp_max, áp cao/thấp, mất cảm biến nhiệt/áp.
+ *  Bảo vệ: quá nhiệt temp_max, mất cảm biến nhiệt, chống đóng băng dàn lạnh.
+ *  Chống đóng băng (evap_protect = 1): nhiệt độ dàn lạnh (thấp nhất của 2 NTC còn đọc được)
+ *             ≤ evap_freeze liên tục evap_freeze_s giây khi máy nén chạy → XẢ ĐÁ: tắt máy nén
+ *             (quạt vẫn chạy, giai đoạn vẫn tính giờ) tới khi dàn lạnh ≥ evap_resume → chạy tiếp.
+ *             Không phải lỗi – không dừng máy. Mất NTC chỉ cảnh báo.
  *  Quá nhiệt: tắt máy nén, quạt dàn lạnh + quạt dàn nóng cấp 5 chạy liên tục tới khi nhiệt độ
  *             ≤ temp_recover (mặc định 30 °C) → tự hết lỗi, về IDLE. Chưa nguội thì không reset được.
  */
@@ -41,9 +45,9 @@ typedef struct {
     float hum_set;         /* %RH  độ ẩm mục tiêu                               */
     float temp_recover;    /* °C   quá nhiệt: làm mát tới nhiệt độ này mới hết lỗi (thay hum_hyst cũ) */
     float temp_max;        /* °C   nhiệt độ bảo vệ → dừng máy                   */
-    float p_high;          /* bar  ngắt áp cao                                  */
-    float p_low;           /* bar  ngắt áp thấp (sau P_LOW_GRACE)               */
-    float press_enable;    /* 0/1  bật bảo vệ áp suất                           */
+    float evap_freeze;     /* °C   dàn lạnh ≤ mức này (đủ evap_freeze_s) → xả đá   */
+    float evap_resume;     /* °C   dàn lạnh ≥ mức này → hết xả đá                  */
+    float evap_protect;    /* 0/1  bật chống đóng băng dàn lạnh                    */
     float comp_min_off;    /* s    chờ bật lại máy nén sau khi dừng             */
     float comp_min_on;     /* s    chạy tối thiểu máy nén                       */
     float start_delay;     /* s    quạt chạy trước khi bật máy nén              */
@@ -55,12 +59,15 @@ typedef struct {
     float gd3_min;         /* phút thời gian GD3                                */
     float gd4_min;         /* phút thời gian GD4                                */
     float end_temp;        /* °C   làm mát tới nhiệt độ này thì kết thúc (GD5)  */
+    float evap_freeze_s;   /* s    thời gian dưới evap_freeze mới xả đá            */
 } dryer_params_t;
+
+#define DRYER_EVAP_COUNT  2      /* số cảm biến dàn lạnh */
 
 typedef struct {
     bool temp_ok;  float temp;     /* °C  – nhiệt độ điều khiển (PT100) */
     bool hum_ok;   float hum;      /* %RH */
-    bool press_ok; float press;    /* bar */
+    bool evap_ok[DRYER_EVAP_COUNT]; float evap[DRYER_EVAP_COUNT];   /* °C – NTC dàn lạnh */
 } dryer_input_t;
 
 typedef struct {
@@ -92,12 +99,13 @@ typedef enum {
 
 /* Lỗi (dừng máy) */
 #define DRYER_FAULT_TEMP_SENSOR   (1u << 0)
-#define DRYER_FAULT_PRESS_SENSOR  (1u << 1)
-#define DRYER_FAULT_PRESS_HIGH    (1u << 2)
-#define DRYER_FAULT_PRESS_LOW     (1u << 3)
+/* bit 1..3: áp suất (đã bỏ) – giữ số để đọc đúng lịch sử lỗi cũ trong Flash */
+#define DRYER_FAULT_OLD_PRESS     ((1u << 1) | (1u << 2) | (1u << 3))
 #define DRYER_FAULT_OVERTEMP      (1u << 4)
 /* Cảnh báo (vẫn chạy) */
 #define DRYER_WARN_HUM_SENSOR     (1u << 0)
+#define DRYER_WARN_EVAP_SENSOR    (1u << 1)   /* mất ≥ 1 NTC dàn lạnh (khi bật chống đóng băng) */
+#define DRYER_WARN_DEFROST        (1u << 2)   /* đang xả đá: máy nén tạm tắt */
 
 typedef struct {
     dryer_state_t  state;
@@ -113,6 +121,10 @@ typedef struct {
     uint32_t       run_s;          /* thời gian từ lúc bắt đầu */
     uint32_t       phase_s;        /* thời gian trong giai đoạn hiện tại */
     uint32_t       phase_left_s;   /* còn lại của giai đoạn có hẹn giờ (GD3/GD4), 0 nếu không */
+    bool           defrost;        /* đang xả đá dàn lạnh */
+    bool           evap_ok;        /* có ít nhất 1 NTC dàn lạnh đọc được */
+    float          evap_min;       /* °C nhiệt độ dàn lạnh dùng cho chống đóng băng */
+    uint16_t       defrost_count;  /* số lần xả đá từ lúc bật nguồn */
 } dryer_status_t;
 
 /* Trạng thái nội bộ – app cấp phát, KHÔNG truy cập trực tiếp các field */
@@ -126,7 +138,11 @@ typedef struct {
     bool     comp_demand, target_reached;
     uint8_t  pending_cmd;
     uint16_t faults, warnings;
-    uint8_t  temp_bad_cnt, press_bad_cnt;
+    uint8_t  temp_bad_cnt;
+    bool     defrost, evap_ok, freezing;
+    float    evap_min;
+    uint32_t freeze_tick;
+    uint16_t defrost_count;
     uint32_t min_off_ms, phase_len_ms;
 } dryer_ctrl_t;
 
