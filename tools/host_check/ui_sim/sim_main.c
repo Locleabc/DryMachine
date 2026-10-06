@@ -107,8 +107,8 @@ int main(int argc, char **argv)
 
     static const char *const onames[7] = { "Máy nén", "Quạt dàn lạnh", "Quạt nóng cấp 1", "Quạt nóng cấp 2",
                                            "Quạt nóng cấp 3", "Quạt nóng cấp 4", "Quạt nóng cấp 5" };
-    static const char *const opins[7] = { "IN1 · PB5", "IN2 · PB7", "IN3 · PB6", "IN4 · PA1",
-                                          "IN5 · PA2", "IN6 · PA3", "IN7 · PB4" };
+    static const char *const opins[7] = { "IN1 · PB4", "IN2 · PB5", "IN3 · PB6", "IN4 · PB7",
+                                          "IN5 · PA1", "IN6 · PA2", "IN7 · PA3" };
     ui_config_t cfg = { names, 7, &tech, &proc, &simif, on_cmd, onames, opins, 7 };
     UI_Init(&cfg);
     tick(2);

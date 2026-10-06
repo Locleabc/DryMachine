@@ -20,10 +20,10 @@ VCC TFT, nguồn cảm biến áp. 3.3V lấy từ LDO trên Blue Pill cho MAX31
 | PA8  | GPIO_Input (Pull-up) | BTN_ENTER | Nút ENTER → GND |
 | PA9  | USART1_TX | – | Debug log 115200 (USB-UART) |
 | PA10 | USART1_RX | – | Debug |
-| PA1  | GPIO_Output (High) | RLY_FAN_S2 | Relay IN4 – quạt dàn nóng cấp 2 |
-| PA2  | GPIO_Output (High) | RLY_FAN_S3 | Relay IN5 – quạt dàn nóng cấp 3 |
-| PA3  | GPIO_Output (High) | RLY_FAN_S4 | Relay IN6 – quạt dàn nóng cấp 4 |
-| PB4  | GPIO_Output (High) | RLY_FAN_S5 | Relay IN7 – quạt dàn nóng cấp 5 (cần SYS = Serial Wire) |
+| PA1  | GPIO_Output (High) | RLY_FAN_S3 | Relay IN5 – quạt dàn nóng S3 (cấp ≥ 3) |
+| PA2  | GPIO_Output (High) | RLY_FAN_S4 | Relay IN6 – quạt dàn nóng S4 (cấp ≥ 4) |
+| PA3  | GPIO_Output (High) | RLY_FAN_S5 | Relay IN7 – quạt dàn nóng S5 (cấp 5) |
+| PB4  | GPIO_Output (High) | RLY_COMP | Relay IN1 – máy nén (qua contactor) (cần SYS = Serial Wire) |
 | PA13 | SYS_SWDIO | – | ST-Link |
 | PA14 | SYS_SWCLK | – | ST-Link |
 | PA15 | GPIO_Input (Pull-up) | BTN_EXIT | Nút EXIT → GND (cần SYS = Serial Wire) |
@@ -31,9 +31,9 @@ VCC TFT, nguồn cảm biến áp. 3.3V lấy từ LDO trên Blue Pill cho MAX31
 | PB1  | GPIO_Output | TFT_RST | TFT RESET |
 | PB10 | I2C2_SCL | – | SHT45 SCL (pull-up 4.7 kΩ lên 3.3 V) |
 | PB11 | I2C2_SDA | – | SHT45 SDA (pull-up 4.7 kΩ lên 3.3 V) |
-| PB5  | GPIO_Output (High) | RLY_COMP | Relay IN1 – máy nén (qua contactor) |
-| PB6  | GPIO_Output (High) | RLY_FAN_S1 | Relay IN3 – quạt dàn nóng cấp 1 |
-| PB7  | GPIO_Output (High) | RLY_FAN_EVAP | Relay IN2 – quạt dàn lạnh |
+| PB5  | GPIO_Output (High) | RLY_FAN_EVAP | Relay IN2 – quạt dàn lạnh |
+| PB6  | GPIO_Output (High) | RLY_FAN_S1 | Relay IN3 – quạt dàn nóng S1 (cấp ≥ 1) |
+| PB7  | GPIO_Output (High) | RLY_FAN_S2 | Relay IN4 – quạt dàn nóng S2 (cấp ≥ 2) |
 | PB8  | GPIO_Input (Pull-up) | BTN_UP | Nút UP → GND |
 | PB9  | GPIO_Input (Pull-up) | BTN_DOWN | Nút DOWN → GND |
 | PB12 | GPIO_Output | MAX_CS | MAX31865 CS |

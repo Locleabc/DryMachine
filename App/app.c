@@ -163,7 +163,7 @@ static const char *const s_out_names[RLY_ID_COUNT] = {
     "Quạt nóng cấp 1", "Quạt nóng cấp 2", "Quạt nóng cấp 3", "Quạt nóng cấp 4", "Quạt nóng cấp 5",
 };
 static const char *const s_out_pins[RLY_ID_COUNT] = {
-    "IN1 · PB5", "IN2 · PB7", "IN3 · PB6", "IN4 · PA1", "IN5 · PA2", "IN6 · PA3", "IN7 · PB4",
+    "IN1 · PB4", "IN2 · PB5", "IN3 · PB6", "IN4 · PB7", "IN5 · PA1", "IN6 · PA2", "IN7 · PA3",
 };
 
 /* lý do mất cảm biến ẩm SHT3x/SHT4x (hiện ở dòng cảnh báo trang chính) */
