@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define SENSORS_FAST_MS       500    /* PT100 + áp suất */
+#define SENSORS_FAST_MS       500    /* PT100 + NTC dàn lạnh */
 #define SENSORS_SHT_MS        1000   /* SHT45 */
 #define SENSORS_PT100_START_MS 5000  /* sau khi bật nguồn chờ 5 s mới khởi tạo + đọc MAX31865 (nguồn/bias ổn định) */
 #define SENSORS_SHT_MAX_ERR   3      /* lỗi liên tiếp → báo mất cảm biến ẩm */
