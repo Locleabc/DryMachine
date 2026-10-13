@@ -16,10 +16,11 @@ extern UART_HandleTypeDef huart1;
 /* ---------------- Relay ----------------
  * Module relay 8 kênh 5V opto, kích mức THẤP: VCC (opto) = 3.3V, JD-VCC = 5V buck, tháo jumper.
  * CubeMX: mức khởi động các chân relay = High để relay nhả khi cấp điện.
- * Quạt dàn nóng 5 cấp: S1 PB6, S2 PA1, S3 PA2, S4 PA3, S5 PB4 (motor nhiều đầu dây tốc độ).
+ * Máy nén PB4 (IN1) – ĐẢO: mức CAO = đóng (relay/SSR kích mức cao), khởi động = Low.
+ * Quạt dàn lạnh PB5 · quạt dàn nóng S1..S5 = PB6, PB7, PA1, PA2, PA3 (cộng dồn).
  * Nếu đổi sang module kích mức cao: sửa thành GPIO_PIN_SET và mức khởi động = Low. */
 const relay_hw_t board_relays[RLY_ID_COUNT] = {
-    [RLY_ID_COMP]     = { RLY_COMP_GPIO_Port,     RLY_COMP_Pin,     GPIO_PIN_RESET },
+    [RLY_ID_COMP]     = { RLY_COMP_GPIO_Port,     RLY_COMP_Pin,     GPIO_PIN_SET   },   /* đảo: cao = ON */
     [RLY_ID_FAN_EVAP] = { RLY_FAN_EVAP_GPIO_Port, RLY_FAN_EVAP_Pin, GPIO_PIN_RESET },
     [RLY_ID_FAN_S1]   = { RLY_FAN_S1_GPIO_Port,   RLY_FAN_S1_Pin,   GPIO_PIN_RESET },
     [RLY_ID_FAN_S2]   = { RLY_FAN_S2_GPIO_Port,   RLY_FAN_S2_Pin,   GPIO_PIN_RESET },

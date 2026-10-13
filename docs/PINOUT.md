@@ -23,7 +23,7 @@ VCC TFT. 3.3V lấy từ LDO trên Blue Pill cho MAX31865, SHT45, VCC opto relay
 | PA1  | GPIO_Output (High) | RLY_FAN_S3 | Relay IN5 – quạt dàn nóng S3 (cấp ≥ 3) |
 | PA2  | GPIO_Output (High) | RLY_FAN_S4 | Relay IN6 – quạt dàn nóng S4 (cấp ≥ 4) |
 | PA3  | GPIO_Output (High) | RLY_FAN_S5 | Relay IN7 – quạt dàn nóng S5 (cấp 5) |
-| PB4  | GPIO_Output (High) | RLY_COMP | Relay IN1 – máy nén (qua contactor) (cần SYS = Serial Wire) |
+| PB4  | GPIO_Output (**Low**) | RLY_COMP | Máy nén (qua contactor) – **ĐẢO: mức CAO = đóng**. Thêm điện trở 10 kΩ PB4 → GND (cần SYS = Serial Wire) |
 | PA13 | SYS_SWDIO | – | ST-Link |
 | PA14 | SYS_SWCLK | – | ST-Link |
 | PA15 | GPIO_Input (Pull-up) | BTN_EXIT | Nút EXIT → GND (cần SYS = Serial Wire) |
@@ -44,7 +44,10 @@ VCC TFT. 3.3V lấy từ LDO trên Blue Pill cho MAX31865, SHT45, VCC opto relay
 | VBAT (VB) | – | – | Pin CR2032 (+) để giữ giờ khi mất điện; (−) nối GND |
 | PC13 | GPIO_Output | LED_RUN | LED trên board (nhấp nháy = chương trình đang chạy) |
 
-Mức khởi động của các chân Output: **CS = High, 7 chân RELAY = High (relay kích mức thấp → nhả)**.
+Mức khởi động của các chân Output: **CS = High, 6 chân relay quạt = High (kích mức thấp → nhả), PB4 máy nén = Low (kích mức cao → nhả)**.
+
+⚠ PB4 sau reset là chân JTAG NJTRST có **pull-up nội** cho tới khi firmware cấu hình (vài ms). Với tầng kích mức cao, thêm
+**10 kΩ từ PB4 xuống GND** để máy nén chắc chắn không nhấp lúc cấp điện / reset / nạp code.
 
 Chân trống dự phòng: PB3 (+ IN8 của module relay 8 kênh).
 

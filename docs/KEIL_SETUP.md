@@ -55,7 +55,7 @@ Mở `MDK-ARM/DryMachine.uvprojx` → **Build (F7)**.
    | PA4 | GPIO_Output | TFT_CS | **High** |
    | PB0 | GPIO_Output | TFT_DC | Low |
    | PB1 | GPIO_Output | TFT_RST | **High** |
-   | PB4 | GPIO_Output | RLY_COMP | **High** (relay nhả) |
+   | PB4 | GPIO_Output | RLY_COMP | **Low** (kích mức cao – nhả) |
    | PB5 | GPIO_Output | RLY_FAN_EVAP | **High** |
    | PB6 | GPIO_Output | RLY_FAN_S1 | **High** |
    | PB7 | GPIO_Output | RLY_FAN_S2 | **High** |

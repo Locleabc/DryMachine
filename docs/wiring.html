@@ -489,7 +489,7 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 <section class="card"><h3><span class="dot f-bg-rly"></span>Module relay 3 kênh 5V opto</h3><div class="tw"><table><thead><tr><th>Chân module</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
 <tr><td class="mono">VCC</td><td class="mono strong">3.3V</td><td>Nuôi opto bằng 3.3V để tắt dứt khoát</td></tr>
 <tr><td class="mono">GND</td><td class="mono strong">GND</td><td></td></tr>
-<tr><td class="mono">IN1</td><td class="mono strong">PB4</td><td>Máy nén (qua contactor)</td></tr>
+<tr><td class="mono">IN1</td><td class="mono strong">PB4</td><td>Máy nén (qua contactor) – kích mức CAO; 10kΩ PB4→GND</td></tr>
 <tr><td class="mono">IN2</td><td class="mono strong">PB5</td><td>Quạt dàn lạnh</td></tr>
 <tr><td class="mono">IN3</td><td class="mono strong">PB6</td><td>Quạt dàn nóng S1 (cấp ≥ 1)</td></tr>
 <tr><td class="mono">IN4</td><td class="mono strong">PB7</td><td>Quạt dàn nóng S2 (cấp ≥ 2)</td></tr>
@@ -534,7 +534,7 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 <tr><td class="mono strong"><span class="dot f-bg-btn"></span>PA15</td><td>Nút EXIT</td><td class="mono">GPIO_Input, Pull-up</td><td class="mono">BTN_EXIT</td><td class="mono">–</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-tft"></span>PB0</td><td>TFT DC</td><td class="mono">GPIO_Output</td><td class="mono">TFT_DC</td><td class="mono">Low</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-tft"></span>PB1</td><td>TFT RESET</td><td class="mono">GPIO_Output</td><td class="mono">TFT_RST</td><td class="mono">High</td></tr>
-<tr><td class="mono strong"><span class="dot f-bg-rly"></span>PB4</td><td>Relay máy nén (IN1)</td><td class="mono">GPIO_Output</td><td class="mono">RLY_COMP</td><td class="mono">High (= OFF)</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-rly"></span>PB4</td><td>Relay máy nén (IN1)</td><td class="mono">GPIO_Output</td><td class="mono">RLY_COMP</td><td class="mono">Low (= OFF, kích mức cao)</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-rly"></span>PB5</td><td>Relay quạt dàn lạnh (IN2)</td><td class="mono">GPIO_Output</td><td class="mono">RLY_FAN_EVAP</td><td class="mono">High (= OFF)</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-rly"></span>PB6</td><td>Relay quạt nóng S1 (IN3)</td><td class="mono">GPIO_Output</td><td class="mono">RLY_FAN_S1</td><td class="mono">High (= OFF)</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-rly"></span>PB7</td><td>Relay quạt nóng S2 (IN4)</td><td class="mono">GPIO_Output</td><td class="mono">RLY_FAN_S2</td><td class="mono">High (= OFF)</td></tr>
@@ -557,7 +557,7 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
     <li>Chỉnh buck ra đúng 5.0V khi chưa nối tải.</li>
     <li>Cấp 12V, đo chân 3.3 của Blue Pill được 3.25–3.35V.</li>
     <li>Tháo jumper VCC–JD-VCC; VCC module relay nối 3.3V, JD-VCC nối 5V.</li>
-    <li>Chưa nối tải 220V, nạp firmware: cả 7 relay phải nhả khi khởi động (PB4–PB7, PA1–PA3 ở mức High).</li>
+    <li>Chưa nối tải 220V, nạp firmware: cả 7 relay phải nhả khi khởi động (PB5–PB7, PA1–PA3 mức High; PB4 máy nén mức Low).</li>
     <li>Đo PA0 / PA6 ở nhiệt độ phòng (~25 °C): khoảng 2.2V.</li>
     <li>Log UART hiện nhiệt độ PT100 hợp lý và SHT45 không báo lỗi (SHTerr đứng yên).</li>
     <li>Thử bảo vệ: rút dây PT100 phải báo LOI CAM BIEN NHIET và cắt relay.</li>
