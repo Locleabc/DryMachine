@@ -6,13 +6,18 @@
 
 #define T25_K  298.15f
 
-static uint16_t adc_once(ADC_HandleTypeDef *h)
+#define NTC_MAX_SAMPLES 16
+
+/* false = chuyển đổi lỗi / timeout (mẫu bị bỏ, không tính là 0) */
+static bool adc_once(ADC_HandleTypeDef *h, uint16_t *v)
 {
-    uint16_t v = 0;
-    HAL_ADC_Start(h);
-    if (HAL_ADC_PollForConversion(h, 5) == HAL_OK) v = (uint16_t)HAL_ADC_GetValue(h);
+    bool ok = false;
+    if (HAL_ADC_Start(h) == HAL_OK && HAL_ADC_PollForConversion(h, 5) == HAL_OK) {
+        *v = (uint16_t)HAL_ADC_GetValue(h);
+        ok = true;
+    }
     HAL_ADC_Stop(h);
-    return v;
+    return ok;
 }
 
 void NTC_Init(ntc_t *dev, const ntc_cfg_t *cfg)
@@ -31,10 +36,23 @@ uint16_t NTC_ReadCode(ntc_t *dev)
     HAL_ADC_ConfigChannel(c->hadc, &ch);
 
     uint8_t n = c->oversample ? c->oversample : 1;
+    if (n > NTC_MAX_SAMPLES) n = NTC_MAX_SAMPLES;
+    uint16_t s[NTC_MAX_SAMPLES], v;
+    uint8_t got = 0;
+    (void)adc_once(c->hadc, &v);                      /* bỏ mẫu đầu sau khi đổi kênh */
+    for (uint8_t i = 0; i < n; i++) if (adc_once(c->hadc, &v)) s[got++] = v;
+    if (got == 0) return 0xFFFF;                      /* ADC không chuyển đổi được */
+
+    /* sắp xếp, bỏ 1/4 mẫu thấp nhất + 1/4 cao nhất (lọc gai nhiễu từ relay / dây dài) */
+    for (uint8_t i = 1; i < got; i++) {
+        uint16_t x = s[i]; int8_t j = (int8_t)(i - 1);
+        while (j >= 0 && s[j] > x) { s[j + 1] = s[j]; j--; }
+        s[j + 1] = x;
+    }
+    uint8_t cut = got / 4;
     uint32_t sum = 0;
-    (void)adc_once(c->hadc);                          /* bỏ mẫu đầu sau khi đổi kênh */
-    for (uint8_t i = 0; i < n; i++) sum += adc_once(c->hadc);
-    return (uint16_t)(sum / n);
+    for (uint8_t i = cut; i < got - cut; i++) sum += s[i];
+    return (uint16_t)(sum / (uint8_t)(got - 2 * cut));
 }
 
 bool NTC_CodeToOhm(const ntc_cfg_t *c, uint16_t code, float *ohm)

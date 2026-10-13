@@ -512,7 +512,10 @@ static void build_view(ui_view_t *v)
     v->hum_ok   = m.h_ok; v->hum   = m.h;
     v->hum_temp_ok = Sensors_Data()->hum_temp.ok;
     v->hum_temp    = Sensors_Data()->hum_temp.value;
-    for (uint8_t i = 0; i < DRYER_EVAP_COUNT; i++) { v->evap_ok[i] = m.e_ok[i]; v->evap[i] = m.e[i]; }
+    for (uint8_t i = 0; i < DRYER_EVAP_COUNT; i++) {
+        v->evap_ok[i] = m.e_ok[i]; v->evap[i] = m.e[i];
+        v->evap_volt[i] = (s_sim.mode == SIM_OFF) ? Sensors_Data()->evap_code[i] * 3.3f / 4095.0f : -1.0f;
+    }
     v->sim_text = (s_sim.mode != SIM_OFF) ? s_sim.text : NULL;
 
     v->temp_set = set->ctrl.temp_set;
@@ -693,12 +696,14 @@ static void task_log(uint32_t now)
     meas_t m;
     get_meas(&m);
     char t[12], h[12], e1[12], e2[12];
-    Log_Printf("%sT=%s H=%s DL=%s/%s%s ST=%s PH=%d MN=%d QN=%d QL=%d F=0x%02X W=0x%02X SHTerr=%lu/st%u",
+    Log_Printf("%sT=%s H=%s DL=%s/%s(adc %u/%u loi %lu/%lu)%s ST=%s PH=%d MN=%d QN=%d QL=%d F=0x%02X W=0x%02X SHTerr=%lu/st%u",
                s_sim.mode ? "[SIM] " : "",
                m.t_ok ? Fmt_Float(t, sizeof(t), m.t, 1) : "ERR",
                m.h_ok ? Fmt_Float(h, sizeof(h), m.h, 1) : "ERR",
                m.e_ok[0] ? Fmt_Float(e1, sizeof(e1), m.e[0], 1) : "ERR",
                m.e_ok[1] ? Fmt_Float(e2, sizeof(e2), m.e[1], 1) : "ERR",
+               (unsigned)d->evap_code[0], (unsigned)d->evap_code[1],
+               (unsigned long)d->evap_glitch[0], (unsigned long)d->evap_glitch[1],
                s_status.defrost ? " XA-DA" : "",
                DryerCtrl_StateName(s_status.state), (int)s_status.phase,
                s_status.out.comp, s_fan_actual, s_status.out.fan_evap,

@@ -18,6 +18,7 @@
 #define SENSORS_SHT_MAX_ERR   3      /* lỗi liên tiếp → báo mất cảm biến ẩm */
 #define SENSORS_SHT_RECOVER   5      /* lỗi liên tiếp → khôi phục bus I2C + init lại */
 #define SENSORS_NTC_ALPHA     0.3f   /* lọc EMA nhiệt độ dàn lạnh (NTC) */
+#define SENSORS_NTC_MAX_ERR   6      /* lần đọc lỗi liên tiếp (×500 ms = 3 s) mới báo mất NTC */
 #define SENSORS_EVAP_COUNT    2      /* số NTC dàn lạnh */
 
 typedef struct {
@@ -45,6 +46,9 @@ typedef struct {
     sensor_val_t hum_temp;   /* °C – nhiệt độ tại SHT45 (tham khảo) */
     sensor_val_t evap[SENSORS_EVAP_COUNT];   /* °C – NTC dàn lạnh 1, 2 */
     float        evap_r[SENSORS_EVAP_COUNT]; /* Ohm đo được (chẩn đoán, 0 = hở/chập) */
+    uint16_t     evap_code[SENSORS_EVAP_COUNT]; /* mã ADC 0..4095 lần đọc gần nhất (chẩn đoán) */
+    uint16_t     evap_bad_code[SENSORS_EVAP_COUNT]; /* mã ADC lần đọc lỗi gần nhất */
+    uint32_t     evap_glitch[SENSORS_EVAP_COUNT];   /* số lần đọc lỗi (kể cả đã lọc bỏ) */
     uint8_t      pt100_fault;
     uint8_t      pt100_cfg;    /* thanh ghi cấu hình MAX31865 đọc lại (chẩn đoán) */
     uint16_t     pt100_reinit; /* số lần tự ghi lại cấu hình (chip mất cấu hình) */

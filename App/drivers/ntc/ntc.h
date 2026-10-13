@@ -31,7 +31,7 @@ typedef struct {
 } ntc_t;
 
 void     NTC_Init(ntc_t *dev, const ntc_cfg_t *cfg);
-uint16_t NTC_ReadCode(ntc_t *dev);                                   /* mã ADC trung bình */
+uint16_t NTC_ReadCode(ntc_t *dev);       /* mã ADC trung bình đã bỏ gai (0xFFFF = ADC lỗi) */
 /* hàm thuần: mã ADC → điện trở / nhiệt độ. false = hở hoặc chập */
 bool     NTC_CodeToOhm(const ntc_cfg_t *cfg, uint16_t code, float *ohm);
 float    NTC_OhmToTemp(float ohm, float r25, float beta);
