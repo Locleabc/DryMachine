@@ -32,13 +32,16 @@ static void write_reg(const max31865_cfg_t *c, uint8_t reg, uint8_t val)
     cs(c, false);
 }
 
+/* Đọc bằng 1 lần TransmitReceive (không dùng HAL_SPI_Receive → bớt ~0.4 KB Flash) */
 static void read_regs(const max31865_cfg_t *c, uint8_t reg, uint8_t *dst, uint8_t len)
 {
-    uint8_t addr = reg & 0x7F;
+    uint8_t tx[4] = { (uint8_t)(reg & 0x7F), 0xFF, 0xFF, 0xFF };
+    uint8_t rx[4] = { 0 };
+    if (len > 3) len = 3;
     cs(c, true);
-    HAL_SPI_Transmit(c->hspi, &addr, 1, SPI_TIMEOUT);
-    HAL_SPI_Receive(c->hspi, dst, len, SPI_TIMEOUT);
+    HAL_SPI_TransmitReceive(c->hspi, tx, rx, (uint16_t)(len + 1), SPI_TIMEOUT);
     cs(c, false);
+    for (uint8_t i = 0; i < len; i++) dst[i] = rx[i + 1];
 }
 
 static uint8_t read_reg(const max31865_cfg_t *c, uint8_t reg)
