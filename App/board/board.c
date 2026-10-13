@@ -52,11 +52,11 @@ const sht4x_cfg_t board_sht45 = {
 #define NTC_COMMON  .hadc = &hadc1, .r_fixed = 10000.0f, .adc_max = 4095.0f, \
                     .code_min = 20, .code_max = 4050, .oversample = 8
 /* R25 / B theo đo thực tế 2 đầu dò đang lắp (nước đá 0 °C và 28 °C):
- *   NTC 1: 50 kΩ @0 °C, 18.0 kΩ @28 °C → R25 ≈ 20 kΩ, B ≈ 3000
- *   NTC 2: 33 kΩ @0 °C, 12.7 kΩ @28 °C → R25 ≈ 14 kΩ, B ≈ 2800
+ *   NTC 1 (PA0): 33 kΩ @0 °C, 12.7 kΩ @28 °C → R25 ≈ 14 kΩ, B ≈ 2800
+ *   NTC 2 (PA6): 50 kΩ @0 °C, 18.0 kΩ @28 °C → R25 ≈ 20 kΩ, B ≈ 3000
  * Thay đầu dò khác loại → đo lại 2 điểm và sửa ở đây. Sai lệch nhỏ chỉnh bằng "Bù dàn lạnh 1/2". */
-const ntc_cfg_t board_ntc_evap1 = { NTC_COMMON, .channel = ADC_CHANNEL_0, .r25 = 20000.0f, .beta = 3000.0f };  /* PA0 */
-const ntc_cfg_t board_ntc_evap2 = { NTC_COMMON, .channel = ADC_CHANNEL_6, .r25 = 14000.0f, .beta = 2800.0f };  /* PA6 */
+const ntc_cfg_t board_ntc_evap1 = { NTC_COMMON, .channel = ADC_CHANNEL_0, .r25 = 14000.0f, .beta = 2800.0f };  /* PA0 */
+const ntc_cfg_t board_ntc_evap2 = { NTC_COMMON, .channel = ADC_CHANNEL_6, .r25 = 20000.0f, .beta = 3000.0f };  /* PA6 */
 
 /* ---------------- TFT ILI9341 (SPI1) ---------------- */
 const ili9341_cfg_t board_lcd = {

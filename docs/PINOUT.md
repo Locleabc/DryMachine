@@ -68,8 +68,8 @@ nhiều đầu dây tốc độ cùng có điện sẽ chập cuộn dây motor.
 
 * **NTC dàn lạnh** (R25 / B từng cái: xem dưới), mỗi đầu dò: 3.3V – điện trở **10 kΩ 1%** (`r_fixed` trong `board.c`) – chân ADC (PA0 / PA6) – NTC – GND,
   thêm tụ **100 nF** từ chân ADC xuống GND. 25 °C ≈ 2.2 V, 0 °C ≈ 2.87 V, −10 °C ≈ 3.04 V, hở dây ≈ 3.3 V (firmware báo *Mất NTC*).
-  Kẹp đầu dò sát ống đồng dàn lạnh, bọc cách nhiệt. R25 và hệ số B **riêng từng đầu dò** khai báo trong `App/board/board.c` (hiện: NTC 1 = 20 kΩ / B 3000,
-  NTC 2 = 14 kΩ / B 2800 – đo thực tế). Thay đầu dò: đo điện trở ở nước đá đang tan (0 °C) và ở nhiệt độ phòng T (°C), rồi
+  Kẹp đầu dò sát ống đồng dàn lạnh, bọc cách nhiệt. R25 và hệ số B **riêng từng đầu dò** khai báo trong `App/board/board.c` (hiện: NTC 1 (PA0) = 14 kΩ / B 2800,
+  NTC 2 (PA6) = 20 kΩ / B 3000 – đo thực tế). Thay đầu dò: đo điện trở ở nước đá đang tan (0 °C) và ở nhiệt độ phòng T (°C), rồi
   B = ln(R0 / RT) / (1/273.15 − 1/(T+273.15)), R25 = RT · e^(B·(1/298.15 − 1/(T+273.15))). Lệch nhỏ còn lại: *Bù dàn lạnh 1/2* (menu kỹ thuật).
 * **Relay**: module 5V opto kích mức THẤP. Tháo jumper VCC–JD-VCC: VCC (phía opto) nối 3.3V
   Blue Pill, JD-VCC nối 5V buck. K1 chỉ đóng cuộn contactor, contactor mới cấp cho máy nén.
