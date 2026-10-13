@@ -20,6 +20,7 @@ typedef struct {
     uint32_t channel;          /* ADC_CHANNEL_x */
     float    r_fixed;          /* Ohm – điện trở phân áp phía 3.3V */
     float    r25;              /* Ohm – NTC ở 25 °C */
+    float    beta;             /* hệ số B (đo 2 điểm: B = ln(R1/R2) / (1/T1 − 1/T2), T theo Kelvin) */
     float    adc_max;          /* 4095 */
     uint16_t code_min;         /* dưới mức này = chập NTC */
     uint16_t code_max;         /* trên mức này = hở / chưa cắm NTC */

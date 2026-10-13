@@ -43,7 +43,7 @@ typedef struct {
     float          preset_temp[PRESET_COUNT];   /* giá trị từng chế độ (sửa được) */
     float          preset_hum[PRESET_COUNT];
     float          screen_off_min; /* phút không bấm nút → tắt màn hình, 0 = luôn sáng (v6) */
-    float          ntc_beta;      /* hệ số B NTC dàn lạnh (v7) */
+    float          ntc_beta;      /* (v7, không dùng – R25/B mỗi NTC nằm trong board.c) */
     float          evap_offset[2];/* °C bù NTC dàn lạnh 1, 2 (v7) */
     uint32_t       crc;           /* LUÔN là field cuối */
 } settings_t;

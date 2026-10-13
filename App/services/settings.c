@@ -40,7 +40,6 @@ static const settings_param_t s_params[] = {
     P(TE, ctrl.fan_post,      "Quạt chạy thêm",      "s",    0.0f, 300.0f, 5.0f,  0, NULL),
     P(TE, temp_offset,        "Bù nhiệt PT100",      "°C",  -5.0f,   5.0f, 0.1f,  1, NULL),
     P(TE, hum_offset,         "Bù độ ẩm",            "%",  -10.0f,  10.0f, 0.5f,  1, NULL),
-    P(TE, ntc_beta,           "NTC dàn lạnh: B",     "",  3000.0f, 4500.0f, 5.0f,  0, NULL),
     P(TE, evap_offset[0],     "Bù dàn lạnh 1",       "°C",  -5.0f,   5.0f, 0.1f,  1, NULL),
     P(TE, evap_offset[1],     "Bù dàn lạnh 2",       "°C",  -5.0f,   5.0f, 0.1f,  1, NULL),
     P(TE, screen_off_min,     "Tắt màn hình sau",    "phút", 0.0f,  60.0f, 1.0f,  0, NULL),   /* 0 = luôn sáng */

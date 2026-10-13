@@ -418,7 +418,7 @@ static void task_ctrl(uint32_t now)
     pt100_track();
     const settings_t *set = Settings_Get();
 
-    sensors_calib_t cal = { set->temp_offset, set->hum_offset, set->ntc_beta,
+    sensors_calib_t cal = { set->temp_offset, set->hum_offset,
                             { set->evap_offset[0], set->evap_offset[1] } };
     Sensors_SetCalib(&cal);
 

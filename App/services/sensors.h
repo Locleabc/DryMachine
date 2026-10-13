@@ -31,7 +31,6 @@ typedef struct {
 typedef struct {
     float temp_offset;                /* °C cộng vào PT100 */
     float hum_offset;                 /* %RH cộng vào SHT45 */
-    float ntc_beta;                   /* hệ số B của NTC dàn lạnh (3950) */
     float evap_offset[SENSORS_EVAP_COUNT];   /* °C cộng vào từng NTC */
 } sensors_calib_t;
 

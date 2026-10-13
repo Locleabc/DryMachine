@@ -80,7 +80,7 @@ static void process_fast(void)
         }
         s_ntc_bad[i] = 0;
         s_data.evap_r[i] = ohm;
-        float t = NTC_OhmToTemp(ohm, s_cfg->evap[i]->r25, s_cal.ntc_beta) + s_cal.evap_offset[i];
+        float t = NTC_OhmToTemp(ohm, s_cfg->evap[i]->r25, s_cfg->evap[i]->beta) + s_cal.evap_offset[i];
         if (!s_ntc_init[i]) { s_ntc_filt[i] = t; s_ntc_init[i] = true; }
         else s_ntc_filt[i] += SENSORS_NTC_ALPHA * (t - s_ntc_filt[i]);
         e->value = s_ntc_filt[i];
@@ -136,7 +136,6 @@ void Sensors_Init(const sensors_cfg_t *cfg)
     s_sht_consec_err = 0;
     memset(s_ntc_init, 0, sizeof(s_ntc_init));
     memset(s_ntc_bad, 0, sizeof(s_ntc_bad));
-    s_cal.ntc_beta = 3950.0f;
 
     s_pt_started = s_t0_set = false;           /* MAX31865 khởi tạo sau SENSORS_PT100_START_MS (Sensors_Process) */
     for (uint8_t i = 0; i < SENSORS_EVAP_COUNT; i++) if (cfg->evap[i]) NTC_Init(&s_ntc[i], cfg->evap[i]);
