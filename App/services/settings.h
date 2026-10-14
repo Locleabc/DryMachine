@@ -16,7 +16,7 @@
 #include <stdint.h>
 
 #define SETTINGS_MAGIC     0x44525934UL   /* "DRY4" */
-#define SETTINGS_VERSION   7      /* v7: bỏ áp suất → NTC dàn lạnh; v6: + screen_off_min. Đọc được v4..v6 */
+#define SETTINGS_VERSION   8      /* v8: bỏ chế độ Tự động → độ ẩm GĐ3/GĐ4; v7: NTC dàn lạnh. Đọc được v4..v7 */
 
 /* Nhóm thông số (mỗi nhóm là 1 danh sách trên màn hình) */
 #define SETTINGS_GROUP_PROCESS  0      /* trang "Quạt dàn nóng / chu trình" */
@@ -27,7 +27,6 @@
 #define SETTINGS_TEMP_MAX  75.0f
 #define SETTINGS_HUM_MIN   5.0f
 #define SETTINGS_HUM_MAX   80.0f
-#define SETTINGS_DRY_MAX_MIN  (99u * 60u + 59u)   /* 99:59 */
 #define SETTINGS_SCREEN_OFF_DEF  5.0f             /* phút, mặc định tự tắt màn hình */
 #define SETTINGS_NTC_BETA_DEF    3950.0f          /* hệ số B NTC dàn lạnh 20k */
 
@@ -66,8 +65,6 @@ const settings_t *Settings_Get(void);
 /* ---- Chế độ sấy & điểm đặt ---- */
 void    Settings_SelectPreset(uint8_t idx);                        /* chép giá trị chế độ → điểm đặt */
 bool    Settings_SetPresetValues(uint8_t idx, float temp, float hum); /* false nếu phải kẹp giới hạn */
-void    Settings_SetDryTimeMin(uint16_t minutes);                  /* 0 = không giới hạn */
-uint16_t Settings_DryTimeMin(void);
 
 /* ---- Bảng thông số (chỉ số toàn cục) ---- */
 uint8_t Settings_GroupCount(uint8_t group);

@@ -2,7 +2,7 @@
  * (services/sim_plant.c) – cùng mô hình dùng trong chế độ GIẢ LẬP trên máy. In ra mốc chuyển giai đoạn.
  * Chạy: sh tools/host_check/check.sh   (bước 5)  hoặc tự build:
  *   gcc -std=c11 -IApp/control -IApp/services tools/host_check/sim_cycle.c \
- *       App/control/dryer_ctrl.c App/services/sim_plant.c -o sim_cycle && ./sim_cycle [thucong]
+ *       App/control/dryer_ctrl.c App/services/sim_plant.c -o sim_cycle && ./sim_cycle [quanhiet]
  */
 #include "dryer_ctrl.h"
 #include "sim_plant.h"
@@ -14,8 +14,6 @@ int main(int argc, char **argv)
     dryer_params_t p;
     DryerCtrl_DefaultParams(&p);
     bool overtemp = (argc > 1 && strcmp(argv[1], "quanhiet") == 0);
-    p.mode = (argc > 1 && strcmp(argv[1], "thucong") == 0) ? 1.0f : 0.0f;
-    p.dry_time_h = 4.0f;
     if (overtemp) p.temp_max = 50.0f;          /* đặt bảo vệ thấp hơn nhiệt độ sấy → chắc chắn quá nhiệt */
     bool had_fault = false;
 
@@ -25,9 +23,8 @@ int main(int argc, char **argv)
     DryerCtrl_Init(&c, now);
     DryerCtrl_Command(&c, DRYER_CMD_START);
 
-    printf("Che do %s: dat %.0f C / %.0f %%, bao ve %.0f C, dung GD5 %.0f C%s\n",
-           p.mode > 0.5f ? "THU CONG" : "TU DONG", p.temp_set, p.hum_set, p.temp_max, p.end_temp,
-           p.mode > 0.5f ? "" : ", thoi gian say 4 h");
+    printf("Chu trinh: dat %.0f C / %.0f %%, GD3 am %.0f %% giu %.0f ph, GD4 am %.0f %% giu %.0f ph, bao ve %.0f C, dung GD5 %.0f C\n",
+           p.temp_set, p.hum_set, p.hum_gd3, p.gd3_min, p.hum_gd4, p.gd4_min, p.temp_max, p.end_temp);
     int last_ph = -1, last_st = -1;
     float tmax = 0;
     uint32_t comp_starts = 0; bool prev_comp = false;

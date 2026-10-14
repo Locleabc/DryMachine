@@ -9,7 +9,7 @@
  *   │ ─────────────────────────────────  │
  *   │ Chế độ: Trái cây         SHT 28.3°C│  (nhiệt độ tại cảm biến ẩm)
  *   │ Đang sấy            Đã sấy 01:23:45│
- *   │ [MN][QN][QL]        Còn    04:36:15│
+ *   │ [MN][QN][QL]        Còn    00:36:15│  (GĐ3/GĐ4: giữ ẩm còn / chờ đạt ẩm)
  *   │ Lỗi / cảnh báo                     │
  *   └ UP/DOWN: trang · Giữ ENTER … ■□□□ ┘
  */
@@ -78,10 +78,8 @@ static void draw_values(bool full)
     w_badge(COL_L,       Y_RELAY, 36, "MN", v->comp);
     w_badge(COL_L + 40,  Y_RELAY, 44, w_fan_badge(b, sizeof(b), v->fan_level), v->fan_level > 0);
     w_badge(COL_L + 88,  Y_RELAY, 36, "QL", v->fan_evap);
-    uint32_t rem = w_remaining_s();
     if (running && v->comp_wait_s) snprintf(a, sizeof(a), "Chờ MN %lus", (unsigned long)v->comp_wait_s);
-    else if (running && rem)        snprintf(a, sizeof(a), "Còn %s", Fmt_Time(b, sizeof(b), rem));
-    else                            a[0] = '\0';
+    else                            w_hold_text(a, sizeof(a));
     w_text(COL_L + 128, Y_RELAY, TFT_WIDTH - 8 - (COL_L + 128), a, UC_LABEL, UC_BG, TEXT_RIGHT);
 
     /* lỗi / cảnh báo */

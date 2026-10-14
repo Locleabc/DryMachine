@@ -60,12 +60,6 @@ char *w_fmt_value(char *buf, size_t n, bool ok, float v)
     return Fmt_Float(buf, n, v, (v >= 99.95f || v <= -9.95f) ? 0 : 1);
 }
 
-char *w_fmt_hhmm(char *buf, size_t n, uint32_t minutes)
-{
-    snprintf(buf, n, "%02lu:%02lu", (unsigned long)(minutes / 60), (unsigned long)(minutes % 60));
-    return buf;
-}
-
 char *w_fan_badge(char *buf, size_t n, uint8_t level)
 {
     if (level) snprintf(buf, n, "QN%u", (unsigned)level);
@@ -73,10 +67,12 @@ char *w_fan_badge(char *buf, size_t n, uint8_t level)
     return buf;
 }
 
-uint32_t w_remaining_s(void)
+char *w_hold_text(char *buf, size_t n)
 {
-    if (g_ui.v.manual) return g_ui.v.phase_left_s;
-    uint32_t total = (uint32_t)g_ui.v.dry_time_min * 60UL;
-    if (total == 0) return 0;
-    return (g_ui.v.run_s < total) ? total - g_ui.v.run_s : 0;
+    const ui_view_t *v = &g_ui.v;
+    char b[16];
+    if (v->state != UI_ST_RUNNING || (v->stage != 2 && v->stage != 3)) { buf[0] = '\0'; return buf; }
+    if (v->hold_counting) snprintf(buf, n, "Còn %s", Fmt_Time(b, sizeof(b), v->phase_left_s));
+    else snprintf(buf, n, "Chờ ẩm %s%%", Fmt_Float(b, sizeof(b), v->stage == 2 ? v->hum_gd3 : v->hum_gd4, 0));
+    return buf;
 }

@@ -7,18 +7,13 @@
  *           RUNNING ──STOP──> STOPPING (tắt máy nén, quạt chạy thêm fan_post) ──> IDLE
  *           bất kỳ ──lỗi──> FAULT (tắt máy nén ngay) ──RESET──> IDLE
  *
- *  TỰ ĐỘNG (mode = 0) – quạt dàn nóng cấp auto_fan (mặc định 3):
- *    AUTO_DRY  : máy nén chạy liên tục tới khi độ ẩm ≤ hum_set
- *    AUTO_HOLD : máy nén bật/tắt giữ nhiệt độ temp_set (bỏ qua độ ẩm)
- *    AUTO_COOL : hết thời gian sấy → tắt máy nén, quạt chạy tới khi nhiệt độ ≤ gd5_end_temp → kết thúc
- *                (thời gian sấy = 0 → chạy tới khi người dùng dừng)
- *
- *  THỦ CÔNG (mode = 1) – mỗi giai đoạn có cấp quạt riêng stage_fan[0..4], bỏ qua thời gian sấy:
+ *  CHU TRÌNH 5 GIAI ĐOẠN – mỗi giai đoạn có cấp quạt dàn nóng riêng stage_fan[0..4]:
  *    GD1 : quạt chạy trước start_delay → máy nén chạy liên tục tới khi nhiệt độ ≥ temp_set
  *    GD2 : giữ nhiệt độ, tới khi độ ẩm ≤ hum_set
- *    GD3 : giữ nhiệt độ trong gd3_min phút
- *    GD4 : giữ nhiệt độ trong gd4_min phút
- *    GD5 : tắt máy nén, quạt chạy tới khi nhiệt độ ≤ gd5_end_temp → kết thúc
+ *    GD3 : giữ nhiệt độ; độ ẩm ≤ hum_gd3 LIÊN TỤC gd3_min phút → GD4
+ *    GD4 : giữ nhiệt độ; độ ẩm ≤ hum_gd4 LIÊN TỤC gd4_min phút → GD5
+ *          (ẩm vượt mức + HUM_HOLD_HYST thì đếm lại từ đầu; mất cảm biến ẩm → chỉ tính thời gian)
+ *    GD5 : tắt máy nén, quạt chạy tới khi nhiệt độ ≤ end_temp → kết thúc
  *
  *  Máy nén luôn có bảo vệ: nghỉ tối thiểu comp_min_off (chờ bật lại), chạy tối thiểu comp_min_on.
  *  Bảo vệ: quá nhiệt temp_max, mất cảm biến nhiệt, chống đóng băng dàn lạnh.
@@ -52,12 +47,12 @@ typedef struct {
     float comp_min_on;     /* s    chạy tối thiểu máy nén                       */
     float start_delay;     /* s    quạt chạy trước khi bật máy nén              */
     float fan_post;        /* s    quạt chạy thêm sau khi dừng / lỗi            */
-    float dry_time_h;      /* h    thời gian sấy (chỉ chế độ tự động), 0 = ∞    */
-    float mode;            /* 0 = tự động, 1 = thủ công                         */
-    float auto_fan;        /* 1..5 cấp quạt dàn nóng ở chế độ tự động           */
+    float reserved0;       /* (thời gian sấy chế độ Tự động – đã bỏ, giữ chỗ Flash) */
+    float hum_gd3;         /* %RH  GĐ3: độ ẩm phải ≤ mức này liên tục gd3_min   */
+    float hum_gd4;         /* %RH  GĐ4: độ ẩm phải ≤ mức này liên tục gd4_min   */
     float stage_fan[DRYER_STAGES];   /* 1..5 cấp quạt từng giai đoạn thủ công   */
-    float gd3_min;         /* phút thời gian GD3                                */
-    float gd4_min;         /* phút thời gian GD4                                */
+    float gd3_min;         /* phút GD3: thời gian giữ độ ẩm ≤ hum_gd3           */
+    float gd4_min;         /* phút GD4: thời gian giữ độ ẩm ≤ hum_gd4           */
     float end_temp;        /* °C   làm mát tới nhiệt độ này thì kết thúc (GD5)  */
     float evap_freeze_s;   /* s    thời gian dưới evap_freeze mới xả đá            */
 } dryer_params_t;
@@ -86,7 +81,6 @@ typedef enum {
 
 typedef enum {
     PH_NONE = 0,
-    PH_AUTO_DRY, PH_AUTO_HOLD, PH_AUTO_COOL,
     PH_GD1, PH_GD2, PH_GD3, PH_GD4, PH_GD5,
 } dryer_phase_t;
 
@@ -110,7 +104,6 @@ typedef enum {
 typedef struct {
     dryer_state_t  state;
     dryer_phase_t  phase;
-    bool           manual;         /* chu trình đang chạy là thủ công */
     uint16_t       faults;
     uint16_t       warnings;
     dryer_output_t out;
@@ -120,7 +113,8 @@ typedef struct {
     uint32_t       comp_wait_s;    /* còn bao lâu được bật máy nén */
     uint32_t       run_s;          /* thời gian từ lúc bắt đầu */
     uint32_t       phase_s;        /* thời gian trong giai đoạn hiện tại */
-    uint32_t       phase_left_s;   /* còn lại của giai đoạn có hẹn giờ (GD3/GD4), 0 nếu không */
+    uint32_t       phase_left_s;   /* GD3/GD4: thời gian giữ ẩm còn lại (đang đếm) hoặc cả khoảng (chưa đạt ẩm) */
+    bool           hold_counting;  /* GD3/GD4: độ ẩm đang đạt mức → đang đếm */
     bool           defrost;        /* đang xả đá dàn lạnh */
     bool           evap_ok;        /* có ít nhất 1 NTC dàn lạnh đọc được */
     float          evap_min;       /* °C nhiệt độ dàn lạnh dùng cho chống đóng băng */
@@ -131,7 +125,8 @@ typedef struct {
 typedef struct {
     dryer_state_t state;
     dryer_phase_t phase;
-    bool     manual, finished;
+    bool     finished, hold_counting;
+    uint32_t hold_tick;
     uint32_t now, state_tick, phase_tick, run_start;
     uint32_t comp_on_tick, comp_off_tick;
     dryer_output_t out;

@@ -147,6 +147,6 @@ static const char *hint(void)
 }
 
 const ui_screen_t scr_outputs = {
-    .title = "TRẠNG THÁI ĐẦU RA", .page = 5, .refresh_ms = 200,
+    .title = "TRẠNG THÁI ĐẦU RA", .page = 4, .refresh_ms = 200,
     .enter = enter, .draw_values = draw_values, .key = key, .hint = hint,
 };

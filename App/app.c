@@ -5,8 +5,8 @@
  *
  *   board ──cấu hình──> drivers / sensors / settings / fault_log
  *   sensors ──> dryer_input_t ──DryerCtrl_Step──> dryer_output_t ──> relay
- *   sensors + ctrl + settings + RTC + fault_log ──> ui_view_t ──> UI
- *   UI ──ui_cmd_t──> ctrl / settings / RTC / fault_log
+ *   sensors + ctrl + settings + fault_log ──> ui_view_t ──> UI
+ *   UI ──ui_cmd_t──> ctrl / settings / fault_log
  */
 #include "app.h"
 #include "board.h"
@@ -18,7 +18,6 @@
 #include "settings.h"
 #include "presets.h"
 #include "fault_log.h"
-#include "datetime.h"
 #include "dryer_ctrl.h"
 #include "fan_speed.h"
 #include "sim_plant.h"
@@ -44,7 +43,7 @@ static bool           s_prev_cooling;    /* đang làm mát do quá nhiệt (bư
  *  - Tua nhanh: đồng hồ của bộ điều khiển chạy x1/x10/x60/x300 (quạt 5 cấp vẫn theo thời gian thật)
  *  - Tạo lỗi : mất cảm biến nhiệt / ẩm, dàn lạnh đóng băng – để thử bảo vệ
  *  - Relay thật: mặc định BẬT – chân ra + relay đóng theo bộ điều khiển để đo điện áp thực tế;
- *                 chuyển Tắt (danh sách GIẢ LẬP hoặc ENTER ở trang 6) để chỉ hiện trên màn hình */
+ *                 chuyển Tắt (danh sách GIẢ LẬP hoặc ENTER ở trang 5) để chỉ hiện trên màn hình */
 enum { SIM_OFF = 0, SIM_MODEL, SIM_MANUAL };
 enum { SIMF_NONE = 0, SIMF_TEMP, SIMF_HUM, SIMF_ICING };
 static const char *const s_sim_mode_ch[]  = { "Tắt", "Mô hình", "Chỉnh tay" };
@@ -179,7 +178,7 @@ static const char *sht_diag_text(void)
     }
 }
 
-/* Lỗi "Mất cảm biến nhiệt" được GIỮ tới khi xoá tay (trang 5) – kể cả khi PT100 đọc lại được.
+/* Lỗi "Mất cảm biến nhiệt" được GIỮ tới khi xoá tay (trang 4) – kể cả khi PT100 đọc lại được.
  * Vì vậy lý do phải chụp lại lúc cảm biến hỏng, không lấy giá trị đang đo (đã có thể bình thường). */
 static struct {
     bool    bad;              /* lần đọc gần nhất hỏng */
@@ -246,17 +245,11 @@ static const char *pt100_cause_text(void)
 static const char *pt100_diag_text(void)
 {
     if (Sensors_Data()->temp.ok && (Board_Millis() / 2000u) % 2u)
-        return "PT100 đã OK lại · xoá lỗi ở trang 5";
+        return "PT100 đã OK lại · xoá lỗi ở trang 4";
     return pt100_cause_text();
 }
 
-/* ================= Thời gian ================= */
-static bool clock_now(uint32_t *epoch)
-{
-    return Board_RtcRead(epoch);
-}
-
-/* ================= Test đầu ra (trang 6) =================
+/* ================= Test đầu ra (trang 5) =================
  *  Bật/tắt tay từng relay khi máy KHÔNG chạy (Đang dừng hoặc Lỗi).
  *  - quạt dàn nóng cộng dồn: bấm dòng cấp N → đóng relay 1..N (bấm lại → về cấp N-1), tăng từng relay cách 1 s
  *  - máy nén vẫn giữ thời gian chờ bật lại (comp_min_off)
@@ -326,7 +319,7 @@ static bool on_ui_cmd(const ui_cmd_t *cmd)
     switch (cmd->type) {
     case UI_CMD_START_STOP:
         if (s_test.on) { UI_Message("Đang test đầu ra – thoát trước"); return false; }
-        if (s_status.state == DRYER_FAULT) { UI_Message("Đang lỗi – xem trang 5"); return false; }
+        if (s_status.state == DRYER_FAULT) { UI_Message("Đang lỗi – xem trang 4"); return false; }
         if (s_status.state == DRYER_STOPPING) return false;
         DryerCtrl_Command(&s_ctrl, DRYER_CMD_TOGGLE);
         UI_Message(s_status.state == DRYER_IDLE ? "Bắt đầu sấy" : "Dừng sấy");
@@ -368,18 +361,6 @@ static bool on_ui_cmd(const ui_cmd_t *cmd)
         return in_range && saved;
     }
 
-    case UI_CMD_SET_DRY_TIME:
-        Settings_SetDryTimeMin(cmd->u.minutes);
-        return Settings_Save();
-
-    case UI_CMD_SET_CLOCK: {
-        datetime_t dt = { cmd->u.clock.year, cmd->u.clock.mon, cmd->u.clock.day,
-                          cmd->u.clock.hour, cmd->u.clock.min, 0 };
-        if (!DateTime_IsValid(&dt)) return false;
-        Board_RtcWrite(DateTime_ToEpoch(&dt));
-        return true;
-    }
-
     case UI_CMD_SAVE_SETTINGS: {
         bool ok = Settings_Save();
         Log_Printf("Settings save: %s", ok ? "OK" : "FAIL");
@@ -396,11 +377,9 @@ static void log_new_faults(void)
     s_prev_faults = s_status.faults;
     if (!added) return;
 
-    uint32_t t = 0;
-    if (!clock_now(&t)) t = 0;
     for (uint16_t bit = 1; bit; bit <<= 1) {
         if (added & bit) {
-            FaultLog_Add(t, bit);
+            FaultLog_Add(0, bit);                      /* không có đồng hồ thời gian thực */
             Log_Printf("FAULT: %s", DryerCtrl_FaultText(bit));
         }
     }
@@ -540,23 +519,22 @@ static void build_view(ui_view_t *v)
     v->phase_left_s = s_status.phase_left_s;
     v->phase_text   = DryerCtrl_PhaseName(s_status.phase);
     switch (s_status.phase) {
-    case PH_GD1: case PH_AUTO_DRY:  v->stage = 0; break;
-    case PH_GD2: case PH_AUTO_HOLD: v->stage = 1; break;
-    case PH_GD3: case PH_AUTO_COOL: v->stage = 2; break;
+    case PH_GD1: v->stage = 0; break;
+    case PH_GD2: v->stage = 1; break;
+    case PH_GD3: v->stage = 2; break;
     case PH_GD4: v->stage = 3; break;
     case PH_GD5: v->stage = 4; break;
     default:     v->stage = (s_status.state == DRYER_STARTING) ? 0 : -1; break;
     }
-    bool active = (s_status.state == DRYER_STARTING || s_status.state == DRYER_RUNNING);
-    v->manual         = active ? s_status.manual : (set->ctrl.mode > 0.5f);
-    v->auto_fan       = (uint8_t)(set->ctrl.auto_fan + 0.5f);
     for (uint8_t i = 0; i < 5; i++) v->stage_fan[i] = (uint8_t)(set->ctrl.stage_fan[i] + 0.5f);
     v->gd3_min        = (uint16_t)(set->ctrl.gd3_min + 0.5f);
     v->gd4_min        = (uint16_t)(set->ctrl.gd4_min + 0.5f);
+    v->hum_gd3        = set->ctrl.hum_gd3;
+    v->hum_gd4        = set->ctrl.hum_gd4;
+    v->hold_counting  = s_status.hold_counting;
     v->end_temp       = set->ctrl.end_temp;
     v->temp_max       = set->ctrl.temp_max;
     v->comp_restart_s = (uint16_t)(set->ctrl.comp_min_off + 0.5f);
-    v->dry_time_min = Settings_DryTimeMin();
     v->comp_wait_s  = s_status.comp_demand ? s_status.comp_wait_s : 0;
     v->fault_text   = s_status.faults ? DryerCtrl_FaultText(s_status.faults) : NULL;
     if (s_sim.mode == SIM_OFF && (s_status.faults & DRYER_FAULT_TEMP_SENSOR) &&
@@ -580,34 +558,17 @@ static void build_view(ui_view_t *v)
         char a[8], b[8];
         Fmt_Float(a, sizeof(a), s_status.evap_min, 1);
         Fmt_Float(b, sizeof(b), set->ctrl.evap_resume, 0);
-        snprintf(df, sizeof(df), "Xả đá dàn lạnh %s°C · chạy lại ≥%s°C", a, b);
+        snprintf(df, sizeof(df), "Xả đá dàn lạnh %s°C · chạy lại %s°C", a, b);
         v->warn_text = df;
     }
     v->defrost = s_status.defrost;
     if (s_sim.mode == SIM_OFF && !Sensors_Data()->pt100_ready) v->warn_text = "Đang chờ cảm biến nhiệt…";
-
-    uint32_t epoch;
-    v->clock_ok = clock_now(&epoch);
-    if (v->clock_ok) {
-        datetime_t dt;
-        DateTime_FromEpoch(epoch, &dt);
-        v->year = dt.year; v->mon = dt.mon; v->day = dt.day;
-        v->hour = dt.hour; v->min = dt.min; v->sec = dt.sec;
-    }
 
     uint8_t n = FaultLog_Count();
     v->hist_count = (n > UI_HIST_ROWS) ? UI_HIST_ROWS : n;
     for (uint8_t i = 0; i < v->hist_count; i++) {
         fault_log_entry_t e;
         if (!FaultLog_Get(i, &e)) break;
-        if (e.time) {
-            datetime_t dt;
-            DateTime_FromEpoch(e.time, &dt);
-            snprintf(v->hist[i].when, sizeof(v->hist[i].when), "%02u/%02u %02u:%02u",
-                     (unsigned)(dt.day % 100u), (unsigned)(dt.mon % 100u), (unsigned)(dt.hour % 100u), (unsigned)(dt.min % 100u));
-        } else {
-            snprintf(v->hist[i].when, sizeof(v->hist[i].when), "--/-- --:--");
-        }
         v->hist[i].text = DryerCtrl_FaultText(e.code);
     }
 }
@@ -731,7 +692,6 @@ void App_Init(void)
     Relay_Init(board_relays, RLY_ID_COUNT);          /* relay OFF trước tiên */
     Button_Init(board_buttons, BTN_ID_COUNT);
     Log_Init(Board_LogWrite);
-    Board_RtcInit();
     Settings_Init(&board_settings_flash);
     FaultLog_Init(&board_faultlog_flash);
 

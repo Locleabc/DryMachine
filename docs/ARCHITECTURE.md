@@ -58,9 +58,10 @@ Mỗi màn hình là một `ui_screen_t` trong một file riêng, `ui_core.c` lo
 |------|----------|
 | `ui_page_main.c` | Trang 1 – nhiệt độ, độ ẩm, điểm đặt, chế độ, trạng thái |
 | `ui_page_run.c` | Trang 2 – chạy / dừng |
-| `ui_page_timer.c` | Trang 3 – thời gian sấy |
+| `ui_page_fan.c` | Trang 3 – chu trình 5 giai đoạn (cấp quạt, độ ẩm GĐ3/GĐ4) |
 | `ui_page_faults.c` | Trang 4 – lỗi hiện tại + lịch sử |
-| `ui_menu_preset.c` | Menu chế độ sấy (giữ ENTER 3 s) + chỉnh đồng hồ |
+| `ui_page_outputs.c` | Trang 5 – trạng thái / test đầu ra |
+| `ui_menu_preset.c` | Menu chế độ sấy (giữ ENTER 3 s) |
 | `ui_edit.c` | Nhập số từng chữ số (dùng chung) |
 | `ui_menu_tech.c` | Menu kỹ thuật ẩn (giữ EXIT 3 s ở trang chính) |
 

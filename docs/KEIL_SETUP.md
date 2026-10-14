@@ -7,7 +7,7 @@ Cần cài: **STM32CubeMX** (6.x), **Keil MDK 5** (Arm Compiler 6) và pack **Ke
 
 1. **Mở `DryMachine.ioc`** (thư mục gốc repo) bằng STM32CubeMX.
    File này đã cấu hình sẵn toàn bộ: chân + User Label, clock 72 MHz, SPI1, SPI2, I2C2, USART1, ADC1,
-   **RTC dùng LSE (chỉ Activate Clock Source, không Calendar)**, SWD, Toolchain = MDK-ARM.
+   SWD, Toolchain = MDK-ARM (không dùng RTC / LSE).
    Nếu CubeMX hỏi *migrate* sang bản firmware mới hơn → chọn **Migrate**.
 2. Bấm **GENERATE CODE** (góc trên bên phải). CubeMX tạo `Core/`, `Drivers/`, `MDK-ARM/`.
 3. Chạy script gắn code ứng dụng vào Keil:
@@ -30,15 +30,11 @@ Mở `MDK-ARM/DryMachine.uvprojx` → **Build (F7)**.
 2. **System Core → SYS**: Debug = **Serial Wire**. Timebase Source = SysTick.
 3. **System Core → RCC**:
    * High Speed Clock (HSE) = **Crystal/Ceramic Resonator**
-   * Low Speed Clock (LSE) = **Crystal/Ceramic Resonator** ← thạch anh 32.768 kHz, PC14/PC15 chuyển xanh
-4. **Timers → RTC**:
-   * Tick **Activate Clock Source**
-   * **KHÔNG** tick *Activate Calendar* (firmware tự đọc bộ đếm RTC; bật Calendar thì HAL sẽ ghi đè giờ)
-   * RTC OUT = No RTC Output
+   * Low Speed Clock (LSE) = **Disable** (không dùng RTC)
+4. *(bỏ – không dùng RTC)*
 5. **Clock Configuration** (tab thứ 2):
    * PLL Source Mux = **HSE**, PLLMul = **x9**, System Clock Mux = **PLLCLK** → HCLK = 72 MHz
    * APB1 Prescaler = **/2** (36 MHz), ADC Prescaler = **/6** (12 MHz)
-   * RTC Clock Mux = **LSE**
 6. **Connectivity**:
    * **SPI1**: Mode = **Transmit Only Master** (PA6 dành cho NTC 2), Prescaler = 4 (18 Mbit/s), CPOL Low, CPHA 1 Edge
    * **SPI2**: Mode = Full-Duplex Master, Prescaler = 16, **CPOL Low, CPHA 2 Edge**

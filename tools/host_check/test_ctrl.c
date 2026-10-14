@@ -51,50 +51,17 @@ static void test_no_sensor_then_sim(void)
     EXPECT(st.state == DRYER_STARTING, "Chay duoc khi khong co NTC dan lanh (chong dong bang = Tat)");
 }
 
-static void test_auto(void)
+static void test_cycle(void)
 {
-    printf("\n--- TU DONG ---\n");
+    printf("\n--- CHU TRINH 5 GIAI DOAN ---\n");
     DryerCtrl_DefaultParams(&p);
+    p.gd3_min = 2; p.gd4_min = 1; p.hum_gd3 = 12.0f; p.hum_gd4 = 10.0f;
+    p.stage_fan[0] = 4; p.stage_fan[1] = 3; p.stage_fan[2] = 2; p.stage_fan[3] = 1; p.stage_fan[4] = 5;
     dryer_input_t in = { true, 30.0f, true, 60.0f, { true, true }, { 3.0f, 3.0f } };
     now = 1000;
     DryerCtrl_Init(&c, now);
     run(&in, 1000);
     EXPECT(st.state == DRYER_IDLE && !out.comp && out.fan_level == 0, "IDLE: tat ca OFF");
-
-    DryerCtrl_Command(&c, DRYER_CMD_TOGGLE); run(&in, 1000);
-    EXPECT(st.state == DRYER_STARTING && out.fan_evap && out.fan_level == 3 && !out.comp, "Khoi dong: quat nong cap 3, may nen chua chay");
-    run(&in, 60000);
-    EXPECT(st.state == DRYER_RUNNING && st.phase == PH_AUTO_DRY && out.comp, "Sau 60 s: hut am, may nen chay");
-
-    in.temp = 70.0f; run(&in, 5000);
-    EXPECT(out.comp && st.phase == PH_AUTO_DRY, "Hut am: vuot nhiet dat van chay (chi dung khi dat am)");
-
-    in.hum = 14.0f; run(&in, 31000);
-    EXPECT(st.phase == PH_AUTO_HOLD && !out.comp, "Dat am -> may nen dung, sang giu nhiet");
-
-    in.temp = 50.0f; in.hum = 40.0f; run(&in, 10000);
-    EXPECT(!out.comp && st.comp_wait_s > 0, "Giu nhiet: can chay nhung cho bat lai (60 s)");
-    run(&in, 60000);
-    EXPECT(out.comp && st.phase == PH_AUTO_HOLD, "Het thoi gian cho -> may nen chay, bo qua do am");
-
-    in.temp = 56.0f; run(&in, 31000);
-    EXPECT(!out.comp, "Dat nhiet -> may nen tat");
-
-    p.dry_time_h = 0.05f; run(&in, 1000);   /* đã chạy > 3 phút */
-    EXPECT(st.phase == PH_AUTO_COOL && !out.comp && out.fan_level == 3 && out.fan_evap, "Het gio say -> lam mat");
-    in.temp = 39.0f; run(&in, 1000);
-    EXPECT(st.state == DRYER_IDLE && st.finished && out.fan_level == 0 && !out.fan_evap, "Nguoi toi 40 C -> ket thuc");
-}
-
-static void test_manual(void)
-{
-    printf("\n--- THU CONG ---\n");
-    DryerCtrl_DefaultParams(&p);
-    p.mode = 1; p.gd3_min = 2; p.gd4_min = 1; p.dry_time_h = 0.01f;   /* thời gian sấy phải bị bỏ qua */
-    p.stage_fan[0] = 4; p.stage_fan[1] = 3; p.stage_fan[2] = 2; p.stage_fan[3] = 1; p.stage_fan[4] = 5;
-    dryer_input_t in = { true, 30.0f, true, 60.0f, { true, true }, { 3.0f, 3.0f } };
-    now = 1000;
-    DryerCtrl_Init(&c, now);
     DryerCtrl_Command(&c, DRYER_CMD_START); run(&in, 1000);
     EXPECT(st.state == DRYER_STARTING && out.fan_level == 4 && !out.comp, "GD1: quat cap GD1, cho 60 s");
     run(&in, 60000);
@@ -102,25 +69,42 @@ static void test_manual(void)
 
     run_plant(&in, 600000);
     EXPECT(st.phase == PH_GD2 || st.phase == PH_GD3, "Dat nhiet -> GD2");
-    EXPECT(st.phase != PH_AUTO_COOL && st.state == DRYER_RUNNING, "Thu cong: bo qua thoi gian say trang 3");
 
     in.hum = 20.0f; in.temp = 55.0f; run(&in, 1000);
     if (st.phase == PH_GD2) {
         EXPECT(out.fan_level == 3, "GD2: quat cap GD2");
         in.hum = 14.0f; run(&in, 1000);
     }
-    EXPECT(st.phase == PH_GD3 && out.fan_level == 2, "Dat am -> GD3, quat cap GD3");
-    EXPECT(st.phase_left_s > 100 && st.phase_left_s <= 120, "GD3 dem nguoc 2 phut");
-    in.temp = 50.0f; run(&in, 90000);
-    EXPECT(out.comp, "GD3: giu nhiet, may nen chay khi nguoi");
-    run(&in, 30000);
-    EXPECT(st.phase == PH_GD4 && out.fan_level == 1, "Het GD3 -> GD4, quat cap GD4");
+    EXPECT(st.phase == PH_GD3 && out.fan_level == 2, "Dat am GD2 (15%) -> GD3, quat cap GD3");
+    run(&in, 180000);
+    EXPECT(st.phase == PH_GD3 && !st.hold_counting && st.phase_left_s == 120, "GD3: am 14% > 12% -> chua dem, khong qua GD4");
+    in.hum = 12.0f; run(&in, 60000);
+    EXPECT(st.phase == PH_GD3 && st.hold_counting && st.phase_left_s <= 61, "GD3: am <= 12% -> dem giu am");
+    in.hum = 12.8f; run(&in, 5000);
+    EXPECT(st.hold_counting, "GD3: 12.8% (trong tre 1%) -> van dem");
+    in.hum = 13.5f; run(&in, 1000);
+    EXPECT(!st.hold_counting && st.phase == PH_GD3, "GD3: am vuot 13% -> dem lai tu dau");
+    in.hum = 11.0f; in.temp = 50.0f; run(&in, 119000);
+    EXPECT(st.phase == PH_GD3 && out.comp, "GD3: chua du 2 phut lien tuc, giu nhiet (may nen chay khi nguoi)");
+    run(&in, 2000);
+    EXPECT(st.phase == PH_GD4 && out.fan_level == 1 && !st.hold_counting, "Giu am du 2 phut -> GD4, quat cap GD4");
     run(&in, 61000);
-    EXPECT(st.phase == PH_GD5 && !out.comp && out.fan_level == 5, "Het GD4 -> GD5: may nen OFF, quat cap GD5");
+    EXPECT(st.phase == PH_GD4, "GD4: am 11% > 10% -> chua qua GD5");
+    in.hum = 9.0f; run(&in, 61000);
+    EXPECT(st.phase == PH_GD5 && !out.comp && out.fan_level == 5, "GD4: am <= 10% du 1 phut -> GD5: may nen OFF, quat cap GD5");
     in.temp = 45.0f; run(&in, 5000);
     EXPECT(st.phase == PH_GD5 && st.state == DRYER_RUNNING, "GD5: chua nguoi toi nguong -> van chay quat");
     in.temp = 40.0f; run(&in, 1000);
     EXPECT(st.state == DRYER_IDLE && st.finished, "GD5: nguoi toi nguong -> ket thuc chu trinh");
+
+    /* mất cảm biến ẩm ở GD3: chỉ tính thời gian, không kẹt */
+    DryerCtrl_Init(&c, now);
+    in = (dryer_input_t){ true, 55.0f, true, 14.0f, { true, true }, { 3.0f, 3.0f } };
+    DryerCtrl_Command(&c, DRYER_CMD_START); run(&in, 62000);
+    run(&in, 2000);
+    EXPECT(st.phase == PH_GD3, "Vao GD3");
+    in.hum_ok = false; run(&in, 121000);
+    EXPECT(st.phase == PH_GD4, "Mat cam bien am o GD3 -> chi tinh thoi gian -> GD4");
 }
 
 static void test_protect(void)
@@ -208,8 +192,7 @@ static void test_fan_speed(void)
 int main(void)
 {
     test_no_sensor_then_sim();
-    test_auto();
-    test_manual();
+    test_cycle();
     test_protect();
     test_defrost();
     test_fan_speed();

@@ -413,11 +413,6 @@
               <FilePath>../Core/Src/i2c.c</FilePath>
             </File>
             <File>
-              <FileName>rtc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Core/Src/rtc.c</FilePath>
-            </File>
-            <File>
               <FileName>spi.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/spi.c</FilePath>
@@ -623,11 +618,6 @@
           <GroupName>App/services</GroupName>
           <Files>
             <File>
-              <FileName>datetime.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../App/services/datetime.c</FilePath>
-            </File>
-            <File>
               <FileName>fault_log.c</FileName>
               <FileType>1</FileType>
               <FilePath>../App/services/fault_log.c</FilePath>
@@ -731,11 +721,6 @@
               <FileName>ui_page_run.c</FileName>
               <FileType>1</FileType>
               <FilePath>../App/ui/ui_page_run.c</FilePath>
-            </File>
-            <File>
-              <FileName>ui_page_timer.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../App/ui/ui_page_timer.c</FilePath>
             </File>
             <File>
               <FileName>ui_widgets.c</FileName>

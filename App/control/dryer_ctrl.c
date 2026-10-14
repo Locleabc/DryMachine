@@ -5,6 +5,7 @@
 #include <string.h>
 
 #define SENSOR_FAULT_CYCLES   5         /* số lần Step lỗi liên tiếp mới báo */
+#define HUM_HOLD_HYST         1.0f      /* %RH: GĐ3/GĐ4 ẩm vượt mức + trễ này mới đếm lại */
 
 #define MS(sec)    ((uint32_t)((sec) * 1000.0f))
 #define CMD_BIT(c) ((uint8_t)(1u << (c)))
@@ -30,6 +31,7 @@ static void set_phase(dryer_ctrl_t *c, dryer_phase_t ph, uint32_t len_ms)
     c->phase_tick = c->now;
     c->phase_len_ms = len_ms;
     c->comp_demand = false;
+    c->hold_counting = false;
 }
 
 static void comp_request(dryer_ctrl_t *c, const dryer_params_t *p, bool on, bool force)
@@ -101,34 +103,29 @@ static void defrost_update(dryer_ctrl_t *c, const dryer_params_t *p)
 static void go_cool(dryer_ctrl_t *c, const dryer_params_t *p)
 {
     comp_request(c, p, false, true);
-    set_phase(c, c->manual ? PH_GD5 : PH_AUTO_COOL, 0);
+    set_phase(c, PH_GD5, 0);
+}
+
+/* GD3/GD4: độ ẩm ≤ target liên tục len_ms → true. Ẩm > target + trễ thì đếm lại.
+ * Mất cảm biến ẩm: coi như đạt (chỉ tính thời gian) để chu trình không bị kẹt. */
+static bool hum_hold_done(dryer_ctrl_t *c, const dryer_input_t *in, float target, uint32_t len_ms)
+{
+    if (!in->hum_ok || in->hum <= target) {
+        if (!c->hold_counting) { c->hold_counting = true; c->hold_tick = c->now; }
+    } else if (in->hum > target + HUM_HOLD_HYST) {
+        c->hold_counting = false;
+    }
+    return c->hold_counting && (c->now - c->hold_tick >= len_ms);
 }
 
 /* ---------------- các giai đoạn ---------------- */
 static void run_phase(dryer_ctrl_t *c, const dryer_params_t *p, const dryer_input_t *in)
 {
-    uint32_t in_phase = c->now - c->phase_tick;
     bool comp_on = false;
 
     switch (c->phase) {
-    /* ----- tự động ----- */
-    case PH_AUTO_DRY:
-        c->out.fan_level = fan_lvl(p->auto_fan);
-        if (!in->hum_ok || in->hum <= p->hum_set) {   /* đạt ẩm (hoặc mất cảm biến ẩm) */
-            set_phase(c, PH_AUTO_HOLD, 0);
-            comp_request(c, p, false, false);
-            break;
-        }
-        comp_on = true;
-        break;
-    case PH_AUTO_HOLD:
-        c->out.fan_level = fan_lvl(p->auto_fan);
-        thermostat(c, p, in);
-        comp_on = c->comp_demand;
-        break;
-    case PH_AUTO_COOL:
     case PH_GD5:
-        c->out.fan_level = fan_lvl(c->phase == PH_GD5 ? p->stage_fan[4] : p->auto_fan);
+        c->out.fan_level = fan_lvl(p->stage_fan[4]);
         comp_request(c, p, false, true);
         if (in->temp_ok && in->temp <= p->end_temp) {   /* nguội đủ → kết thúc */
             c->finished = true;
@@ -138,8 +135,6 @@ static void run_phase(dryer_ctrl_t *c, const dryer_params_t *p, const dryer_inpu
             enter(c, DRYER_IDLE);
         }
         return;
-
-    /* ----- thủ công ----- */
     case PH_GD1:
         c->out.fan_level = fan_lvl(p->stage_fan[0]);
         if (in->temp >= p->temp_set) { set_phase(c, PH_GD2, 0); break; }
@@ -152,29 +147,26 @@ static void run_phase(dryer_ctrl_t *c, const dryer_params_t *p, const dryer_inpu
         comp_on = c->comp_demand;
         break;
     case PH_GD3:
-    case PH_GD4:
-        c->out.fan_level = fan_lvl(p->stage_fan[c->phase == PH_GD3 ? 2 : 3]);
-        if (in_phase >= c->phase_len_ms) {
-            if (c->phase == PH_GD3) set_phase(c, PH_GD4, MS(p->gd4_min * 60.0f));
-            else                    go_cool(c, p);
+    case PH_GD4: {
+        bool gd3 = (c->phase == PH_GD3);
+        c->out.fan_level = fan_lvl(p->stage_fan[gd3 ? 2 : 3]);
+        if (hum_hold_done(c, in, gd3 ? p->hum_gd3 : p->hum_gd4, c->phase_len_ms)) {
+            if (gd3) set_phase(c, PH_GD4, MS(p->gd4_min * 60.0f));
+            else     go_cool(c, p);
             break;
         }
         thermostat(c, p, in);
         comp_on = c->comp_demand;
         break;
+    }
     default:
         break;
     }
 
-    if (c->phase == PH_AUTO_COOL || c->phase == PH_GD5) return;   /* vừa chuyển sang làm mát */
+    if (c->phase == PH_GD5) return;                               /* vừa chuyển sang làm mát */
     defrost_update(c, p);
     if (c->defrost) comp_request(c, p, false, true);              /* xả đá: tắt ngay, bỏ qua chạy tối thiểu */
     else            comp_request(c, p, comp_on, false);
-
-    /* Tự động: hết thời gian sấy → làm mát */
-    if (!c->manual && p->dry_time_h > 0.0f && (c->now - c->run_start) >= MS(p->dry_time_h * 3600.0f)) {
-        go_cool(c, p);
-    }
 }
 
 /* ---------------- API ---------------- */
@@ -194,16 +186,15 @@ void DryerCtrl_DefaultParams(dryer_params_t *p)
     p->comp_min_on   = 30.0f;
     p->start_delay   = 60.0f;   /* quạt chạy 60 s rồi mới bật máy nén */
     p->fan_post      = 60.0f;
-    p->dry_time_h    = 0.0f;
-    p->mode          = 0.0f;    /* tự động */
-    p->auto_fan      = 3.0f;
+    p->hum_gd3       = 12.0f;   /* GĐ3: ẩm ≤ 12 % liên tục gd3_min */
+    p->hum_gd4       = 10.0f;   /* GĐ4: ẩm ≤ 10 % liên tục gd4_min */
     p->stage_fan[0]  = 3.0f;
     p->stage_fan[1]  = 3.0f;
     p->stage_fan[2]  = 2.0f;
     p->stage_fan[3]  = 2.0f;
     p->stage_fan[4]  = 5.0f;
-    p->gd3_min       = 120.0f;
-    p->gd4_min       = 60.0f;
+    p->gd3_min       = 60.0f;
+    p->gd4_min       = 30.0f;
     p->end_temp      = 40.0f;
 }
 
@@ -256,7 +247,6 @@ void DryerCtrl_Step(dryer_ctrl_t *c, const dryer_params_t *p, const dryer_input_
         c->out.fan_level = 0;
         c->comp_demand = false;
         if (cmd & CMD_BIT(DRYER_CMD_START)) {
-            c->manual = (p->mode > 0.5f);
             c->finished = false;
             c->run_start = now_ms;
             set_phase(c, PH_NONE, 0);
@@ -266,10 +256,10 @@ void DryerCtrl_Step(dryer_ctrl_t *c, const dryer_params_t *p, const dryer_input_
 
     case DRYER_STARTING:                      /* quạt chạy trước, máy nén chưa bật */
         c->out.fan_evap  = true;
-        c->out.fan_level = fan_lvl(c->manual ? p->stage_fan[0] : p->auto_fan);
+        c->out.fan_level = fan_lvl(p->stage_fan[0]);
         if (cmd & CMD_BIT(DRYER_CMD_STOP)) { enter(c, DRYER_STOPPING); break; }
         if (now_ms - c->state_tick >= MS(p->start_delay)) {
-            set_phase(c, c->manual ? PH_GD1 : PH_AUTO_DRY, 0);
+            set_phase(c, PH_GD1, 0);
             enter(c, DRYER_RUNNING);
         }
         break;
@@ -328,12 +318,11 @@ void DryerCtrl_GetStatus(const dryer_ctrl_t *c, dryer_status_t *st)
 {
     st->state          = c->state;
     st->phase          = c->phase;
-    st->manual         = c->manual;
     st->faults         = c->faults;
     st->warnings       = c->warnings;
     st->out            = c->out;
     st->comp_demand    = c->comp_demand ||
-                         (c->state == DRYER_RUNNING && (c->phase == PH_AUTO_DRY || c->phase == PH_GD1));
+                         (c->state == DRYER_RUNNING && c->phase == PH_GD1);
     st->target_reached = c->target_reached;
     st->defrost        = c->defrost;
     st->evap_ok        = c->evap_ok;
@@ -348,9 +337,11 @@ void DryerCtrl_GetStatus(const dryer_ctrl_t *c, dryer_status_t *st)
     st->run_s   = active ? (c->now - c->run_start) / 1000 : 0;
     st->phase_s = (c->state == DRYER_RUNNING) ? (c->now - c->phase_tick) / 1000 : 0;
     st->phase_left_s = 0;
+    st->hold_counting = false;
     if (c->state == DRYER_RUNNING && (c->phase == PH_GD3 || c->phase == PH_GD4)) {
-        uint32_t el = c->now - c->phase_tick;
-        st->phase_left_s = (el < c->phase_len_ms) ? (c->phase_len_ms - el + 999) / 1000 : 0;
+        uint32_t el = c->hold_counting ? c->now - c->hold_tick : 0;
+        st->phase_left_s  = (el < c->phase_len_ms) ? (c->phase_len_ms - el + 999) / 1000 : 0;
+        st->hold_counting = c->hold_counting;
     }
 }
 
@@ -369,13 +360,10 @@ const char *DryerCtrl_StateName(dryer_state_t s)
 const char *DryerCtrl_PhaseName(dryer_phase_t ph)
 {
     switch (ph) {
-    case PH_AUTO_DRY:  return "Tự động – hút ẩm";
-    case PH_AUTO_HOLD: return "Tự động – giữ nhiệt";
-    case PH_AUTO_COOL: return "Tự động – làm mát";
     case PH_GD1:       return "GĐ1 – gia nhiệt";
     case PH_GD2:       return "GĐ2 – hút ẩm";
-    case PH_GD3:       return "GĐ3 – giữ nhiệt";
-    case PH_GD4:       return "GĐ4 – giữ nhiệt";
+    case PH_GD3:       return "GĐ3 – giữ ẩm";
+    case PH_GD4:       return "GĐ4 – giữ ẩm";
     case PH_GD5:       return "GĐ5 – làm mát";
     default:           return "";
     }

@@ -10,7 +10,6 @@ ui_ctx_t g_ui;
 static const ui_screen_t *const s_screens[SCR_COUNT] = {
     [SCR_MAIN]   = &scr_main,
     [SCR_RUN]    = &scr_run,
-    [SCR_TIMER]  = &scr_timer,
     [SCR_FAN]    = &scr_fan,
     [SCR_FAULTS] = &scr_faults,
     [SCR_OUTPUTS] = &scr_outputs,
@@ -20,7 +19,6 @@ static const ui_screen_t *const s_screens[SCR_COUNT] = {
 };
 
 /* ---------------- header / footer ---------------- */
-#define CLOCK_W   86          /* ô đồng hồ "14:05:32" */
 #define DOTS_W    68          /* ô số trang ở footer */
 
 static uint16_t head_bg(void) { return g_ui.sim_on ? UC_SIMHEAD : UC_HEAD; }
@@ -28,18 +26,7 @@ static uint16_t head_bg(void) { return g_ui.sim_on ? UC_SIMHEAD : UC_HEAD; }
 static void draw_header(const ui_screen_t *s)
 {
     ILI9341_FillRect(0, 0, TFT_WIDTH, UI_HEAD_H, head_bg());
-    Text_Box(8, 2, TFT_WIDTH - 16 - CLOCK_W, s->title, F_TXT, C_WHITE, head_bg(), TEXT_LEFT);
-    g_ui.clock_drawn[0] = '\0';
-}
-
-static void draw_clock(void)
-{
-    char c[16];
-    if (g_ui.v.clock_ok) snprintf(c, sizeof(c), "%02u:%02u:%02u", g_ui.v.hour, g_ui.v.min, g_ui.v.sec);
-    else                 snprintf(c, sizeof(c), "--:--:--");
-    if (strcmp(c, g_ui.clock_drawn) == 0) return;
-    strcpy(g_ui.clock_drawn, c);
-    Text_Box(TFT_WIDTH - 8 - CLOCK_W, 2, CLOCK_W, c, F_TXT, g_ui.v.clock_ok ? C_WHITE : UC_LABEL, head_bg(), TEXT_RIGHT);
+    Text_Box(8, 2, TFT_WIDTH - 16, s->title, F_TXT, C_WHITE, head_bg(), TEXT_LEFT);
 }
 
 static void draw_footer_static(const ui_screen_t *s)
@@ -146,6 +133,5 @@ void UI_Update(const ui_view_t *view, uint32_t now_ms)
         g_ui.last_draw = now_ms;
         g_ui.dirty = false;
     }
-    draw_clock();
     draw_footer_text(s);
 }

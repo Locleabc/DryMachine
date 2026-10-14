@@ -1,16 +1,16 @@
 /**
  * @file    ui_page_fan.c
- * @brief   Trang 4 – điều khiển quạt dàn nóng / chu trình sấy (Tự động / Thủ công).
- *          ENTER → danh sách cài đặt (chế độ, cấp quạt từng giai đoạn, thời gian GĐ3/GĐ4,
+ * @brief   Trang 3 – chu trình sấy 5 giai đoạn + cấp quạt dàn nóng từng giai đoạn.
+ *          ENTER → danh sách cài đặt (cấp quạt từng giai đoạn, độ ẩm + thời gian giữ ẩm GĐ3/GĐ4,
  *          nhiệt độ dừng GĐ5, máy nén chờ bật lại, nhiệt độ bảo vệ).
  *
- *   Chế độ:  Thủ công                    │   Chế độ:  Tự động
- *   GĐ1  Gia nhiệt tới 55°C     cấp 4    │   Quạt dàn nóng           cấp 3
- *   GĐ2  Hút ẩm tới 15%         cấp 3    │   1. Máy nén chạy tới độ ẩm 15%
- *   GĐ3  Giữ nhiệt 120 phút     cấp 2    │   2. Giữ nhiệt 55°C tới hết giờ sấy
- *   GĐ4  Giữ nhiệt 60 phút      cấp 1    │   3. Làm mát tới 40°C rồi dừng
- *   GĐ5  Làm mát tới 40°C       cấp 5    │
- *   Bảo vệ 75°C · Máy nén chờ 60 s        │
+ *   Chu trình 5 giai đoạn             cấp quạt
+ *   GĐ1  Gia nhiệt tới 55°C           cấp 4
+ *   GĐ2  Hút ẩm tới 15%               cấp 3
+ *   GĐ3  Ẩm ≤12% giữ 60 phút          cấp 2
+ *   GĐ4  Ẩm ≤10% giữ 30 phút          cấp 1
+ *   GĐ5  Làm mát tới 40°C             cấp 5
+ *   Bảo vệ 75°C · Máy nén chờ 60 s
  */
 #include "ui_internal.h"
 
@@ -38,38 +38,31 @@ static void draw_values(bool full)
     char a[64], t[12], h[12];
 
     /* chỉ vẽ lại khi nội dung đổi (giảm tải SPI) */
-    struct { float ts, hs, et, tm; uint16_t g3, g4, cr; uint8_t m, st, s, af, f[5]; } sig;
+    struct { float ts, hs, et, tm, h3, h4; uint16_t g3, g4, cr; uint8_t st, s, f[5]; } sig;
     memset(&sig, 0, sizeof(sig));
     sig.ts = v->temp_set; sig.hs = v->hum_set; sig.et = v->end_temp; sig.tm = v->temp_max;
+    sig.h3 = v->hum_gd3;  sig.h4 = v->hum_gd4;
     sig.g3 = v->gd3_min;  sig.g4 = v->gd4_min; sig.cr = v->comp_restart_s;
-    sig.m = v->manual; sig.st = (uint8_t)v->stage; sig.s = (uint8_t)v->state; sig.af = v->auto_fan;
+    sig.st = (uint8_t)v->stage; sig.s = (uint8_t)v->state;
     memcpy(sig.f, v->stage_fan, sizeof(sig.f));
     static uint8_t last[sizeof(sig)];
     if (!full && memcmp(last, &sig, sizeof(sig)) == 0) return;
     memcpy(last, &sig, sizeof(sig));
 
-    w_label(8, Y_MODE, "Chế độ:");
-    w_text(80, Y_MODE, TFT_WIDTH - 88, v->manual ? "Thủ công (5 giai đoạn)" : "Tự động",
-           UC_ACCENT, UC_BG, TEXT_LEFT);
+    w_label(8, Y_MODE, "Chu trình 5 giai đoạn");
+    w_label(X_LVL - 30, Y_MODE, "cấp quạt");
 
     Fmt_Float(t, sizeof(t), v->temp_set, 0);
     Fmt_Float(h, sizeof(h), v->hum_set, 0);
-    if (v->manual) {
-        snprintf(a, sizeof(a), "GĐ1  Gia nhiệt tới %s°C", t);          row(0, a, v->stage_fan[0], v->stage == 0);
-        snprintf(a, sizeof(a), "GĐ2  Hút ẩm tới %s%%", h);             row(1, a, v->stage_fan[1], v->stage == 1);
-        snprintf(a, sizeof(a), "GĐ3  Giữ nhiệt %u phút", v->gd3_min);  row(2, a, v->stage_fan[2], v->stage == 2);
-        snprintf(a, sizeof(a), "GĐ4  Giữ nhiệt %u phút", v->gd4_min);  row(3, a, v->stage_fan[3], v->stage == 3);
-        Fmt_Float(t, sizeof(t), v->end_temp, 0);
-        snprintf(a, sizeof(a), "GĐ5  Làm mát tới %s°C", t);           row(4, a, v->stage_fan[4], v->stage == 4);
-    } else {
-        bool run = (v->state == UI_ST_RUNNING);
-        row(0, "Quạt dàn nóng", v->auto_fan, false);
-        snprintf(a, sizeof(a), "1. Máy nén chạy tới độ ẩm %s%%", h);   row(1, a, 0, run && v->stage == 0);
-        snprintf(a, sizeof(a), "2. Giữ %s°C tới hết giờ sấy", t);      row(2, a, 0, run && v->stage == 1);
-        Fmt_Float(t, sizeof(t), v->end_temp, 0);
-        snprintf(a, sizeof(a), "3. Làm mát tới %s°C rồi dừng", t);     row(3, a, 0, run && v->stage == 2);
-        row(4, "", 0, false);
-    }
+    snprintf(a, sizeof(a), "GĐ1  Gia nhiệt tới %s°C", t);          row(0, a, v->stage_fan[0], v->stage == 0);
+    snprintf(a, sizeof(a), "GĐ2  Hút ẩm tới %s%%", h);             row(1, a, v->stage_fan[1], v->stage == 1);
+    Fmt_Float(h, sizeof(h), v->hum_gd3, 0);
+    snprintf(a, sizeof(a), "GĐ3  Ẩm %s%% giữ %u phút", h, v->gd3_min); row(2, a, v->stage_fan[2], v->stage == 2);
+    Fmt_Float(h, sizeof(h), v->hum_gd4, 0);
+    snprintf(a, sizeof(a), "GĐ4  Ẩm %s%% giữ %u phút", h, v->gd4_min); row(3, a, v->stage_fan[3], v->stage == 3);
+    Fmt_Float(t, sizeof(t), v->end_temp, 0);
+    snprintf(a, sizeof(a), "GĐ5  Làm mát tới %s°C", t);           row(4, a, v->stage_fan[4], v->stage == 4);
+
     Fmt_Float(t, sizeof(t), v->temp_max, 0);
     snprintf(a, sizeof(a), "Bảo vệ %s°C · Máy nén chờ %u s", t, v->comp_restart_s);
     w_text(8, Y_PROT, TFT_WIDTH - 16, a, UC_LABEL, UC_BG, TEXT_LEFT);
@@ -90,6 +83,6 @@ static const char *hint(void)
 }
 
 const ui_screen_t scr_fan = {
-    .title = "QUẠT DÀN NÓNG", .page = 3, .refresh_ms = 500,
+    .title = "CHU TRÌNH SẤY", .page = 2, .refresh_ms = 500,
     .draw_values = draw_values, .key = key, .hint = hint,
 };

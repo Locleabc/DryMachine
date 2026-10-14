@@ -45,9 +45,5 @@ void     Board_LcdBacklight(bool on);   /* đèn nền TFT (chân LED của modu
 void     Board_LogWrite(const char *data, uint16_t len);
 void     Board_I2cRecover(void);        /* gỡ treo bus I2C của SHT45 */
 
-/* Đồng hồ thời gian thực (RTC nội, thạch anh 32.768 kHz, pin CR2032 ở VBAT) */
-void     Board_RtcInit(void);
-bool     Board_RtcRead(uint32_t *seconds);  /* false nếu chưa từng chỉnh giờ */
-void     Board_RtcWrite(uint32_t seconds);
 
 #endif

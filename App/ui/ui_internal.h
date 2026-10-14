@@ -5,10 +5,10 @@
  *  Mỗi màn hình là 1 ui_screen_t trong 1 file riêng:
  *    ui_page_main.c   trang 1  – nhiệt độ, độ ẩm, chế độ, trạng thái
  *    ui_page_run.c    trang 2  – chạy / dừng
- *    ui_page_timer.c  trang 3  – thời gian sấy
- *    ui_page_faults.c trang 5  – lịch sử lỗi
- *    ui_page_outputs.c trang 6 – trạng thái đầu ra ON/OFF
- *    ui_menu_preset.c menu chế độ sấy + chỉnh đồng hồ
+ *    ui_page_fan.c    trang 3  – chu trình 5 giai đoạn (cấp quạt, độ ẩm GĐ3/GĐ4)
+ *    ui_page_faults.c trang 4  – lịch sử lỗi
+ *    ui_page_outputs.c trang 5 – trạng thái đầu ra ON/OFF
+ *    ui_menu_preset.c menu chế độ sấy
  *    ui_edit.c        nhập số từng chữ số
  *    ui_menu_tech.c   menu kỹ thuật
  *  ui_core.c điều phối vẽ header/footer và chuyển màn hình; ui_widgets.c là các hàm vẽ chung.
@@ -48,11 +48,11 @@
 #define F_NUM       (&font_num)      /* số lớn */
 #define LINE_H      23               /* chiều cao dòng F_TXT */
 #define UI_BODY_Y   UI_HEAD_H
-#define UI_PAGE_COUNT 6
+#define UI_PAGE_COUNT 5
 #define UI_MSG_MS   2000
 
 typedef enum {
-    SCR_MAIN = 0, SCR_RUN, SCR_TIMER, SCR_FAN, SCR_FAULTS, SCR_OUTPUTS,   /* 6 trang, chuyển bằng UP/DOWN */
+    SCR_MAIN = 0, SCR_RUN, SCR_FAN, SCR_FAULTS, SCR_OUTPUTS,   /* 5 trang, chuyển bằng UP/DOWN */
     SCR_PRESET, SCR_EDIT, SCR_LIST,
     SCR_COUNT
 } ui_scr_t;
@@ -77,14 +77,13 @@ typedef struct {
     uint32_t   now, last_draw;
     char       msg[48];
     uint32_t   msg_tick;
-    char       clock_drawn[16];
     char       foot_drawn[80];
     bool       sim_on;                          /* header đang vẽ màu giả lập */
 } ui_ctx_t;
 
 extern ui_ctx_t g_ui;
 
-extern const ui_screen_t scr_main, scr_run, scr_timer, scr_fan, scr_faults, scr_outputs;
+extern const ui_screen_t scr_main, scr_run, scr_fan, scr_faults, scr_outputs;
 extern const ui_screen_t scr_preset, scr_edit, scr_list;
 
 /* ---------------- Core ---------------- */
@@ -111,8 +110,7 @@ void w_badge(int16_t x, int16_t y, int16_t w, const char *s, bool on);
 const char *w_state_name(ui_state_t s);
 uint16_t    w_state_color(ui_state_t s);
 char *w_fmt_value(char *buf, size_t n, bool ok, float v);        /* "55.3" / "--.-" */
-char *w_fmt_hhmm(char *buf, size_t n, uint32_t minutes);         /* "12:30" */
-uint32_t w_remaining_s(void);        /* còn lại: tự động = thời gian sấy, thủ công = GĐ3/GĐ4; 0 nếu không */
 char *w_fan_badge(char *buf, size_t n, uint8_t level);           /* "Q3" / "Q–" */
+char *w_hold_text(char *buf, size_t n);  /* GĐ3/GĐ4: "Còn 00:42:10" / "Chờ ẩm ≤12%", "" giai đoạn khác */
 
 #endif

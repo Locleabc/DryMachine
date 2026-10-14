@@ -19,7 +19,7 @@ static void draw_static(void)
     w_label(8, Y_STATE,   "Trạng thái:");
     w_label(8, Y_PHASE,   "Giai đoạn:");
     w_label(8, Y_ELAPSED, "Đã sấy:");
-    w_label(8, Y_REMAIN,  "Còn lại:");
+    w_label(8, Y_REMAIN,  "Giữ ẩm:");
     w_label(8, Y_COMP,    "Máy nén:");
 }
 
@@ -28,8 +28,7 @@ static void draw_values(bool full)
     const ui_view_t *v = &g_ui.v;
     char a[48], b[16];
 
-    snprintf(a, sizeof(a), "%s  (%s)", w_state_name(v->state), v->manual ? "Thủ công" : "Tự động");
-    w_text(X_VAL, Y_STATE, W_VAL, a, w_state_color(v->state), UC_BG, TEXT_LEFT);
+    w_text(X_VAL, Y_STATE, W_VAL, w_state_name(v->state), w_state_color(v->state), UC_BG, TEXT_LEFT);
 
     bool running = (v->state == UI_ST_RUNNING || v->state == UI_ST_STARTING);
     const char *ph = (v->state == UI_ST_STARTING) ? "Quạt chạy trước máy nén"
@@ -38,11 +37,7 @@ static void draw_values(bool full)
 
     w_text(X_VAL, Y_ELAPSED, W_VAL, running ? Fmt_Time(b, sizeof(b), v->run_s) : "--:--:--", UC_VALUE, UC_BG, TEXT_LEFT);
 
-    uint32_t rem = w_remaining_s();
-    if (v->manual)                   snprintf(a, sizeof(a), "%s", rem ? Fmt_Time(b, sizeof(b), rem) : "–");
-    else if (v->dry_time_min == 0)   snprintf(a, sizeof(a), "không giới hạn");
-    else if (running)                Fmt_Time(a, sizeof(a), rem);
-    else                             snprintf(a, sizeof(a), "%s (đặt)", w_fmt_hhmm(b, sizeof(b), v->dry_time_min));
+    if (!w_hold_text(a, sizeof(a))[0]) snprintf(a, sizeof(a), "–");
     w_text(X_VAL, Y_REMAIN, W_VAL, a, UC_VALUE, UC_BG, TEXT_LEFT);
 
     if (v->comp)                        snprintf(a, sizeof(a), "Đang chạy");
@@ -60,7 +55,7 @@ static void draw_values(bool full)
     case UI_ST_STARTING:
     case UI_ST_RUNNING:  txt = "ENTER: DỪNG SẤY";        bg = UC_ERR; fg = C_WHITE;  break;
     case UI_ST_STOPPING: txt = "Đang tắt quạt…";         bg = UC_OFF; fg = UC_LABEL; break;
-    default:             txt = "Đang lỗi – xem trang 5"; bg = UC_OFF; fg = UC_ERR;   break;
+    default:             txt = "Đang lỗi – xem trang 4"; bg = UC_OFF; fg = UC_ERR;   break;
     }
     int16_t pad = (H_BTN - LINE_H) / 2;
     ILI9341_FillRect(8, Y_BTN, TFT_WIDTH - 16, pad, bg);

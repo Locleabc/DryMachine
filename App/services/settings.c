@@ -8,7 +8,6 @@
 #define P(grp, field, name, unit, mn, mx, st, dc, ch) \
     { name, unit, (uint16_t)offsetof(settings_t, field), mn, mx, st, dc, grp, ch }
 
-static const char *const s_mode_ch[]  = { "Tự động", "Thủ công" };
 static const char *const s_onoff_ch[] = { "Tắt", "Bật" };
 
 #define PR SETTINGS_GROUP_PROCESS
@@ -16,15 +15,15 @@ static const char *const s_onoff_ch[] = { "Tắt", "Bật" };
 
 static const settings_param_t s_params[] = {
     /* ---- Trang "Quạt dàn nóng / chu trình" ---- */
-    P(PR, ctrl.mode,          "Chế độ điều khiển",   "",     0.0f,   1.0f, 1.0f,  0, s_mode_ch),
-    P(PR, ctrl.auto_fan,      "Tự động: cấp quạt",   "",     1.0f,   5.0f, 1.0f,  0, NULL),
     P(PR, ctrl.stage_fan[0],  "GĐ1: cấp quạt",       "",     1.0f,   5.0f, 1.0f,  0, NULL),
     P(PR, ctrl.start_delay,   "GĐ1: quạt chạy trước","s",    0.0f, 300.0f, 5.0f,  0, NULL),
     P(PR, ctrl.stage_fan[1],  "GĐ2: cấp quạt",       "",     1.0f,   5.0f, 1.0f,  0, NULL),
     P(PR, ctrl.stage_fan[2],  "GĐ3: cấp quạt",       "",     1.0f,   5.0f, 1.0f,  0, NULL),
-    P(PR, ctrl.gd3_min,       "GĐ3: thời gian",      "phút", 0.0f, 999.0f, 5.0f,  0, NULL),
+    P(PR, ctrl.hum_gd3,       "GĐ3: độ ẩm đạt",      "%",    3.0f,  80.0f, 1.0f,  0, NULL),
+    P(PR, ctrl.gd3_min,       "GĐ3: giữ ẩm",         "phút", 0.0f, 999.0f, 5.0f,  0, NULL),
     P(PR, ctrl.stage_fan[3],  "GĐ4: cấp quạt",       "",     1.0f,   5.0f, 1.0f,  0, NULL),
-    P(PR, ctrl.gd4_min,       "GĐ4: thời gian",      "phút", 0.0f, 999.0f, 5.0f,  0, NULL),
+    P(PR, ctrl.hum_gd4,       "GĐ4: độ ẩm đạt",      "%",    3.0f,  80.0f, 1.0f,  0, NULL),
+    P(PR, ctrl.gd4_min,       "GĐ4: giữ ẩm",         "phút", 0.0f, 999.0f, 5.0f,  0, NULL),
     P(PR, ctrl.stage_fan[4],  "GĐ5: cấp quạt",       "",     1.0f,   5.0f, 1.0f,  0, NULL),
     P(PR, ctrl.end_temp,      "GĐ5: nhiệt độ dừng",  "°C",  20.0f,  60.0f, 1.0f,  0, NULL),
     P(PR, ctrl.comp_min_off,  "Máy nén chờ bật lại", "s",   10.0f, 600.0f, 5.0f,  0, NULL),
@@ -33,9 +32,9 @@ static const settings_param_t s_params[] = {
     /* ---- Menu kỹ thuật (ẩn) ---- */
     P(TE, ctrl.temp_hyst,     "Trễ nhiệt",           "°C",   0.5f,  10.0f, 0.5f,  1, NULL),
     P(TE, ctrl.evap_protect,  "Chống đóng băng",     "",     0.0f,   1.0f, 1.0f,  0, s_onoff_ch),
-    P(TE, ctrl.evap_freeze,   "Dàn lạnh: xả đá ≤",   "°C", -15.0f,  10.0f, 0.5f,  1, NULL),
+    P(TE, ctrl.evap_freeze,   "Dàn lạnh: xả đá dưới","°C", -15.0f,  10.0f, 0.5f,  1, NULL),
     P(TE, ctrl.evap_freeze_s, "Dàn lạnh: chờ",       "s",    0.0f, 600.0f, 10.0f, 0, NULL),
-    P(TE, ctrl.evap_resume,   "Dàn lạnh: chạy lại ≥","°C",   0.0f,  25.0f, 0.5f,  1, NULL),
+    P(TE, ctrl.evap_resume,   "Dàn lạnh: chạy lại từ","°C",   0.0f,  25.0f, 0.5f,  1, NULL),
     P(TE, ctrl.comp_min_on,   "Máy nén chạy min",    "s",   10.0f, 600.0f, 10.0f, 0, NULL),
     P(TE, ctrl.fan_post,      "Quạt chạy thêm",      "s",    0.0f, 300.0f, 5.0f,  0, NULL),
     P(TE, temp_offset,        "Bù nhiệt PT100",      "°C",  -5.0f,   5.0f, 0.1f,  1, NULL),
@@ -128,6 +127,9 @@ static bool load_legacy(const uint8_t *raw)
         s_set.ctrl.evap_resume  = d.evap_resume;
         s_set.ctrl.evap_protect = d.evap_protect;
         s_set.ctrl.evap_freeze_s = d.evap_freeze_s;
+        s_set.ctrl.hum_gd3 = d.hum_gd3;                       /* ô mode / auto_fan cũ */
+        s_set.ctrl.hum_gd4 = d.hum_gd4;
+        s_set.ctrl.reserved0 = 0.0f;
     }
     if (o.version == 4) s_set.ctrl.temp_recover = 30.0f;     /* v4: ô này là hum_hyst cũ */
     s_set.temp_offset = o.temp_offset;
@@ -145,9 +147,17 @@ void Settings_Init(const flash_store_cfg_t *store)
     settings_t tmp;
     s_store = store;
     bool ok = store && FlashStore_Read(store, &tmp, sizeof(tmp));
-    if (ok && tmp.magic == SETTINGS_MAGIC && tmp.version == SETTINGS_VERSION &&
+    if (ok && tmp.magic == SETTINGS_MAGIC && (tmp.version == SETTINGS_VERSION || tmp.version == 7) &&
         tmp.size == sizeof(settings_t) && tmp.crc == calc_crc(&tmp)) {
         s_set = tmp;
+        if (tmp.version == 7) {                               /* v7: ô hum_gd3/hum_gd4 là mode/auto_fan cũ */
+            dryer_params_t d;
+            DryerCtrl_DefaultParams(&d);
+            s_set.ctrl.hum_gd3 = d.hum_gd3;
+            s_set.ctrl.hum_gd4 = d.hum_gd4;
+            s_set.ctrl.reserved0 = 0.0f;
+            stamp(&s_set);
+        }
     } else if (!(ok && load_legacy((const uint8_t *)&tmp))) {
         Settings_Default();
     }
@@ -191,17 +201,6 @@ bool Settings_SetPresetValues(uint8_t idx, float temp, float hum)
     s_set.preset_hum[idx]  = clampf(hum,  SETTINGS_HUM_MIN,  SETTINGS_HUM_MAX,  &clamped);
     if (idx == s_set.preset) Settings_SelectPreset(idx);   /* đang dùng → áp dụng ngay */
     return !clamped;
-}
-
-void Settings_SetDryTimeMin(uint16_t minutes)
-{
-    if (minutes > SETTINGS_DRY_MAX_MIN) minutes = SETTINGS_DRY_MAX_MIN;
-    s_set.ctrl.dry_time_h = (float)minutes / 60.0f;
-}
-
-uint16_t Settings_DryTimeMin(void)
-{
-    return (uint16_t)(s_set.ctrl.dry_time_h * 60.0f + 0.5f);
 }
 
 uint8_t Settings_GroupCount(uint8_t group)

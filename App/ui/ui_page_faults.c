@@ -7,7 +7,7 @@
 #define Y_NOW    31
 #define Y_LIST   62
 #define ROW_H    LINE_H
-#define X_TXT    116
+#define X_TXT    40
 
 static void draw_values(bool full)
 {
@@ -15,13 +15,13 @@ static void draw_values(bool full)
     char a[48];
     static const char *last_fault = (const char *)1;
     static uint8_t last_count = 0xFF;
-    static char last_top[12];
+    static const char *last_top;
     /* chỉ vẽ lại khi lỗi hiện tại hoặc lịch sử thay đổi */
-    if (!full && last_fault == v->fault_text && last_count == v->hist_count &&
-        strcmp(last_top, v->hist_count ? v->hist[0].when : "") == 0) return;
+    const char *top = v->hist_count ? v->hist[0].text : NULL;
+    if (!full && last_fault == v->fault_text && last_count == v->hist_count && last_top == top) return;
     last_fault = v->fault_text;
     last_count = v->hist_count;
-    snprintf(last_top, sizeof(last_top), "%s", v->hist_count ? v->hist[0].when : "");
+    last_top = top;
 
     if (v->fault_text) {
         snprintf(a, sizeof(a), "Đang lỗi: %s", v->fault_text);
@@ -35,7 +35,8 @@ static void draw_values(bool full)
     for (uint8_t i = 0; i < UI_HIST_ROWS; i++) {
         int16_t y = (int16_t)(Y_LIST + i * ROW_H);
         if (i < v->hist_count) {
-            w_text(8,     y, X_TXT - 8, v->hist[i].when, UC_LABEL, UC_BG, TEXT_LEFT);
+            snprintf(a, sizeof(a), "%u.", (unsigned)(i + 1));          /* 1 = mới nhất */
+            w_text(8,     y, X_TXT - 8, a, UC_LABEL, UC_BG, TEXT_LEFT);
             w_text(X_TXT, y, TFT_WIDTH - 8 - X_TXT, v->hist[i].text ? v->hist[i].text : "?", UC_VALUE, UC_BG, TEXT_LEFT);
         } else {
             w_text(8, y, TFT_WIDTH - 16, (i == 0) ? "Chưa có lịch sử lỗi" : "", UC_LABEL, UC_BG, TEXT_LEFT);
@@ -67,6 +68,6 @@ static const char *hint(void)
 }
 
 const ui_screen_t scr_faults = {
-    .title = "LỊCH SỬ LỖI", .page = 4, .refresh_ms = 500,
+    .title = "LỊCH SỬ LỖI", .page = 3, .refresh_ms = 500,
     .draw_values = draw_values, .key = key, .hint = hint,
 };

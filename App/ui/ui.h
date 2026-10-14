@@ -7,18 +7,18 @@
  *
  *  Điều hướng
  *  ──────────
- *  Trang 1 CHÍNH ⇄ 2 CHẠY/DỪNG ⇄ 3 THỜI GIAN SẤY ⇄ 4 QUẠT DÀN NÓNG ⇄ 5 LỊCH SỬ LỖI
+ *  Trang 1 CHÍNH ⇄ 2 CHẠY/DỪNG ⇄ 3 CHU TRÌNH ⇄ 4 LỊCH SỬ LỖI ⇄ 5 ĐẦU RA
  *     UP / DOWN : chuyển trang (vòng tròn)      EXIT : về trang chính
  *     Giữ ENTER 3 s (ở bất kỳ trang nào) → MENU CHẾ ĐỘ SẤY
  *     Giữ EXIT 3 s ở trang chính → MENU KỸ THUẬT (thông số bảo vệ)
  *
  *  Trang 2: ENTER = chạy / dừng; giữ EXIT 3 s = GIẢ LẬP (mô hình / chỉnh tay, tua nhanh, tạo lỗi)
- *  Trang 3: ENTER = chỉnh thời gian sấy HH:MM (00:00 = không giới hạn; chỉ dùng cho chế độ Tự động)
- *  Trang 4: ENTER = danh sách cài đặt: Tự động/Thủ công, cấp quạt từng GĐ, thời gian GĐ3/GĐ4,
+ *  Trang 3: ENTER = danh sách cài đặt: cấp quạt từng GĐ, độ ẩm + thời gian giữ ẩm GĐ3/GĐ4,
  *           nhiệt độ dừng GĐ5, máy nén chờ bật lại, nhiệt độ bảo vệ
- *  Trang 5: ENTER = xoá lỗi đang có; giữ EXIT 3 s = xoá lịch sử
+ *  Trang 4: ENTER = xoá lỗi đang có; giữ EXIT 3 s = xoá lịch sử
+ *  Trang 5: trạng thái đầu ra, ENTER = test đầu ra
  *
- *  Menu chế độ: 6 chế độ đặt sẵn + "Tự do" + "Chỉnh đồng hồ"
+ *  Menu chế độ: 6 chế độ đặt sẵn + "Tự do"
  *     UP / DOWN chọn · ENTER áp dụng chế độ · EXIT thoát
  *     Giữ ENTER 3 s trên chế độ đặt sẵn → sửa giá trị của chế độ đó
  *     ENTER trên "Tự do" → nhập nhiệt độ, độ ẩm
@@ -46,8 +46,6 @@ typedef enum {
     UI_CMD_CLEAR_HISTORY,
     UI_CMD_SELECT_PRESET,      /* u.preset.idx */
     UI_CMD_SET_PRESET,         /* u.preset.idx, temp, hum, select */
-    UI_CMD_SET_DRY_TIME,       /* u.minutes */
-    UI_CMD_SET_CLOCK,          /* u.clock */
     UI_CMD_SAVE_SETTINGS,      /* sau khi sửa danh sách thông số */
     UI_CMD_OUT_TEST,           /* test đầu ra: u.test.op (UI_TEST_*), u.test.idx */
 } ui_cmd_type_t;
@@ -58,8 +56,6 @@ typedef struct {
     ui_cmd_type_t type;
     union {
         struct { uint8_t idx; float temp; float hum; bool select; } preset;
-        uint16_t minutes;
-        struct { uint16_t year; uint8_t mon, day, hour, min; } clock;
         struct { uint8_t op, idx; } test;
     } u;
 } ui_cmd_t;
@@ -68,8 +64,7 @@ typedef struct {
 typedef enum { UI_ST_IDLE = 0, UI_ST_STARTING, UI_ST_RUNNING, UI_ST_STOPPING, UI_ST_FAULT } ui_state_t;
 
 typedef struct {
-    char        when[12];        /* "27/09 14:05" */
-    const char *text;            /* "Áp suất cao" */
+    const char *text;            /* "Quá nhiệt" */
 } ui_hist_row_t;
 
 typedef struct {
@@ -93,16 +88,15 @@ typedef struct {
     const char *phase_text;                  /* "GĐ2 – hút ẩm"… (NULL/"" khi không chạy) */
     int8_t   stage;                          /* giai đoạn thủ công đang chạy 0..4, -1 = không */
     uint32_t run_s;                          /* đã sấy (s) */
-    uint32_t phase_left_s;                   /* còn lại của GĐ3/GĐ4 */
-    uint16_t dry_time_min;                   /* thời gian sấy đặt, 0 = không giới hạn */
+    uint32_t phase_left_s;                   /* GĐ3/GĐ4: thời gian giữ ẩm còn lại */
+    bool     hold_counting;                  /* GĐ3/GĐ4: độ ẩm đã đạt, đang đếm */
     uint32_t comp_wait_s;                    /* > 0: máy nén đang chờ */
     const char *fault_text;                  /* NULL = không lỗi */
     const char *warn_text;                   /* NULL = không cảnh báo */
     /* điều khiển quạt dàn nóng / chu trình */
-    bool     manual;                         /* chế độ thủ công (đang chạy hoặc đã chọn) */
-    uint8_t  auto_fan;
     uint8_t  stage_fan[5];
     uint16_t gd3_min, gd4_min;
+    float    hum_gd3, hum_gd4;
     float    end_temp, temp_max;
     uint16_t comp_restart_s;
     /* đầu ra: bit i = đầu ra i (thứ tự như cfg->output_names) */
@@ -111,9 +105,6 @@ typedef struct {
     bool     out_test;                       /* đang ở chế độ test đầu ra (bật/tắt tay) */
     /* giả lập */
     const char *sim_text;                    /* != NULL: đang chạy giả lập (header đổi màu) */
-    /* đồng hồ */
-    bool     clock_ok;
-    uint16_t year; uint8_t mon, day, hour, min, sec;
     /* lịch sử lỗi (mới nhất trước) */
     uint8_t       hist_count;
     ui_hist_row_t hist[UI_HIST_ROWS];
