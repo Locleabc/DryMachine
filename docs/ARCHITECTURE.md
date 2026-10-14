@@ -12,7 +12,7 @@
    └────┬────┘   └──────┬──────┘    └────────────┘  └────┬─────┘
         ▼               ▼             (thuần C)          ▼
    ┌─────────────────────────────────────────────────────────┐
-   │ drivers: ili9341 · max31865 · sht4x · ntc ·    │
+   │ drivers: ili9341 · sht4x · ntc ·               │
    │          button · relay · flash_store                   │
    └──────────────────────────┬──────────────────────────────┘
                               ▼
@@ -39,7 +39,7 @@ Hệ quả:
 
 ## Luồng dữ liệu mỗi vòng
 
-1. `Sensors_Process()` đọc PT100 / 2 NTC dàn lạnh (500 ms) và SHT45 (1 s, không chặn) → `sensors_data_t`
+1. `Sensors_Process()` đọc NTC buồng + NTC dàn lạnh (500 ms) và SHT45 (1 s, không chặn) → `sensors_data_t`
 2. `app.c` chép dữ liệu cảm biến → `dryer_input_t` → `DryerCtrl_Step()` → `dryer_output_t` → `Relay_Set()`
 3. `app.c` gộp cảm biến + trạng thái điều khiển + thông số → `ui_view_t` → `UI_Update()`
 4. Nút bấm → `Button_GetEvent()` → `app.c` đổi sang `ui_key_t` → `UI_Key()` → callback lệnh

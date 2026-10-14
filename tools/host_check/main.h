@@ -2,7 +2,7 @@
 #ifndef MAIN_H_STUB
 #define MAIN_H_STUB
 #include "stm32f1xx_hal.h"
-extern SPI_HandleTypeDef  hspi1, hspi2;
+extern SPI_HandleTypeDef  hspi1;
 extern UART_HandleTypeDef huart1;
 extern ADC_HandleTypeDef  hadc1;
 extern I2C_HandleTypeDef  hi2c2;
@@ -37,8 +37,6 @@ extern I2C_HandleTypeDef  hi2c2;
 #define BTN_UP_GPIO_Port GPIOB
 #define BTN_DOWN_Pin 0x0200
 #define BTN_DOWN_GPIO_Port GPIOB
-#define MAX_CS_Pin 0x1000
-#define MAX_CS_GPIO_Port GPIOB
 #define LED_RUN_Pin 0x2000
 #define LED_RUN_GPIO_Port GPIOC
 #endif

@@ -338,7 +338,7 @@
               <MiscControls>--no_multibyte_chars</MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xB</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../App;../App/board;../App/control;../App/drivers/button;../App/drivers/flash_store;../App/drivers/ili9341;../App/drivers/max31865;../App/drivers/ntc;../App/drivers/relay;../App/drivers/sht4x;../App/services;../App/ui</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../App;../App/board;../App/control;../App/drivers/button;../App/drivers/flash_store;../App/drivers/ili9341;../App/drivers/ntc;../App/drivers/relay;../App/drivers/sht4x;../App/services;../App/ui</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -591,11 +591,6 @@
               <FileName>ili9341_text.c</FileName>
               <FileType>1</FileType>
               <FilePath>../App/drivers/ili9341/ili9341_text.c</FilePath>
-            </File>
-            <File>
-              <FileName>max31865.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../App/drivers/max31865/max31865.c</FilePath>
             </File>
             <File>
               <FileName>ntc.c</FileName>

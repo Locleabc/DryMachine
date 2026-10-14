@@ -35,7 +35,7 @@ typedef struct {
     uint16_t       version;
     uint16_t       size;
     dryer_params_t ctrl;          /* thông số điều khiển */
-    float          temp_offset;   /* °C  bù PT100 */
+    float          temp_offset;   /* °C  bù NTC buồng */
     float          hum_offset;    /* %RH bù SHT45 */
     uint8_t        preset;        /* chế độ đang dùng: 0..PRESET_CUSTOM */
     uint8_t        reserved[3];
@@ -43,7 +43,7 @@ typedef struct {
     float          preset_hum[PRESET_COUNT];
     float          screen_off_min; /* phút không bấm nút → tắt màn hình, 0 = luôn sáng (v6) */
     float          ntc_beta;      /* (v7, không dùng – R25/B mỗi NTC nằm trong board.c) */
-    float          evap_offset[2];/* °C bù NTC dàn lạnh 1, 2 (v7) */
+    float          evap_offset[2];/* °C bù NTC dàn lạnh ([1] không dùng, giữ chỗ) (v7) */
     uint32_t       crc;           /* LUÔN là field cuối */
 } settings_t;
 

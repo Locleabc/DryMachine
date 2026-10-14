@@ -8,7 +8,7 @@
 
 /* Handle ngoại vi do CubeMX định nghĩa (spi.c, i2c.c, adc.c, usart.c hoặc main.c).
  * Khai báo extern tại đây để không phụ thuộc tuỳ chọn "pair .c/.h" của CubeMX. */
-extern SPI_HandleTypeDef  hspi1, hspi2;
+extern SPI_HandleTypeDef  hspi1;
 extern I2C_HandleTypeDef  hi2c2;
 extern ADC_HandleTypeDef  hadc1;
 extern UART_HandleTypeDef huart1;
@@ -37,27 +37,21 @@ const button_hw_t board_buttons[BTN_ID_COUNT] = {
     [BTN_ID_EXIT]  = { BTN_EXIT_GPIO_Port,  BTN_EXIT_Pin,  GPIO_PIN_RESET, false },
 };
 
-/* ---------------- PT100 / MAX31865 (SPI2) ---------------- */
-const max31865_cfg_t board_pt100 = {
-    .hspi = &hspi2, .cs_port = MAX_CS_GPIO_Port, .cs_pin = MAX_CS_Pin,
-    .rref = 430.0f, .r0 = 100.0f, .wires = 3, .filter_50hz = true,
-};
-
 /* ---------------- SHT45 (I2C2) ---------------- */
 const sht4x_cfg_t board_sht45 = {
     .hi2c = &hi2c2, .addr = SHT4X_ADDR_A, .precision = SHT4X_PREC_HIGH,
 };
 
-/* ---------------- NTC dàn lạnh 20k@25 °C (ADC1) – phân áp 10k 1% lên 3.3V ----------------
+/* ---------------- NTC (ADC1) – phân áp 10k 1% lên 3.3V ----------------
  * code < 20: chập · code > 4050: hở / chưa cắm (< ~ −40 °C) */
 #define NTC_COMMON  .hadc = &hadc1, .r_fixed = 10000.0f, .adc_max = 4095.0f, \
                     .code_min = 20, .code_max = 4050, .oversample = 8
-/* R25 / B theo đo thực tế 2 đầu dò đang lắp (nước đá 0 °C và 28 °C):
- *   NTC 1 (PA0): 33 kΩ @0 °C, 12.7 kΩ @28 °C → R25 ≈ 14 kΩ, B ≈ 2800
- *   NTC 2 (PA6): 50 kΩ @0 °C, 18.0 kΩ @28 °C → R25 ≈ 20 kΩ, B ≈ 3000
- * Thay đầu dò khác loại → đo lại 2 điểm và sửa ở đây. Sai lệch nhỏ chỉnh bằng "Bù dàn lạnh 1/2". */
-const ntc_cfg_t board_ntc_evap1 = { NTC_COMMON, .channel = ADC_CHANNEL_0, .r25 = 14000.0f, .beta = 2800.0f };  /* PA0 */
-const ntc_cfg_t board_ntc_evap2 = { NTC_COMMON, .channel = ADC_CHANNEL_6, .r25 = 20000.0f, .beta = 3000.0f };  /* PA6 */
+/* R25 / B theo đo thực tế đầu dò đang lắp (nước đá 0 °C và 28 °C):
+ *   PA0 – NHIỆT ĐỘ BUỒNG (điều khiển, thay PT100): 33 kΩ @0 °C, 12.7 kΩ @28 °C → R25 ≈ 14 kΩ, B ≈ 2800
+ *   PA6 – DÀN LẠNH (chống đóng băng):              50 kΩ @0 °C, 18.0 kΩ @28 °C → R25 ≈ 20 kΩ, B ≈ 3000
+ * Thay đầu dò khác loại → đo lại 2 điểm và sửa ở đây. Sai lệch nhỏ: "Bù nhiệt buồng" / "Bù dàn lạnh". */
+const ntc_cfg_t board_ntc_chamber = { NTC_COMMON, .channel = ADC_CHANNEL_0, .r25 = 14000.0f, .beta = 2800.0f };  /* PA0 */
+const ntc_cfg_t board_ntc_evap    = { NTC_COMMON, .channel = ADC_CHANNEL_6, .r25 = 20000.0f, .beta = 3000.0f };  /* PA6 */
 
 /* ---------------- TFT ILI9341 (SPI1) ---------------- */
 const ili9341_cfg_t board_lcd = {

@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     uint32_t comp_starts = 0; bool prev_comp = false;
     for (uint32_t t = 0; t < 12 * 3600; t++) {
         now += 1000;
-        dryer_input_t in = { true, s.temp, true, s.hum, { true, true }, { s.evap, s.evap } };
+        dryer_input_t in = { true, s.temp, true, s.hum, { true }, { s.evap } };
         DryerCtrl_Step(&c, &p, &in, now, &o);
         DryerCtrl_GetStatus(&c, &st);
         SimPlant_Step(&s, 1.0f, o.comp, o.fan_level, o.fan_evap);

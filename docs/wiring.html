@@ -99,7 +99,7 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 
 <section class="block">
   <h2>Chân trên Blue Pill</h2>
-  <ul class="legend"><li><span class="dot f-bg-pwr"></span>Nguồn</li><li><span class="dot f-bg-gnd"></span>GND</li><li><span class="dot f-bg-tft"></span>TFT · SPI1</li><li><span class="dot f-bg-max"></span>MAX31865 · SPI2</li><li><span class="dot f-bg-i2c"></span>SHT45 · I2C2</li><li><span class="dot f-bg-adc"></span>NTC dàn lạnh · ADC</li><li><span class="dot f-bg-rly"></span>Relay</li><li><span class="dot f-bg-btn"></span>Nút bấm</li><li><span class="dot f-bg-dbg"></span>Nạp / log</li><li><span class="dot p-free-dot"></span>Trống</li></ul>
+  <ul class="legend"><li><span class="dot f-bg-pwr"></span>Nguồn</li><li><span class="dot f-bg-gnd"></span>GND</li><li><span class="dot f-bg-tft"></span>TFT · SPI1</li><li><span class="dot f-bg-i2c"></span>SHT45 · I2C2</li><li><span class="dot f-bg-adc"></span>NTC dàn lạnh · ADC</li><li><span class="dot f-bg-rly"></span>Relay</li><li><span class="dot f-bg-btn"></span>Nút bấm</li><li><span class="dot f-bg-dbg"></span>Nạp / log</li><li><span class="dot p-free-dot"></span>Trống</li></ul>
   <figure><div class="scroll"><svg class="dia" viewBox="0 0 1060 470" role="img" aria-label="Sơ đồ chân Blue Pill STM32F103C8T6 và chức năng từng chân trong máy sấy">
 <rect x="205" y="150" width="670" height="150" rx="8" class="f-board"/>
 <rect x="179" y="202" width="30" height="46" rx="4" class="f-usb"/>
@@ -181,22 +181,18 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 <text x="790" y="140" transform="rotate(-55 790 140)" class="t-fn c-dbg">LED trên board</text>
 <circle cx="820" cy="168" r="8" class="p-free"/>
 <text x="820" y="190" class="t-silk" text-anchor="middle">VB</text>
-<circle cx="250" cy="282" r="8" class="f-max"/>
+<circle cx="250" cy="282" r="8" class="p-free-dot"/>
 <text x="250" y="268" class="t-silk" text-anchor="middle">B12</text>
-<line x1="250" y1="290" x2="250" y2="304" class="s-max" stroke-width="2"/>
-<text x="250" y="318" transform="rotate(55 250 318)" class="t-fn c-max">MAX31865 CS</text>
-<circle cx="280" cy="282" r="8" class="f-max"/>
+<text x="250" y="318" transform="rotate(55 250 318)" class="t-fn">Trống</text>
+<circle cx="280" cy="282" r="8" class="p-free-dot"/>
 <text x="280" y="268" class="t-silk" text-anchor="middle">B13</text>
-<line x1="280" y1="290" x2="280" y2="304" class="s-max" stroke-width="2"/>
-<text x="280" y="318" transform="rotate(55 280 318)" class="t-fn c-max">MAX31865 CLK</text>
-<circle cx="310" cy="282" r="8" class="f-max"/>
+<text x="280" y="318" transform="rotate(55 280 318)" class="t-fn">Trống</text>
+<circle cx="310" cy="282" r="8" class="p-free-dot"/>
 <text x="310" y="268" class="t-silk" text-anchor="middle">B14</text>
-<line x1="310" y1="290" x2="310" y2="304" class="s-max" stroke-width="2"/>
-<text x="310" y="318" transform="rotate(55 310 318)" class="t-fn c-max">MAX31865 SDO</text>
-<circle cx="340" cy="282" r="8" class="f-max"/>
+<text x="310" y="318" transform="rotate(55 310 318)" class="t-fn">Trống</text>
+<circle cx="340" cy="282" r="8" class="p-free-dot"/>
 <text x="340" y="268" class="t-silk" text-anchor="middle">B15</text>
-<line x1="340" y1="290" x2="340" y2="304" class="s-max" stroke-width="2"/>
-<text x="340" y="318" transform="rotate(55 340 318)" class="t-fn c-max">MAX31865 SDI</text>
+<text x="340" y="318" transform="rotate(55 340 318)" class="t-fn">Trống</text>
 <circle cx="370" cy="282" r="8" class="f-btn"/>
 <text x="370" y="268" class="t-silk" text-anchor="middle">A8</text>
 <line x1="370" y1="290" x2="370" y2="304" class="s-btn" stroke-width="2"/>
@@ -274,7 +270,7 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 
 <section class="block">
   <h2>Sơ đồ khối hệ thống</h2>
-  <figure><div class="scroll"><svg class="dia" viewBox="0 0 1000 620" role="img" aria-label="Sơ đồ khối: nguồn 220V qua nguồn 12V và buck 5V cấp cho Blue Pill; Blue Pill nối TFT, MAX31865, SHT45, 2 NTC dàn lạnh, nút bấm, relay điều khiển máy nén và quạt">
+  <figure><div class="scroll"><svg class="dia" viewBox="0 0 1000 620" role="img" aria-label="Sơ đồ khối: nguồn 220V qua nguồn 12V và buck 5V cấp cho Blue Pill; Blue Pill nối TFT, NTC buồng (PA0), SHT45, NTC dàn lạnh (PA6), nút bấm, relay điều khiển máy nén và quạt">
 <defs><marker id="ah-pwr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-pwr"/></marker><marker id="as-pwr" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-pwr"/></marker><marker id="ah-gnd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-gnd"/></marker><marker id="as-gnd" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-gnd"/></marker><marker id="ah-tft" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-tft"/></marker><marker id="as-tft" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-tft"/></marker><marker id="ah-max" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-max"/></marker><marker id="as-max" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-max"/></marker><marker id="ah-i2c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-i2c"/></marker><marker id="as-i2c" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-i2c"/></marker><marker id="ah-adc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-adc"/></marker><marker id="as-adc" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-adc"/></marker><marker id="ah-rly" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-rly"/></marker><marker id="as-rly" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-rly"/></marker><marker id="ah-btn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-btn"/></marker><marker id="as-btn" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-btn"/></marker><marker id="ah-dbg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-dbg"/></marker><marker id="as-dbg" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="f-dbg"/></marker></defs>
 <rect x="20" y="30" width="200" height="58" rx="6" class="bx s-pwr"/>
 <rect x="20" y="30" width="6" height="58" rx="2" class="f-pwr"/>
@@ -303,7 +299,7 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 <text x="416" y="92" class="t-s"></text>
 <text x="416" y="110" class="t-s">5V vào chân 5V</text>
 <text x="416" y="128" class="t-s">LDO onboard → 3.3V</text>
-<text x="416" y="146" class="t-s">3.3V ra: MAX31865,</text>
+<text x="416" y="146" class="t-s">3.3V ra: 2 NTC,</text>
 <text x="416" y="164" class="t-s">SHT45, VCC opto relay</text>
 <text x="416" y="182" class="t-s"></text>
 <text x="416" y="200" class="t-s">BOOT0 = 0</text>
@@ -314,8 +310,8 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 <text x="796" y="72" class="t-s">SPI1 · VCC 5V</text>
 <rect x="780" y="130" width="200" height="58" rx="6" class="bx s-max"/>
 <rect x="780" y="130" width="6" height="58" rx="2" class="f-max"/>
-<text x="796" y="153" class="t-h">MAX31865</text>
-<text x="796" y="172" class="t-s">SPI2 · PT100 3 dây</text>
+<text x="796" y="153" class="t-h">NTC buồng sấy</text>
+<text x="796" y="172" class="t-s">PA0 · phân áp 10k</text>
 <rect x="780" y="230" width="200" height="58" rx="6" class="bx s-i2c"/>
 <rect x="780" y="230" width="6" height="58" rx="2" class="f-i2c"/>
 <text x="796" y="253" class="t-h">SHT45</text>
@@ -343,7 +339,7 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 <polyline points="398,365 222,365" fill="none" class="s-btn" stroke-width="2.2" marker-end="url(#ah-btn)"/><text x="309" y="357" class="t-lbl c-btn" text-anchor="middle">PA8 · PA15 · PB8 · PB9</text>
 <polyline points="222,469 398,469" fill="none" class="s-dbg" stroke-width="2.2" marker-end="url(#ah-dbg)" marker-start="url(#as-dbg)"/><text x="309" y="461" class="t-lbl c-dbg" text-anchor="middle">SWD · PA9/PA10</text>
 <polyline points="602,59 778,59" fill="none" class="s-tft" stroke-width="2.2" marker-end="url(#ah-tft)"/><text x="690" y="51" class="t-lbl c-tft" text-anchor="middle">PA4–PA7 · PB0 · PB1</text>
-<polyline points="602,159 778,159" fill="none" class="s-max" stroke-width="2.2" marker-end="url(#ah-max)" marker-start="url(#as-max)"/><text x="690" y="151" class="t-lbl c-max" text-anchor="middle">PB12–PB15</text>
+<polyline points="602,159 778,159" fill="none" class="s-max" stroke-width="2.2" marker-end="url(#ah-max)" marker-start="url(#as-max)"/><text x="690" y="151" class="t-lbl c-max" text-anchor="middle">PA0</text>
 <polyline points="602,259 778,259" fill="none" class="s-i2c" stroke-width="2.2" marker-end="url(#ah-i2c)" marker-start="url(#as-i2c)"/><text x="690" y="251" class="t-lbl c-i2c" text-anchor="middle">PB10 SCL · PB11 SDA</text>
 <polyline points="778,359 602,359" fill="none" class="s-adc" stroke-width="2.2" marker-end="url(#ah-adc)"/><text x="690" y="351" class="t-lbl c-adc" text-anchor="middle">PA0 · PA6</text>
 <polyline points="500,500 500,528" fill="none" class="s-rly" stroke-width="2.2" marker-end="url(#ah-rly)"/><text x="510" y="519" class="t-lbl c-rly" text-anchor="start">PB4–PB7 · PA1–PA3</text>
@@ -355,7 +351,7 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 <section class="block">
   <h2>Hai chỗ dễ đấu sai</h2>
   <div class="two">
-    <figure><div class="scroll"><svg class="dia" viewBox="0 0 600 250" role="img" aria-label="Mạch NTC: 3.3V qua điện trở 10k tới PA0, NTC 20k và tụ 100nF từ PA0 xuống GND; NTC 2 giống hệt ở PA6">
+    <figure><div class="scroll"><svg class="dia" viewBox="0 0 600 250" role="img" aria-label="Mạch NTC: 3.3V qua điện trở 10k tới PA0, NTC 20k và tụ 100nF từ PA0 xuống GND; NTC dàn lạnh giống hệt ở PA6">
 <text x="60" y="44" class="t-lbl c-pwr">3.3V</text>
 <line x1="80" y1="50" x2="80" y2="70" class="s-pwr" stroke-width="2"/>
 <rect x="71" y="70" width="18" height="50" class="bx s-ink"/><text x="100" y="100" class="t-s">R 10kΩ 1%</text>
@@ -373,7 +369,7 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 <text x="250" y="60" class="t-s">25 °C: NTC = 20kΩ → ≈ 2.2V</text>
 <text x="250" y="78" class="t-s">0 °C ≈ 2.87V · hở dây ≈ 3.3V</text>
 </svg></div>
-    <figcaption>Mỗi NTC một mạch như trên (NTC 1 → PA0, NTC 2 → PA6). Dùng 3.3V của Blue Pill (không dùng 5V – ADC chỉ chịu 3.3V). NTC không phân cực.</figcaption></figure>
+    <figcaption>Mỗi NTC một mạch như trên (NTC buồng → PA0, NTC dàn lạnh → PA6). Dùng 3.3V của Blue Pill (không dùng 5V – ADC chỉ chịu 3.3V). NTC không phân cực.</figcaption></figure>
     <figure><div class="scroll"><svg class="dia" viewBox="0 0 960 330" role="img" aria-label="Đấu module relay: VCC 3.3V, IN1-7 tới PB4, PB5, PB6, PB7, PA1, PA2, PA3 (hình vẽ IN1-3), JD-VCC 5V; phía 220V: K1 đóng cuộn contactor cấp máy nén, K2 quạt dàn lạnh, K3-K7 quạt dàn nóng S1-S5 (hình vẽ K3 = S1)">
 <text x="20" y="40" class="t-h">Blue Pill</text>
 <rect x="170" y="50" width="200" height="200" rx="6" class="bx s-rly"/>
@@ -451,7 +447,7 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 <tr><td class="mono">Nguồn tổ ong V+ 12V</td><td class="mono strong">Buck IN+</td><td>CB 10A + cầu chì 1A phía 220V</td></tr>
 <tr><td class="mono">Buck OUT+ 5V</td><td class="mono strong">Blue Pill 5V · relay JD-VCC · TFT VCC</td><td>Chỉnh buck đúng 5.0V trước khi nối</td></tr>
 <tr><td class="mono">Buck OUT− / 12V V−</td><td class="mono strong">GND chung toàn mạch</td><td>Nối sao về một điểm</td></tr>
-<tr><td class="mono">Blue Pill 3.3</td><td class="mono strong">MAX31865 VIN · SHT45 VDD · relay VCC (opto)</td><td>LDO onboard ~300 mA, đủ cho tải này</td></tr>
+<tr><td class="mono">Blue Pill 3.3</td><td class="mono strong">SHT45 VDD · phân áp 2 NTC · relay VCC (opto)</td><td>LDO onboard ~300 mA, đủ cho tải này</td></tr>
 </tbody></table></div></section>
 <section class="card"><h3><span class="dot f-bg-tft"></span>TFT 3.2&quot; ILI9341 (SPI1)</h3><div class="tw"><table><thead><tr><th>Chân module</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
 <tr><td class="mono">VCC</td><td class="mono strong">5V</td><td>Module có LDO 3.3V riêng</td></tr>
@@ -461,18 +457,9 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 <tr><td class="mono">DC/RS</td><td class="mono strong">PB0</td><td></td></tr>
 <tr><td class="mono">SDI (MOSI)</td><td class="mono strong">PA7</td><td></td></tr>
 <tr><td class="mono">SCK</td><td class="mono strong">PA5</td><td></td></tr>
-<tr><td class="mono">SDO (MISO)</td><td class="mono strong">— để trống</td><td>PA6 dùng cho NTC 2</td></tr>
+<tr><td class="mono">SDO (MISO)</td><td class="mono strong">— để trống</td><td>PA6 dùng cho NTC dàn lạnh</td></tr>
 <tr><td class="mono">LED</td><td class="mono strong">PA11</td><td>Đèn nền – firmware tắt khi không bấm nút (tự tắt màn hình). Không dùng: nối 3.3V</td></tr>
 <tr><td class="mono">T_CLK … T_IRQ</td><td class="mono strong">để trống</td><td>Cảm ứng chưa dùng</td></tr>
-</tbody></table></div></section>
-<section class="card"><h3><span class="dot f-bg-max"></span>MAX31865 + PT100 (SPI2)</h3><div class="tw"><table><thead><tr><th>Chân module</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
-<tr><td class="mono">VIN</td><td class="mono strong">3.3V</td><td></td></tr>
-<tr><td class="mono">GND</td><td class="mono strong">GND</td><td></td></tr>
-<tr><td class="mono">CS</td><td class="mono strong">PB12</td><td></td></tr>
-<tr><td class="mono">CLK</td><td class="mono strong">PB13</td><td></td></tr>
-<tr><td class="mono">SDO</td><td class="mono strong">PB14</td><td></td></tr>
-<tr><td class="mono">SDI</td><td class="mono strong">PB15</td><td></td></tr>
-<tr><td class="mono">RTD+ / RTD− / F−</td><td class="mono strong">PT100 3 dây</td><td>Hàn jumper 2/3 WIRE + 3 WIRE trên module</td></tr>
 </tbody></table></div></section>
 <section class="card"><h3><span class="dot f-bg-i2c"></span>SHT45 (I2C2)</h3><div class="tw"><table><thead><tr><th>Chân module</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
 <tr><td class="mono">VDD</td><td class="mono strong">3.3V</td><td>Tụ 100nF sát cảm biến</td></tr>
@@ -480,11 +467,11 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 <tr><td class="mono">SCL</td><td class="mono strong">PB10</td><td>Pull-up 4.7kΩ lên 3.3V nếu module chưa có</td></tr>
 <tr><td class="mono">SDA</td><td class="mono strong">PB11</td><td>Pull-up 4.7kΩ lên 3.3V; dây ≤ 1 m, cáp xoắn</td></tr>
 </tbody></table></div></section>
-<section class="card"><h3><span class="dot f-bg-adc"></span>2 NTC dàn lạnh 20kΩ @25 °C</h3><div class="tw"><table><thead><tr><th>Dây</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
-<tr><td class="mono">NTC 1 – dây A</td><td class="mono strong">PA0</td><td>10kΩ 1% từ PA0 lên 3.3V, tụ 100nF PA0–GND</td></tr>
-<tr><td class="mono">NTC 1 – dây B</td><td class="mono strong">GND</td><td></td></tr>
-<tr><td class="mono">NTC 2 – dây A</td><td class="mono strong">PA6</td><td>10kΩ 1% từ PA6 lên 3.3V, tụ 100nF PA6–GND</td></tr>
-<tr><td class="mono">NTC 2 – dây B</td><td class="mono strong">GND</td><td>Kẹp đầu dò sát ống đồng dàn lạnh (đầu ra van tiết lưu / cuối dàn)</td></tr>
+<section class="card"><h3><span class="dot f-bg-adc"></span>2 NTC: buồng sấy (PA0) + dàn lạnh (PA6)</h3><div class="tw"><table><thead><tr><th>Dây</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
+<tr><td class="mono">NTC buồng – dây A</td><td class="mono strong">PA0</td><td>10kΩ 1% từ PA0 lên 3.3V, tụ 100nF PA0–GND</td></tr>
+<tr><td class="mono">NTC buồng – dây B</td><td class="mono strong">GND</td><td>Đầu dò chịu nhiệt (vỏ inox), đặt giữa buồng, tránh gió trực tiếp từ dàn nóng</td></tr>
+<tr><td class="mono">NTC dàn lạnh – dây A</td><td class="mono strong">PA6</td><td>10kΩ 1% từ PA6 lên 3.3V, tụ 100nF PA6–GND</td></tr>
+<tr><td class="mono">NTC dàn lạnh – dây B</td><td class="mono strong">GND</td><td>Kẹp đầu dò sát ống đồng dàn lạnh (đầu ra van tiết lưu / cuối dàn)</td></tr>
 </tbody></table></div></section>
 <section class="card"><h3><span class="dot f-bg-rly"></span>Module relay 3 kênh 5V opto</h3><div class="tw"><table><thead><tr><th>Chân module</th><th>Nối tới</th><th>Ghi chú</th></tr></thead><tbody>
 <tr><td class="mono">VCC</td><td class="mono strong">3.3V</td><td>Nuôi opto bằng 3.3V để tắt dứt khoát</td></tr>
@@ -517,13 +504,13 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
   <h2>Cấu hình chân trong CubeMX</h2>
   <p class="lead">Đặt đúng User Label để <span class="mono">main.h</span> sinh ra các macro mà <span class="mono">board.c</span> dùng. SYS → Debug = Serial Wire (giải phóng PA15, PB3, PB4). Chân dự phòng: PB3 (IN8), PA12.</p>
   <div class="card"><div class="tw"><table class="pins"><thead><tr><th>Chân</th><th>Chức năng</th><th>CubeMX mode</th><th>User Label</th><th>Mức khởi động</th></tr></thead><tbody>
-<tr><td class="mono strong"><span class="dot f-bg-adc"></span>PA0</td><td>NTC dàn lạnh 1</td><td class="mono">ADC1_IN0</td><td class="mono">NTC_EVAP1</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-adc"></span>PA0</td><td>NTC buồng sấy</td><td class="mono">ADC1_IN0</td><td class="mono">NTC_EVAP1</td><td class="mono">–</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-rly"></span>PA1</td><td>Relay quạt nóng S3 (IN5)</td><td class="mono">GPIO_Output</td><td class="mono">RLY_FAN_S3</td><td class="mono">High (= OFF)</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-rly"></span>PA2</td><td>Relay quạt nóng S4 (IN6)</td><td class="mono">GPIO_Output</td><td class="mono">RLY_FAN_S4</td><td class="mono">High (= OFF)</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-rly"></span>PA3</td><td>Relay quạt nóng S5 (IN7)</td><td class="mono">GPIO_Output</td><td class="mono">RLY_FAN_S5</td><td class="mono">High (= OFF)</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-tft"></span>PA4</td><td>TFT CS</td><td class="mono">GPIO_Output</td><td class="mono">TFT_CS</td><td class="mono">High</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-tft"></span>PA5</td><td>TFT SCK</td><td class="mono">SPI1_SCK</td><td class="mono">–</td><td class="mono">–</td></tr>
-<tr><td class="mono strong"><span class="dot f-bg-adc"></span>PA6</td><td>NTC dàn lạnh 2</td><td class="mono">ADC1_IN6</td><td class="mono">NTC_EVAP2</td><td class="mono">–</td></tr>
+<tr><td class="mono strong"><span class="dot f-bg-adc"></span>PA6</td><td>NTC dàn lạnh</td><td class="mono">ADC1_IN6</td><td class="mono">NTC_EVAP2</td><td class="mono">–</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-tft"></span>PA7</td><td>TFT SDI</td><td class="mono">SPI1_MOSI</td><td class="mono">–</td><td class="mono">–</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-btn"></span>PA8</td><td>Nút ENTER</td><td class="mono">GPIO_Input, Pull-up</td><td class="mono">BTN_ENTER</td><td class="mono">–</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-dbg"></span>PA9</td><td>Log TX</td><td class="mono">USART1_TX</td><td class="mono">–</td><td class="mono">–</td></tr>
@@ -542,10 +529,6 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
 <tr><td class="mono strong"><span class="dot f-bg-btn"></span>PB9</td><td>Nút DOWN</td><td class="mono">GPIO_Input, Pull-up</td><td class="mono">BTN_DOWN</td><td class="mono">–</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-i2c"></span>PB10</td><td>SHT45 SCL</td><td class="mono">I2C2_SCL</td><td class="mono">–</td><td class="mono">–</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-i2c"></span>PB11</td><td>SHT45 SDA</td><td class="mono">I2C2_SDA</td><td class="mono">–</td><td class="mono">–</td></tr>
-<tr><td class="mono strong"><span class="dot f-bg-max"></span>PB12</td><td>MAX31865 CS</td><td class="mono">GPIO_Output</td><td class="mono">MAX_CS</td><td class="mono">High</td></tr>
-<tr><td class="mono strong"><span class="dot f-bg-max"></span>PB13</td><td>MAX31865 CLK</td><td class="mono">SPI2_SCK</td><td class="mono">–</td><td class="mono">–</td></tr>
-<tr><td class="mono strong"><span class="dot f-bg-max"></span>PB14</td><td>MAX31865 SDO</td><td class="mono">SPI2_MISO</td><td class="mono">–</td><td class="mono">–</td></tr>
-<tr><td class="mono strong"><span class="dot f-bg-max"></span>PB15</td><td>MAX31865 SDI</td><td class="mono">SPI2_MOSI</td><td class="mono">–</td><td class="mono">–</td></tr>
 <tr><td class="mono strong"><span class="dot f-bg-dbg"></span>PC13</td><td>LED chạy</td><td class="mono">GPIO_Output</td><td class="mono">LED_RUN</td><td class="mono">High (LED tắt)</td></tr>
 </tbody></table></div></div>
 </section>
@@ -559,8 +542,8 @@ ol.check{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;m
     <li>Tháo jumper VCC–JD-VCC; VCC module relay nối 3.3V, JD-VCC nối 5V.</li>
     <li>Chưa nối tải 220V, nạp firmware: cả 7 relay phải nhả khi khởi động (PB5–PB7, PA1–PA3 mức High; PB4 máy nén mức Low).</li>
     <li>Đo PA0 / PA6 ở nhiệt độ phòng (~25 °C): khoảng 2.2V.</li>
-    <li>Log UART hiện nhiệt độ PT100 hợp lý và SHT45 không báo lỗi (SHTerr đứng yên).</li>
-    <li>Thử bảo vệ: rút dây PT100 phải báo LOI CAM BIEN NHIET và cắt relay.</li>
+    <li>Log UART hiện nhiệt độ buồng (NTC PA0) hợp lý và SHT45 không báo lỗi (SHTerr đứng yên).</li>
+    <li>Thử bảo vệ: rút NTC buồng (PA0) phải báo Mất cảm biến nhiệt và cắt relay.</li>
     <li>Sau cùng mới đấu contactor, quạt, máy nén.</li>
   </ol>
 </section>

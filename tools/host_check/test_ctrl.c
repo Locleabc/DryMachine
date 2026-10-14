@@ -37,12 +37,12 @@ static void test_no_sensor_then_sim(void)
     printf("\n--- CHUA CO CAM BIEN -> GIA LAP ---\n");
     DryerCtrl_DefaultParams(&p);
     p.evap_protect = 0.0f;                                  /* chưa gắn NTC dàn lạnh */
-    dryer_input_t in = { false, 0.0f, false, 0.0f, { false, false }, { 0.0f, 0.0f } };
+    dryer_input_t in = { false, 0.0f, false, 0.0f, { false }, { 0.0f } };
     now = 1000;
     DryerCtrl_Init(&c, now);
     run(&in, 3000);
     EXPECT(st.state == DRYER_FAULT, "Khong co cam bien nhiet -> loi, khoa may");
-    in = (dryer_input_t){ true, 30.0f, true, 65.0f, { false, false }, { 0.0f, 0.0f } };   /* giá trị nhập tay */
+    in = (dryer_input_t){ true, 30.0f, true, 65.0f, { false }, { 0.0f } };   /* giá trị nhập tay */
     DryerCtrl_Command(&c, DRYER_CMD_RESET_FAULT);
     run(&in, 1000);
     EXPECT(st.state == DRYER_IDLE, "Bat gia lap: xoa loi -> san sang");
@@ -57,7 +57,7 @@ static void test_cycle(void)
     DryerCtrl_DefaultParams(&p);
     p.gd3_min = 2; p.gd4_min = 1; p.hum_gd3 = 12.0f; p.hum_gd4 = 10.0f;
     p.stage_fan[0] = 4; p.stage_fan[1] = 3; p.stage_fan[2] = 2; p.stage_fan[3] = 1; p.stage_fan[4] = 5;
-    dryer_input_t in = { true, 30.0f, true, 60.0f, { true, true }, { 3.0f, 3.0f } };
+    dryer_input_t in = { true, 30.0f, true, 60.0f, { true }, { 3.0f } };
     now = 1000;
     DryerCtrl_Init(&c, now);
     run(&in, 1000);
@@ -99,7 +99,7 @@ static void test_cycle(void)
 
     /* mất cảm biến ẩm ở GD3: chỉ tính thời gian, không kẹt */
     DryerCtrl_Init(&c, now);
-    in = (dryer_input_t){ true, 55.0f, true, 14.0f, { true, true }, { 3.0f, 3.0f } };
+    in = (dryer_input_t){ true, 55.0f, true, 14.0f, { true }, { 3.0f } };
     DryerCtrl_Command(&c, DRYER_CMD_START); run(&in, 62000);
     run(&in, 2000);
     EXPECT(st.phase == PH_GD3, "Vao GD3");
@@ -111,7 +111,7 @@ static void test_protect(void)
 {
     printf("\n--- BAO VE ---\n");
     DryerCtrl_DefaultParams(&p);
-    dryer_input_t in = { true, 40.0f, true, 60.0f, { true, true }, { 3.0f, 3.0f } };
+    dryer_input_t in = { true, 40.0f, true, 60.0f, { true }, { 3.0f } };
     now = 1000;
     DryerCtrl_Init(&c, now);
     DryerCtrl_Command(&c, DRYER_CMD_START); run(&in, 62000);
@@ -146,28 +146,27 @@ static void test_defrost(void)
 {
     printf("\n--- CHONG DONG BANG DAN LANH ---\n");
     DryerCtrl_DefaultParams(&p);                 /* −2 °C / 60 s → xả đá, ≥ 5 °C chạy lại */
-    dryer_input_t in = { true, 30.0f, true, 60.0f, { true, true }, { 3.0f, 3.0f } };
+    dryer_input_t in = { true, 30.0f, true, 60.0f, { true }, { 3.0f } };
     now = 1000;
     DryerCtrl_Init(&c, now);
     DryerCtrl_Command(&c, DRYER_CMD_START);
     run(&in, 125000);                            /* chạy trước 60 s + chờ MN 60 s */
     EXPECT(st.state == DRYER_RUNNING && out.comp, "Dang say, may nen chay");
-    in.evap[0] = -3.0f;                          /* 1 NTC xuống −3 °C (thấp nhất được dùng) */
+    in.evap[0] = -3.0f;                          /* NTC dàn lạnh xuống −3 °C */
     run(&in, 30000);
     EXPECT(out.comp && !st.defrost, "Duoi -2 C chua du 60 s: van chay");
     run(&in, 31000);
     EXPECT(!out.comp && st.defrost && (st.warnings & DRYER_WARN_DEFROST) && st.state == DRYER_RUNNING && out.fan_evap,
            "Du 60 s -> XA DA: tat may nen, quat van chay, khong loi");
-    in.evap[0] = 4.0f; in.evap[1] = 4.0f; run(&in, 5000);
+    in.evap[0] = 4.0f; run(&in, 5000);
     EXPECT(!out.comp && st.defrost, "4 C < 5 C: van xa da");
-    in.evap[0] = 5.5f; in.evap[1] = 6.0f; run(&in, 1000);
+    in.evap[0] = 5.5f; run(&in, 1000);
     EXPECT(!st.defrost && !(st.warnings & DRYER_WARN_DEFROST), "Dan lanh >= 5 C -> het xa da");
     run(&in, 61000);
     EXPECT(out.comp && st.defrost_count == 1, "May nen chay lai sau thoi gian cho");
-    in.evap_ok[1] = false; run(&in, 1000);
-    EXPECT((st.warnings & DRYER_WARN_EVAP_SENSOR) && st.state == DRYER_RUNNING, "Mat 1 NTC: chi canh bao, van chay");
     in.evap_ok[0] = false; in.evap[0] = -10.0f; run(&in, 120000);
-    EXPECT(!st.defrost && st.state == DRYER_RUNNING, "Mat ca 2 NTC: khong xa da, khong dung may");
+    EXPECT((st.warnings & DRYER_WARN_EVAP_SENSOR) && !st.defrost && st.state == DRYER_RUNNING,
+           "Mat NTC dan lanh: chi canh bao, khong xa da, khong dung may");
     p.evap_protect = 0.0f; run(&in, 1000);
     EXPECT(!(st.warnings & DRYER_WARN_EVAP_SENSOR), "Tat chong dong bang: het canh bao NTC");
 }

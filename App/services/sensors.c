@@ -10,18 +10,20 @@ static const sensors_cfg_t *s_cfg;
 static sensors_calib_t s_cal;
 static sensors_data_t  s_data;
 
-static max31865_t   s_pt100;
 static sht4x_t      s_sht;
-static ntc_t        s_ntc[SENSORS_EVAP_COUNT];
+static ntc_t        s_ntc[SENSORS_NTC_COUNT];
 
 static uint32_t    s_fast_tick, s_sht_tick, s_sht_start;
 static sht_phase_t s_sht_phase;
 static uint8_t     s_sht_consec_err;
-static bool        s_ntc_init[SENSORS_EVAP_COUNT];
-static bool        s_pt_started, s_t0_set;
-static uint32_t    s_t0;
-static float       s_ntc_filt[SENSORS_EVAP_COUNT];
-static uint8_t     s_ntc_bad[SENSORS_EVAP_COUNT];
+static bool        s_ntc_init[SENSORS_NTC_COUNT];
+static float       s_ntc_filt[SENSORS_NTC_COUNT];
+static uint8_t     s_ntc_bad[SENSORS_NTC_COUNT];
+
+static const ntc_cfg_t *ntc_cfg(uint8_t i)
+{
+    return (i == SENSORS_NTC_CHAMBER) ? s_cfg->chamber : s_cfg->evap[i - SENSORS_NTC_EVAP0];
+}
 
 static void sht_init(void)
 {
@@ -47,45 +49,38 @@ static void sht_error(sht4x_status_t st)
     }
 }
 
+/* Đọc 1 NTC: lọc EMA, lỗi phải kéo dài SENSORS_NTC_MAX_ERR lần mới báo mất (giữ giá trị cũ) */
+static void read_ntc(uint8_t i, float offset, sensor_val_t *out)
+{
+    const ntc_cfg_t *c = ntc_cfg(i);
+    float ohm;
+    if (!c) { out->ok = false; return; }
+    uint16_t code = NTC_ReadCode(&s_ntc[i]);
+    s_data.ntc_code[i] = code;
+    if (!NTC_CodeToOhm(c, code, &ohm)) {                      /* hở / chập / gai nhiễu */
+        s_data.ntc_glitch[i]++;
+        if (s_ntc_bad[i] < 255) s_ntc_bad[i]++;
+        if (s_ntc_bad[i] >= SENSORS_NTC_MAX_ERR) {
+            out->ok = false;
+            s_data.ntc_r[i] = 0.0f;
+            s_ntc_init[i] = false;
+        }
+        return;
+    }
+    s_ntc_bad[i] = 0;
+    s_data.ntc_r[i] = ohm;
+    float t = NTC_OhmToTemp(ohm, c->r25, c->beta) + offset;
+    if (!s_ntc_init[i]) { s_ntc_filt[i] = t; s_ntc_init[i] = true; }
+    else s_ntc_filt[i] += SENSORS_NTC_ALPHA * (t - s_ntc_filt[i]);
+    out->value = s_ntc_filt[i];
+    out->ok = (t > -50.0f && t < 120.0f);
+}
+
 static void process_fast(void)
 {
-    if (s_pt_started) {
-        max31865_result_t r;
-        MAX31865_Read(&s_pt100, &r);
-        s_data.temp.ok     = r.ok;
-        s_data.temp.value  = r.temp_c + s_cal.temp_offset;
-        s_data.pt100_fault = r.fault;
-        s_data.pt100_r     = r.r_ohm;
-        s_data.pt100_cfg   = r.cfg;
-        if (r.reinit && s_data.pt100_reinit < 0xFFFF) s_data.pt100_reinit++;
-        s_data.pt100_ready = true;
-    }
-
-    for (uint8_t i = 0; i < SENSORS_EVAP_COUNT; i++) {
-        sensor_val_t *e = &s_data.evap[i];
-        float ohm;
-        if (!s_cfg->evap[i]) { e->ok = false; continue; }
-        uint16_t code = NTC_ReadCode(&s_ntc[i]);
-        s_data.evap_code[i] = code;
-        if (!NTC_CodeToOhm(s_cfg->evap[i], code, &ohm)) {         /* hở / chập / gai nhiễu */
-            s_data.evap_bad_code[i] = code;
-            s_data.evap_glitch[i]++;
-            if (s_ntc_bad[i] < 255) s_ntc_bad[i]++;
-            if (s_ntc_bad[i] >= SENSORS_NTC_MAX_ERR) {             /* lỗi kéo dài mới báo mất */
-                e->ok = false;
-                s_data.evap_r[i] = 0.0f;
-                s_ntc_init[i] = false;
-            }
-            continue;                                              /* chưa đủ: giữ giá trị cũ */
-        }
-        s_ntc_bad[i] = 0;
-        s_data.evap_r[i] = ohm;
-        float t = NTC_OhmToTemp(ohm, s_cfg->evap[i]->r25, s_cfg->evap[i]->beta) + s_cal.evap_offset[i];
-        if (!s_ntc_init[i]) { s_ntc_filt[i] = t; s_ntc_init[i] = true; }
-        else s_ntc_filt[i] += SENSORS_NTC_ALPHA * (t - s_ntc_filt[i]);
-        e->value = s_ntc_filt[i];
-        e->ok = (t > -50.0f && t < 120.0f);
-    }
+    read_ntc(SENSORS_NTC_CHAMBER, s_cal.temp_offset, &s_data.temp);
+    for (uint8_t k = 0; k < SENSORS_EVAP_COUNT; k++)
+        read_ntc((uint8_t)(SENSORS_NTC_EVAP0 + k), s_cal.evap_offset[k], &s_data.evap[k]);
 }
 
 static void process_sht(uint32_t now)
@@ -137,8 +132,7 @@ void Sensors_Init(const sensors_cfg_t *cfg)
     memset(s_ntc_init, 0, sizeof(s_ntc_init));
     memset(s_ntc_bad, 0, sizeof(s_ntc_bad));
 
-    s_pt_started = s_t0_set = false;           /* MAX31865 khởi tạo sau SENSORS_PT100_START_MS (Sensors_Process) */
-    for (uint8_t i = 0; i < SENSORS_EVAP_COUNT; i++) if (cfg->evap[i]) NTC_Init(&s_ntc[i], cfg->evap[i]);
+    for (uint8_t i = 0; i < SENSORS_NTC_COUNT; i++) if (ntc_cfg(i)) NTC_Init(&s_ntc[i], ntc_cfg(i));
     if (cfg->bus_recover) cfg->bus_recover();      /* gỡ cờ BUSY kẹt của I2C F1 (sau reset giữa giao dịch) */
     sht_init();
 
@@ -152,12 +146,6 @@ void Sensors_SetCalib(const sensors_calib_t *cal)
 
 void Sensors_Process(uint32_t now)
 {
-    if (!s_t0_set) { s_t0 = now; s_t0_set = true; }
-    if (!s_pt_started && now - s_t0 >= SENSORS_PT100_START_MS) {
-        MAX31865_Init(&s_pt100, s_cfg->pt100);     /* ghi cấu hình + xoá lỗi, chờ chuyển đổi đầu tiên */
-        s_pt_started = true;
-        s_fast_tick = now - SENSORS_FAST_MS;       /* đọc ngay ở dưới */
-    }
     if (now - s_fast_tick >= SENSORS_FAST_MS) {
         s_fast_tick = now;
         process_fast();

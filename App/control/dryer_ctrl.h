@@ -17,7 +17,7 @@
  *
  *  Máy nén luôn có bảo vệ: nghỉ tối thiểu comp_min_off (chờ bật lại), chạy tối thiểu comp_min_on.
  *  Bảo vệ: quá nhiệt temp_max, mất cảm biến nhiệt, chống đóng băng dàn lạnh.
- *  Chống đóng băng (evap_protect = 1): nhiệt độ dàn lạnh (thấp nhất của 2 NTC còn đọc được)
+ *  Chống đóng băng (evap_protect = 1): nhiệt độ dàn lạnh (thấp nhất của các NTC dàn lạnh còn đọc được)
  *             ≤ evap_freeze liên tục evap_freeze_s giây khi máy nén chạy → XẢ ĐÁ: tắt máy nén
  *             (quạt vẫn chạy, giai đoạn vẫn tính giờ) tới khi dàn lạnh ≥ evap_resume → chạy tiếp.
  *             Không phải lỗi – không dừng máy. Mất NTC chỉ cảnh báo.
@@ -57,10 +57,10 @@ typedef struct {
     float evap_freeze_s;   /* s    thời gian dưới evap_freeze mới xả đá            */
 } dryer_params_t;
 
-#define DRYER_EVAP_COUNT  2      /* số cảm biến dàn lạnh */
+#define DRYER_EVAP_COUNT  1      /* số cảm biến dàn lạnh */
 
 typedef struct {
-    bool temp_ok;  float temp;     /* °C  – nhiệt độ điều khiển (PT100) */
+    bool temp_ok;  float temp;     /* °C  – nhiệt độ điều khiển (NTC buồng) */
     bool hum_ok;   float hum;      /* %RH */
     bool evap_ok[DRYER_EVAP_COUNT]; float evap[DRYER_EVAP_COUNT];   /* °C – NTC dàn lạnh */
 } dryer_input_t;

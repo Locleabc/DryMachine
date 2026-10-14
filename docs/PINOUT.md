@@ -5,16 +5,16 @@ Sơ đồ đấu dây trực quan (mở bằng trình duyệt): [wiring.html](wi
 ## Nguồn
 
 220VAC → CB 10A + cầu chì → nguồn tổ ong 12V → buck 5V (≥ 2A) → chân 5V Blue Pill, JD-VCC relay,
-VCC TFT. 3.3V lấy từ LDO trên Blue Pill cho MAX31865, SHT45, VCC opto relay.
+VCC TFT. 3.3V lấy từ LDO trên Blue Pill cho SHT45, phân áp 2 NTC, VCC opto relay.
 
 ## Gán chân
 
 | Chân | CubeMX mode | User Label | Nối tới |
 |------|-------------|------------|---------|
-| PA0  | ADC1_IN0 | NTC_EVAP1 | NTC dàn lạnh 1 (20k) – phân áp 10k lên 3.3V (xem dưới) |
+| PA0  | ADC1_IN0 | NTC_EVAP1 | **NTC nhiệt độ buồng sấy** (điều khiển, thay PT100) – phân áp 10k lên 3.3V (xem dưới) |
 | PA4  | GPIO_Output | TFT_CS | TFT CS |
 | PA5  | SPI1_SCK | – | TFT SCK |
-| PA6  | ADC1_IN6 | NTC_EVAP2 | NTC dàn lạnh 2 (20k) – phân áp 10k lên 3.3V. SPI1 chỉ phát → TFT SDO để trống |
+| PA6  | ADC1_IN6 | NTC_EVAP2 | **NTC dàn lạnh** (chống đóng băng) – phân áp 10k lên 3.3V. SPI1 chỉ phát → TFT SDO để trống |
 | PA7  | SPI1_MOSI | – | TFT SDI (MOSI) |
 | PA11 | GPIO_Output (cấu hình trong `board.c`) | – | TFT **LED** (đèn nền, cao = sáng) – tự tắt màn hình |
 | PA8  | GPIO_Input (Pull-up) | BTN_ENTER | Nút ENTER → GND |
@@ -36,10 +36,6 @@ VCC TFT. 3.3V lấy từ LDO trên Blue Pill cho MAX31865, SHT45, VCC opto relay
 | PB7  | GPIO_Output (High) | RLY_FAN_S2 | Relay IN4 – quạt dàn nóng S2 (cấp ≥ 2) |
 | PB8  | GPIO_Input (Pull-up) | BTN_UP | Nút UP → GND |
 | PB9  | GPIO_Input (Pull-up) | BTN_DOWN | Nút DOWN → GND |
-| PB12 | GPIO_Output | MAX_CS | MAX31865 CS |
-| PB13 | SPI2_SCK | – | MAX31865 CLK |
-| PB14 | SPI2_MISO | – | MAX31865 SDO |
-| PB15 | SPI2_MOSI | – | MAX31865 SDI |
 | PC14 / PC15, VBAT | – | – | Không dùng (đã bỏ đồng hồ thời gian thực – không cần pin CR2032) |
 | PC13 | GPIO_Output | LED_RUN | LED trên board (nhấp nháy = chương trình đang chạy) |
 
@@ -48,7 +44,7 @@ Mức khởi động của các chân Output: **CS = High, 6 chân relay quạt 
 ⚠ PB4 sau reset là chân JTAG NJTRST có **pull-up nội** cho tới khi firmware cấu hình (vài ms). Với tầng kích mức cao, thêm
 **10 kΩ từ PB4 xuống GND** để máy nén chắc chắn không nhấp lúc cấp điện / reset / nạp code.
 
-Chân trống dự phòng: PB3 (+ IN8 của module relay 8 kênh).
+Chân trống dự phòng: PB3 (+ IN8 của module relay 8 kênh), PB12–PB15 (đã bỏ MAX31865 / PT100).
 
 ## Quạt dàn nóng 5 cấp
 
@@ -68,55 +64,22 @@ nhiều đầu dây tốc độ cùng có điện sẽ chập cuộn dây motor.
 
 ## Lưu ý phần cứng
 
-* **NTC dàn lạnh** (R25 / B từng cái: xem dưới), mỗi đầu dò: 3.3V – điện trở **10 kΩ 1%** (`r_fixed` trong `board.c`) – chân ADC (PA0 / PA6) – NTC – GND,
+* **2 NTC: buồng sấy (PA0) + dàn lạnh (PA6)** (R25 / B từng cái: xem dưới), mỗi đầu dò: 3.3V – điện trở **10 kΩ 1%** (`r_fixed` trong `board.c`) – chân ADC (PA0 / PA6) – NTC – GND,
   thêm tụ **100 nF** từ chân ADC xuống GND. 25 °C ≈ 2.2 V, 0 °C ≈ 2.87 V, −10 °C ≈ 3.04 V, hở dây ≈ 3.3 V (firmware báo *Mất NTC*).
-  Kẹp đầu dò sát ống đồng dàn lạnh, bọc cách nhiệt. R25 và hệ số B **riêng từng đầu dò** khai báo trong `App/board/board.c` (hiện: NTC 1 (PA0) = 14 kΩ / B 2800,
-  NTC 2 (PA6) = 20 kΩ / B 3000 – đo thực tế). Thay đầu dò: đo điện trở ở nước đá đang tan (0 °C) và ở nhiệt độ phòng T (°C), rồi
-  B = ln(R0 / RT) / (1/273.15 − 1/(T+273.15)), R25 = RT · e^(B·(1/298.15 − 1/(T+273.15))). Lệch nhỏ còn lại: *Bù dàn lạnh 1/2* (menu kỹ thuật).
+  Đầu dò dàn lạnh kẹp sát ống đồng, bọc cách nhiệt. R25 và hệ số B **riêng từng đầu dò** khai báo trong `App/board/board.c` (hiện: buồng (PA0) = 14 kΩ / B 2800,
+  dàn lạnh (PA6) = 20 kΩ / B 3000 – đo thực tế). Thay đầu dò: đo điện trở ở nước đá đang tan (0 °C) và ở nhiệt độ phòng T (°C), rồi
+  B = ln(R0 / RT) / (1/273.15 − 1/(T+273.15)), R25 = RT · e^(B·(1/298.15 − 1/(T+273.15))). Lệch nhỏ còn lại: *Bù nhiệt buồng* / *Bù dàn lạnh* (menu kỹ thuật).
 * **Relay**: module 5V opto kích mức THẤP. Tháo jumper VCC–JD-VCC: VCC (phía opto) nối 3.3V
   Blue Pill, JD-VCC nối 5V buck. K1 chỉ đóng cuộn contactor, contactor mới cấp cho máy nén.
   Đấu RC snubber / varistor song song cuộn contactor và quạt.
 * **Đèn nền TFT (PA11)**: module ILI9341 SPI 2.4"/2.8" (bo đỏ) thường có transistor đệm ở chân LED → nối thẳng PA11.
   Nếu chân LED nối thẳng vào LED nền qua điện trở (không có transistor, dòng > 20 mA) thì đệm bằng NPN (S8050/2N2222,
   base qua 1 kΩ từ PA11) hoặc MOSFET logic-level. Không nối PA11 thì vẫn để LED lên 3.3 V như cũ – tự tắt chỉ làm đen màn hình.
-* **MAX31865**: điện trở tham chiếu module thường là 430 Ω (PT100; module PT1000 là 4300 Ω).
-  Firmware mặc định **PT100 3 dây** (`board_pt100.wires = 3` trong `App/board/board.c`) – module phải hàn jumper 3 dây
-  PT100 2 hoặc 4 dây: để jumper mặc định và đổi `wires = 2` / `4`.
-  Đấu PT100 **3 dây** (theo hướng dẫn module Adafruit, bản clone giống ký hiệu):
-  1. Hàn **nối** jumper `2/3 Wire` (cạnh cầu đấu F-/RTD-) → F- và RTD- thông nhau.
-  2. Jumper 3 chân `24 | 3` phía trên Rref: **cắt** đường mạch nhỏ giữa đệm giữa và `24`, rồi hàn nối đệm giữa với `3`.
-  3. Hai dây **cùng màu** (đo với nhau ≈ 0–2 Ω) → **F+** và **RTD+** (đổi chỗ hai dây này không sao).
-     Dây **khác màu** còn lại (đo với hai dây kia ≈ 110 Ω) → **F-** (hoặc RTD-, vì đã nối ở bước 1).
-  Nguồn VIN 3.3–5 V, SDI → PB15, SDO → PB14, CLK → PB13, CS → PB12.
-  Lỗi hiện ở trang chính:
-  | Thông báo | Nguyên nhân thường gặp |
-  |-----------|------------------------|
-  | *MAX31865 không phản hồi (CFG=FF)* | MISO (SDO→PB14) kẹt cao: chưa cấp nguồn module, đứt/đảo SDI–SDO, CS không nối PB12 |
-  | *MAX31865 không phản hồi (CFG=00)* | Chip không nhận lệnh ghi: chip bị treo lúc cấp nguồn (xem dưới), hoặc đứt SDI (PB15) / SCK (PB13) |
-  | *MAX31865 sai cấu hình (CFG=xx)* | Nhiễu SPI / dây dài – firmware tự ghi lại, nếu lặp lại thì rút ngắn dây, thêm tụ 100 nF tại VIN module |
-  | *PT100 hở mạch / đứt dây* | Chưa nối PT100, đứt dây, bắt vít lỏng |
-  | *PT100 chập mạch* | Hai dây PT100 chạm nhau |
-  | *PT100 hở hoặc sai jumper 2/3/4 dây* | Jumper module không khớp số dây (`wires`) hoặc thiếu dây thứ 3 |
-  | *PT100 R=… ohm thấp: chập / Rref?* (R < 60 Ω) | Hai dây PT100 chạm nhau; hoặc module có Rref 4300 Ω (bản PT1000) mà firmware đặt 430 → R đọc ra chỉ ≈ 1/10 (≈ 11 Ω) |
-  | *PT100 R=… ohm cao: hở / PT1000?* (R ≥ 400 Ω) | Chưa nối / đứt dây PT100; hoặc đầu dò là PT1000 (≈ 1100 Ω ở 25 °C) → ADC bão hoà ≈ Rref 430 Ω |
-  | *PT100 R=… ohm ngoài dải* | Nhiệt > 250 °C thật, hoặc tiếp xúc kém – đo lại bằng đồng hồ |
-
-  Sau khi bật nguồn firmware **chờ 5 s** mới khởi tạo và đọc MAX31865 (`SENSORS_PT100_START_MS` trong `sensors.h`)
-  – trong lúc chờ trang chính hiện *Đang chờ cảm biến nhiệt…*, bộ điều khiển chưa chạy (relay nhả), không báo lỗi.
-  Mỗi lần đọc (500 ms) firmware đọc lại thanh ghi cấu hình; chip mất cấu hình (vừa cấp nguồn lại, sụt áp) thì **tự ghi lại**
-  – không cần rút nguồn module. Nếu vẫn *không phản hồi (CFG=00)* tới khi rút/cắm nguồn module thì chip bị **treo khi cấp nguồn**
-  (thường do chân SPI/CS của STM32 có điện trước khi module có nguồn → dòng ngược vào chip):
-  * cấp nguồn module **từ chân 3.3V của Blue Pill** (cùng nguồn với STM32), không lấy 5V/nguồn riêng; dây GND chung ngắn;
-  * thêm tụ 10 µF + 100 nF sát chân VIN–GND của module;
-  * vẫn bị: cấp nguồn module qua công tắc do firmware điều khiển (PNP/P-MOSFET từ chân trống PB3) để firmware tự tắt/bật lại module.
-
-  Lỗi *Mất cảm biến nhiệt* được **giữ** tới khi xoá tay (ENTER ở trang 5) để không bỏ sót tiếp xúc chập chờn:
-  nhiệt độ vẫn hiện bình thường nhưng dòng lỗi luân phiên giữa **lý do lúc hỏng** (chụp lại, không phải giá trị hiện tại)
-  và *PT100 đã OK lại · xoá lỗi ở trang 5*. Log UART ghi mỗi lần hỏng: `PT100 hong: F=.. R=.. ohm (lan N)` –
-  N tăng dần khi máy đang chạy → dây/jumper lỏng.
-
-  Kiểm tra nhanh bằng đồng hồ (rút PT100 khỏi module): PT100 ≈ 108–112 Ω ở 25 °C (PT1000 ≈ 1080–1120 Ω);
-  3 dây thì hai dây cùng màu đo với nhau ≈ 0–1 Ω. Điện trở Rref trên module: mã **431** = 430 Ω, **4301 / 432** = 4,3 kΩ.
+* **Nhiệt độ buồng sấy = NTC ở PA0** (đã bỏ MAX31865 + PT100). Mạch giống NTC dàn lạnh (phân áp 10 kΩ lên 3.3V + 100 nF).
+  Lỗi *Mất cảm biến nhiệt* (dừng máy) khi NTC hở/chập liên tục > 3 s; dòng lỗi ghi *NTC buồng (PA0) hở dây – 3.30V* /
+  *chập – 0.00V* (điện áp lúc hỏng). Lỗi được **giữ** tới khi xoá tay (ENTER ở trang 4); đọc lại được thì dòng lỗi luân phiên
+  *NTC buồng đã OK lại · xoá lỗi ở trang 4*. Log UART: `NTC buong hong: adc … (lan N)`.
+  ⚠ Đầu dò buồng nằm trong khí nóng tới ~75 °C (bảo vệ quá nhiệt): dùng NTC vỏ inox/epoxy chịu nhiệt, không dùng loại bọc nhựa PVC mỏng.
 * **Nút bấm**: nối chân → nút → GND, dùng pull-up nội. PA15 chỉ dùng được khi tắt JTAG
   (SYS → Debug = Serial Wire).
 * **SHT45** (I2C, địa chỉ 0x44 với mã SHT45-AD1B, 0x45 với BD1B): nguồn 3.3 V, tụ 100 nF sát

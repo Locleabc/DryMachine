@@ -6,32 +6,33 @@
 #ifndef SENSORS_H
 #define SENSORS_H
 
-#include "max31865.h"
 #include "sht4x.h"
 #include "ntc.h"
 #include <stdbool.h>
 #include <stdint.h>
 
-#define SENSORS_FAST_MS       500    /* PT100 + NTC dàn lạnh */
+#define SENSORS_FAST_MS       500    /* NTC buồng + NTC dàn lạnh */
 #define SENSORS_SHT_MS        1000   /* SHT45 */
-#define SENSORS_PT100_START_MS 5000  /* sau khi bật nguồn chờ 5 s mới khởi tạo + đọc MAX31865 (nguồn/bias ổn định) */
 #define SENSORS_SHT_MAX_ERR   3      /* lỗi liên tiếp → báo mất cảm biến ẩm */
 #define SENSORS_SHT_RECOVER   5      /* lỗi liên tiếp → khôi phục bus I2C + init lại */
-#define SENSORS_NTC_ALPHA     0.3f   /* lọc EMA nhiệt độ dàn lạnh (NTC) */
+#define SENSORS_NTC_ALPHA     0.3f   /* lọc EMA nhiệt độ NTC */
 #define SENSORS_NTC_MAX_ERR   6      /* lần đọc lỗi liên tiếp (×500 ms = 3 s) mới báo mất NTC */
-#define SENSORS_EVAP_COUNT    2      /* số NTC dàn lạnh */
+#define SENSORS_EVAP_COUNT    1      /* số NTC dàn lạnh */
+
+/* Chỉ số NTC (mảng chẩn đoán ntc_*) */
+enum { SENSORS_NTC_CHAMBER = 0, SENSORS_NTC_EVAP0, SENSORS_NTC_COUNT = SENSORS_NTC_EVAP0 + SENSORS_EVAP_COUNT };
 
 typedef struct {
-    const max31865_cfg_t     *pt100;
+    const ntc_cfg_t          *chamber;                    /* NTC nhiệt độ buồng sấy (điều khiển) */
     const sht4x_cfg_t        *sht;
-    const ntc_cfg_t          *evap[SENSORS_EVAP_COUNT];   /* NTC dàn lạnh 1, 2 (NULL = không có) */
+    const ntc_cfg_t          *evap[SENSORS_EVAP_COUNT];   /* NTC dàn lạnh (NULL = không có) */
     void (*bus_recover)(void);        /* khôi phục I2C bị treo (có thể NULL) */
 } sensors_cfg_t;
 
 typedef struct {
-    float temp_offset;                /* °C cộng vào PT100 */
+    float temp_offset;                /* °C cộng vào NTC buồng */
     float hum_offset;                 /* %RH cộng vào SHT45 */
-    float evap_offset[SENSORS_EVAP_COUNT];   /* °C cộng vào từng NTC */
+    float evap_offset[SENSORS_EVAP_COUNT];   /* °C cộng vào NTC dàn lạnh */
 } sensors_calib_t;
 
 typedef struct {
@@ -40,19 +41,14 @@ typedef struct {
 } sensor_val_t;
 
 typedef struct {
-    sensor_val_t temp;       /* °C – PT100 */
+    sensor_val_t temp;       /* °C – NTC buồng sấy */
     sensor_val_t hum;        /* %RH – SHT45 */
     sensor_val_t hum_temp;   /* °C – nhiệt độ tại SHT45 (tham khảo) */
-    sensor_val_t evap[SENSORS_EVAP_COUNT];   /* °C – NTC dàn lạnh 1, 2 */
-    float        evap_r[SENSORS_EVAP_COUNT]; /* Ohm đo được (chẩn đoán, 0 = hở/chập) */
-    uint16_t     evap_code[SENSORS_EVAP_COUNT]; /* mã ADC 0..4095 lần đọc gần nhất (chẩn đoán) */
-    uint16_t     evap_bad_code[SENSORS_EVAP_COUNT]; /* mã ADC lần đọc lỗi gần nhất */
-    uint32_t     evap_glitch[SENSORS_EVAP_COUNT];   /* số lần đọc lỗi (kể cả đã lọc bỏ) */
-    uint8_t      pt100_fault;
-    uint8_t      pt100_cfg;    /* thanh ghi cấu hình MAX31865 đọc lại (chẩn đoán) */
-    uint16_t     pt100_reinit; /* số lần tự ghi lại cấu hình (chip mất cấu hình) */
-    bool         pt100_ready;  /* false trong SENSORS_PT100_START_MS đầu: chưa đọc, không tính là lỗi */
-    float        pt100_r;      /* Ohm đo được lần gần nhất (chẩn đoán, 0 = không có) */
+    sensor_val_t evap[SENSORS_EVAP_COUNT];   /* °C – NTC dàn lạnh */
+    /* chẩn đoán từng NTC, chỉ số SENSORS_NTC_* */
+    float        ntc_r[SENSORS_NTC_COUNT];      /* Ohm đo được (0 = hở/chập) */
+    uint16_t     ntc_code[SENSORS_NTC_COUNT];   /* mã ADC 0..4095 lần đọc gần nhất */
+    uint32_t     ntc_glitch[SENSORS_NTC_COUNT]; /* số lần đọc lỗi (kể cả đã lọc bỏ) */
     uint32_t     sht_errors;
     uint32_t     sht_serial;
     uint8_t      sht_status;   /* sht4x_status_t lần đọc gần nhất (chẩn đoán) */

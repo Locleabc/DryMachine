@@ -178,75 +178,41 @@ static const char *sht_diag_text(void)
     }
 }
 
-/* Lỗi "Mất cảm biến nhiệt" được GIỮ tới khi xoá tay (trang 4) – kể cả khi PT100 đọc lại được.
- * Vì vậy lý do phải chụp lại lúc cảm biến hỏng, không lấy giá trị đang đo (đã có thể bình thường). */
+/* Lỗi "Mất cảm biến nhiệt" được GIỮ tới khi xoá tay (trang 4) – kể cả khi NTC buồng đọc lại được.
+ * Vì vậy lý do phải chụp lại lúc cảm biến hỏng (điện áp chân PA0), không lấy giá trị đang đo. */
 static struct {
-    bool    bad;              /* lần đọc gần nhất hỏng */
-    uint8_t fault;            /* thanh ghi lỗi MAX31865 lúc hỏng gần nhất */
-    uint8_t cfg;              /* thanh ghi cấu hình đọc lại lúc hỏng */
-    float   r;                /* điện trở lúc hỏng gần nhất */
+    bool     bad;             /* lần đọc gần nhất hỏng */
+    uint16_t code;            /* mã ADC lúc hỏng gần nhất */
     uint16_t count;           /* số lần chuyển OK → hỏng (đếm chập chờn) */
-} s_pt_bad;
+} s_tb;
 
-static void pt100_track(void)
+static void temp_track(void)
 {
     const sensors_data_t *d = Sensors_Data();
-    if (s_sim.mode != SIM_OFF || !d->pt100_ready) return;
+    if (s_sim.mode != SIM_OFF) return;
     if (!d->temp.ok) {
-        s_pt_bad.fault = d->pt100_fault;
-        s_pt_bad.r     = d->pt100_r;
-        s_pt_bad.cfg   = d->pt100_cfg;
-        if (!s_pt_bad.bad) {
-            char r[10];
-            if (s_pt_bad.count < 0xFFFF) s_pt_bad.count++;
-            Log_Printf("PT100 hong: F=0x%02X CFG=0x%02X R=%s ohm (lan %u, ghi lai cfg %u)",
-                       (unsigned)d->pt100_fault, (unsigned)d->pt100_cfg,
-                       Fmt_Float(r, sizeof(r), d->pt100_r, 1), (unsigned)s_pt_bad.count,
-                       (unsigned)d->pt100_reinit);
+        s_tb.code = d->ntc_code[SENSORS_NTC_CHAMBER];
+        if (!s_tb.bad) {
+            if (s_tb.count < 0xFFFF) s_tb.count++;
+            Log_Printf("NTC buong hong: adc %u (lan %u)", (unsigned)s_tb.code, (unsigned)s_tb.count);
         }
-    } else if (s_pt_bad.bad) {
-        Log_Printf("PT100 doc lai duoc");
+    } else if (s_tb.bad) {
+        Log_Printf("NTC buong doc lai duoc");
     }
-    s_pt_bad.bad = !d->temp.ok;
+    s_tb.bad = !d->temp.ok;
 }
 
-/* lý do mất PT100 / MAX31865 theo thanh ghi lỗi (chụp lúc hỏng) */
-static const char *pt100_cause_text(void)
+/* Dòng lỗi trang chính: lý do lúc hỏng (hở / chập + điện áp PA0); đã đọc lại được mà lỗi còn giữ →
+ * luân phiên 2 s với lời nhắc xoá lỗi. */
+static const char *temp_diag_text(void)
 {
-    uint8_t f = s_pt_bad.fault;
-    if (f == 0xFF) {
-        static char t[44];
-        uint8_t c = s_pt_bad.cfg;
-        if (c == 0x00 || c == 0xFF) snprintf(t, sizeof(t), "MAX31865 không phản hồi (CFG=%02X)", (unsigned)c);
-        else                        snprintf(t, sizeof(t), "MAX31865 sai cấu hình (CFG=%02X)", (unsigned)c);
-        return t;
-    }
-    if (f & 0x80)  return "PT100 hở mạch / đứt dây";
-    if (f & 0x40)  return "PT100 chập mạch";
-    if (f & 0x38)  return "PT100 hở hoặc sai jumper 2/3/4 dây";
-    if (f & 0x04)  return "MAX31865: quá / thiếu áp đầu vào";
-
-    /* không có bit lỗi nhưng nhiệt độ ngoài -50..250 °C → hiện điện trở đo được để tìm nguyên nhân
-     *   R < 60 Ω   : chập dây, hoặc module Rref 4300 (PT1000) mà firmware đặt 430 (R đọc ra ≈ 1/10)
-     *   R ≥ 400 Ω  : hở dây / chưa nối, hoặc đầu dò PT1000 trên cấu hình PT100 (ADC bão hoà ≈ Rref)
-     *   còn lại     : nhiệt > 250 °C thật hoặc tiếp xúc kém                                        */
-    static char txt[48];
-    char r[10];
-    float ohm = s_pt_bad.r;
-    Fmt_Float(r, sizeof(r), ohm, 1);
-    if (ohm < 60.0f)       snprintf(txt, sizeof(txt), "PT100 R=%s ohm thấp: chập / Rref?", r);
-    else if (ohm >= 400.0f) snprintf(txt, sizeof(txt), "PT100 R=%s ohm cao: hở / PT1000?", r);
-    else                    snprintf(txt, sizeof(txt), "PT100 R=%s ohm ngoài dải", r);
-    return txt;
-}
-
-/* Dòng lỗi trang chính: PT100 đã đọc lại được nhưng lỗi còn giữ → luân phiên 2 s
- * giữa lý do lúc hỏng và lời nhắc xoá lỗi. */
-static const char *pt100_diag_text(void)
-{
+    static char t[48];
+    char v[8];
     if (Sensors_Data()->temp.ok && (Board_Millis() / 2000u) % 2u)
-        return "PT100 đã OK lại · xoá lỗi ở trang 4";
-    return pt100_cause_text();
+        return "NTC buồng đã OK lại · xoá lỗi ở trang 4";
+    Fmt_Float(v, sizeof(v), s_tb.code * 3.3f / 4095.0f, 2);
+    snprintf(t, sizeof(t), "NTC buồng (PA0) %s – %sV", (s_tb.code > 2048) ? "hở dây" : "chập", v);
+    return t;
 }
 
 /* ================= Test đầu ra (trang 5) =================
@@ -394,11 +360,10 @@ static void task_buttons(uint32_t now)
 
 static void task_ctrl(uint32_t now)
 {
-    pt100_track();
+    temp_track();
     const settings_t *set = Settings_Get();
 
-    sensors_calib_t cal = { set->temp_offset, set->hum_offset,
-                            { set->evap_offset[0], set->evap_offset[1] } };
+    sensors_calib_t cal = { set->temp_offset, set->hum_offset, { set->evap_offset[0] } };
     Sensors_SetCalib(&cal);
 
     /* đồng hồ bộ điều khiển: ×1 bình thường, tua nhanh khi giả lập */
@@ -407,16 +372,13 @@ static void task_ctrl(uint32_t now)
     uint16_t speed = (s_sim.mode != SIM_OFF) ? s_sim_speed[s_sim.speed_idx] : 1;
     s_vclock += dt * speed;
 
-    /* 5 s đầu sau bật nguồn PT100 chưa đọc (SENSORS_PT100_START_MS): chưa chạy bộ điều khiển
-     * → relay vẫn nhả, không đếm "Mất cảm biến nhiệt"; lệnh bấm trong lúc chờ được xử lý sau đó */
-    if (s_sim.mode == SIM_OFF && !Sensors_Data()->pt100_ready) return;
 
     meas_t m;
     get_meas(&m);
     dryer_input_t in = {
         .temp_ok  = m.t_ok, .temp  = m.t,
         .hum_ok   = m.h_ok, .hum   = m.h,
-        .evap_ok  = { m.e_ok[0], m.e_ok[1] }, .evap = { m.e[0], m.e[1] },
+        .evap_ok  = { m.e_ok[0] }, .evap = { m.e[0] },
     };
     dryer_output_t out;
     DryerCtrl_Step(&s_ctrl, &set->ctrl, &in, s_vclock, &out);
@@ -493,7 +455,7 @@ static void build_view(ui_view_t *v)
     v->hum_temp    = Sensors_Data()->hum_temp.value;
     for (uint8_t i = 0; i < DRYER_EVAP_COUNT; i++) {
         v->evap_ok[i] = m.e_ok[i]; v->evap[i] = m.e[i];
-        v->evap_volt[i] = (s_sim.mode == SIM_OFF) ? Sensors_Data()->evap_code[i] * 3.3f / 4095.0f : -1.0f;
+        v->evap_volt[i] = (s_sim.mode == SIM_OFF) ? Sensors_Data()->ntc_code[SENSORS_NTC_EVAP0 + i] * 3.3f / 4095.0f : -1.0f;
     }
     v->sim_text = (s_sim.mode != SIM_OFF) ? s_sim.text : NULL;
 
@@ -539,7 +501,7 @@ static void build_view(ui_view_t *v)
     v->fault_text   = s_status.faults ? DryerCtrl_FaultText(s_status.faults) : NULL;
     if (s_sim.mode == SIM_OFF && (s_status.faults & DRYER_FAULT_TEMP_SENSOR) &&
         !(s_status.faults & DRYER_FAULT_OVERTEMP))
-        v->fault_text = pt100_diag_text();
+        v->fault_text = temp_diag_text();
     if (DryerCtrl_OvertempCooling(&s_ctrl)) {
         static char ot[48];
         char t[6];
@@ -549,9 +511,7 @@ static void build_view(ui_view_t *v)
     }
     v->warn_text    = (s_status.warnings & DRYER_WARN_HUM_SENSOR) ? sht_diag_text() : NULL;
     if (s_status.warnings & DRYER_WARN_EVAP_SENSOR) {
-        bool b0 = !m.e_ok[0], b1 = !m.e_ok[1];
-        v->warn_text = (b0 && b1) ? "Mất cả 2 NTC dàn lạnh – không chống đóng băng"
-                     : b0 ? "Mất NTC dàn lạnh 1 (PA0)" : "Mất NTC dàn lạnh 2 (PA6)";
+        v->warn_text = "Mất NTC dàn lạnh (PA6) – không chống đóng băng";
     }
     if (s_status.warnings & DRYER_WARN_DEFROST) {
         static char df[48];
@@ -562,7 +522,6 @@ static void build_view(ui_view_t *v)
         v->warn_text = df;
     }
     v->defrost = s_status.defrost;
-    if (s_sim.mode == SIM_OFF && !Sensors_Data()->pt100_ready) v->warn_text = "Đang chờ cảm biến nhiệt…";
 
     uint8_t n = FaultLog_Count();
     v->hist_count = (n > UI_HIST_ROWS) ? UI_HIST_ROWS : n;
@@ -656,15 +615,14 @@ static void task_log(uint32_t now)
     const sensors_data_t *d = Sensors_Data();
     meas_t m;
     get_meas(&m);
-    char t[12], h[12], e1[12], e2[12];
-    Log_Printf("%sT=%s H=%s DL=%s/%s(adc %u/%u loi %lu/%lu)%s ST=%s PH=%d MN=%d QN=%d QL=%d F=0x%02X W=0x%02X SHTerr=%lu/st%u",
+    char t[12], h[12], e1[12];
+    Log_Printf("%sT=%s H=%s DL=%s (adc %u/%u loi %lu/%lu)%s ST=%s PH=%d MN=%d QN=%d QL=%d F=0x%02X W=0x%02X SHTerr=%lu/st%u",
                s_sim.mode ? "[SIM] " : "",
                m.t_ok ? Fmt_Float(t, sizeof(t), m.t, 1) : "ERR",
                m.h_ok ? Fmt_Float(h, sizeof(h), m.h, 1) : "ERR",
                m.e_ok[0] ? Fmt_Float(e1, sizeof(e1), m.e[0], 1) : "ERR",
-               m.e_ok[1] ? Fmt_Float(e2, sizeof(e2), m.e[1], 1) : "ERR",
-               (unsigned)d->evap_code[0], (unsigned)d->evap_code[1],
-               (unsigned long)d->evap_glitch[0], (unsigned long)d->evap_glitch[1],
+               (unsigned)d->ntc_code[SENSORS_NTC_CHAMBER], (unsigned)d->ntc_code[SENSORS_NTC_EVAP0],
+               (unsigned long)d->ntc_glitch[SENSORS_NTC_CHAMBER], (unsigned long)d->ntc_glitch[SENSORS_NTC_EVAP0],
                s_status.defrost ? " XA-DA" : "",
                DryerCtrl_StateName(s_status.state), (int)s_status.phase,
                s_status.out.comp, s_fan_actual, s_status.out.fan_evap,
@@ -702,7 +660,7 @@ void App_Init(void)
     Text_Box(0, 124, TFT_WIDTH, "Đang khởi động…", &font_vn16, C_GRAY, C_BLACK, TEXT_CENTER);
 
     static const sensors_cfg_t sensors_cfg = {
-        .pt100 = &board_pt100, .sht = &board_sht45, .evap = { &board_ntc_evap1, &board_ntc_evap2 },
+        .chamber = &board_ntc_chamber, .sht = &board_sht45, .evap = { &board_ntc_evap },
         .bus_recover = Board_I2cRecover,
     };
     Sensors_Init(&sensors_cfg);
@@ -724,13 +682,10 @@ void App_Init(void)
     s_scr.last_act = now;
     Sched_Init(s_tasks, TASK_COUNT, now);
 
-    char pt_r[10];
-    Log_Printf("DryMachine boot, settings v%u, SHT%s @0x%02X st%u serial %08lX, PT100 F=0x%02X R=%s, log %u",
+    Log_Printf("DryMachine boot, settings v%u, SHT%s @0x%02X st%u serial %08lX, log %u",
                (unsigned)Settings_Get()->version, Sensors_Data()->sht_family ? "3x" : "4x",
                (unsigned)Sensors_Data()->sht_addr,
                (unsigned)Sensors_Data()->sht_status, (unsigned long)Sensors_Data()->sht_serial,
-               (unsigned)Sensors_Data()->pt100_fault,
-               Fmt_Float(pt_r, sizeof(pt_r), Sensors_Data()->pt100_r, 1),
                (unsigned)FaultLog_Count());
 }
 

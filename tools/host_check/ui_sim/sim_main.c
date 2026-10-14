@@ -89,7 +89,7 @@ int main(int argc, char **argv)
     memset(&v, 0, sizeof(v));
     for (int i = 0; i < 7; i++) { v.preset_temp[i] = dt[i]; v.preset_hum[i] = dh[i]; }
     v.preset = 2; v.temp_set = 55; v.hum_set = 15;
-    v.temp_ok = true; v.temp = 54.6f; v.hum_ok = true; v.hum = 21.4f; v.evap_ok[0] = v.evap_ok[1] = true; v.evap[0] = 3.2f; v.evap[1] = 2.8f;
+    v.temp_ok = true; v.temp = 54.6f; v.hum_ok = true; v.hum = 21.4f; v.evap_ok[0] = true; v.evap[0] = 3.2f;
     v.state = UI_ST_RUNNING; v.comp = true; v.fan_level = 3; v.fan_evap = true;
     v.phase_text = "GĐ1 – gia nhiệt"; v.stage = 0;
     v.stage_fan[0] = 4; v.stage_fan[1] = 3; v.stage_fan[2] = 2; v.stage_fan[3] = 1; v.stage_fan[4] = 5;

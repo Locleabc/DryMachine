@@ -75,8 +75,6 @@ void Error_Handler(void);
 #define TFT_DC_GPIO_Port GPIOB
 #define TFT_RST_Pin GPIO_PIN_1
 #define TFT_RST_GPIO_Port GPIOB
-#define MAX_CS_Pin GPIO_PIN_12
-#define MAX_CS_GPIO_Port GPIOB
 #define BTN_ENTER_Pin GPIO_PIN_8
 #define BTN_ENTER_GPIO_Port GPIOA
 #define BTN_EXIT_Pin GPIO_PIN_15
