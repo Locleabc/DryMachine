@@ -78,5 +78,6 @@ Module SHT31 ghi `SCL/T` và `SDA/RH`: bản I2C (SHT31-DIS) dùng như SCL/SDA 
 
 ## Đèn LED PC13
 
-- **Sáng liên tục**: đang đọc được độ ẩm (lần đọc gần nhất OK).
+- **Sáng**: đọc được và nhiệt độ 20–35 °C, độ ẩm 40–80 %RH (đổi ở `LED_T_MIN/MAX`, `LED_RH_MIN/MAX` trong `hum_monitor.c`).
+- **Tắt**: đọc được nhưng nhiệt độ hoặc độ ẩm ngoài khoảng trên.
 - **Nháy 1 Hz**: chương trình đang chạy nhưng cảm biến lỗi / chưa đọc được.

@@ -17,6 +17,11 @@
 
 #define RECOVER_AFTER   3            /* lỗi liên tiếp → khôi phục bus I2C + init lại cảm biến */
 #define EMA_ALPHA       0.1f
+/* khoảng "bình thường" để sáng LED PC13 */
+#define LED_T_MIN       20.0f        /* °C */
+#define LED_T_MAX       35.0f
+#define LED_RH_MIN      40.0f        /* %RH */
+#define LED_RH_MAX      80.0f
 
 volatile hum_monitor_t g_hum;        /* bản sao cho Keil Watch (cập nhật sau mỗi lần đọc) */
 
@@ -280,7 +285,8 @@ void HumMon_Loop(void)
         s_dirty = false;
         draw_values();
     }
-    /* LED PC13: SÁNG LIÊN TỤC = đang đọc được độ ẩm; NHÁY = chương trình chạy nhưng cảm biến lỗi */
-    if (s.ok) Board_LedSet(true);
+    /* LED PC13: SÁNG = đọc được và T 20..35 °C, RH 40..80 %; TẮT = đọc được nhưng ngoài khoảng;
+     *          NHÁY = cảm biến lỗi / chưa đọc được */
+    if (s.ok) Board_LedSet(s.temp >= LED_T_MIN && s.temp <= LED_T_MAX && s.rh >= LED_RH_MIN && s.rh <= LED_RH_MAX);
     else if (now - led_tick >= 500) { led_tick = now; Board_LedToggle(); }
 }
