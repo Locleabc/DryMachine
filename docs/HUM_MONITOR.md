@@ -75,3 +75,8 @@ rồi hiện kết quả ở dòng gần cuối màn hình (và log UART `HUM qu
 | `SCL/SDA bị kéo thấp` | Chân bị giữ ở 0 V | Chập dây, module chưa cấp nguồn, thiếu trở kéo lên |
 
 Module SHT31 ghi `SCL/T` và `SDA/RH`: bản I2C (SHT31-DIS) dùng như SCL/SDA bình thường.
+
+## Đèn LED PC13
+
+- **Sáng liên tục**: đang đọc được độ ẩm (lần đọc gần nhất OK).
+- **Nháy 1 Hz**: chương trình đang chạy nhưng cảm biến lỗi / chưa đọc được.

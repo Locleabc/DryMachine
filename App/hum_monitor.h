@@ -11,6 +11,7 @@
  *   2. Màn hình TFT: độ ẩm / nhiệt độ lớn, trạng thái, min/max/TB, số lần đọc + lỗi, 6 lần đọc gần nhất.
  *   3. UART1 (PA9, 115200): 1 dòng log mỗi lần đọc.
  *  Lúc khởi động và mỗi lần bấm EXIT: quét bus I2C (cả 2 chiều dây) → dòng "Quét" trên màn hình.
+ *  LED PC13: sáng liên tục = đọc được độ ẩm; nháy 1 Hz = cảm biến lỗi.
  *  Nút: ENTER = xoá min/max/thống kê · EXIT = khởi tạo lại cảm biến · UP/DOWN = chu kỳ đọc 0.5..10 s.
  */
 #ifndef HUM_MONITOR_H

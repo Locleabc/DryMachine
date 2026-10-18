@@ -99,6 +99,11 @@ void Board_LedToggle(void)
     HAL_GPIO_TogglePin(LED_RUN_GPIO_Port, LED_RUN_Pin);
 }
 
+void Board_LedSet(bool on)      /* LED PC13 của Blue Pill sáng khi chân ở mức THẤP */
+{
+    HAL_GPIO_WritePin(LED_RUN_GPIO_Port, LED_RUN_Pin, on ? GPIO_PIN_RESET : GPIO_PIN_SET);
+}
+
 void Board_LogWrite(const char *data, uint16_t len)
 {
     HAL_UART_Transmit(&huart1, (const uint8_t *)data, len, 50);

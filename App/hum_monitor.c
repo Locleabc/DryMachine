@@ -280,5 +280,7 @@ void HumMon_Loop(void)
         s_dirty = false;
         draw_values();
     }
-    if (now - led_tick >= 500) { led_tick = now; Board_LedToggle(); }   /* LED nháy = chương trình đang chạy */
+    /* LED PC13: SÁNG LIÊN TỤC = đang đọc được độ ẩm; NHÁY = chương trình chạy nhưng cảm biến lỗi */
+    if (s.ok) Board_LedSet(true);
+    else if (now - led_tick >= 500) { led_tick = now; Board_LedToggle(); }
 }

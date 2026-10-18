@@ -19,6 +19,7 @@ static uint32_t s_now = 1000;
 static int relay_on, recover_cnt, init_cnt;
 uint32_t Board_Millis(void) { return s_now; }
 void Board_LedToggle(void) {}
+void Board_LedSet(bool on) { (void)on; }
 void Board_LcdBacklight(bool on) { (void)on; }
 void Board_LogWrite(const char *d, uint16_t n) { fwrite(d, 1, n, stdout); }
 void Board_I2cRecover(void) { recover_cnt++; }
