@@ -4,6 +4,7 @@
  *          User Label trong CubeMX (docs/PINOUT.md).
  */
 #include "board.h"
+#include <string.h>
 #include "main.h"
 
 /* Handle ngoại vi do CubeMX định nghĩa (spi.c, i2c.c, adc.c, usart.c hoặc main.c).
@@ -133,4 +134,62 @@ void Board_I2cRecover(void)
     __HAL_RCC_I2C2_FORCE_RESET();
     __HAL_RCC_I2C2_RELEASE_RESET();
     HAL_I2C_Init(&hi2c2);                           /* MspInit cấu hình lại chân AF */
+}
+
+/* ---- quét I2C bằng GPIO open-drain (đọc lại mức chân qua IDR) ---- */
+static uint16_t bb_scl, bb_sda;
+static void bb_set(uint16_t pin, bool high) { HAL_GPIO_WritePin(GPIOB, pin, high ? GPIO_PIN_SET : GPIO_PIN_RESET); i2c_delay(); i2c_delay(); }
+static bool bb_get(uint16_t pin) { return HAL_GPIO_ReadPin(GPIOB, pin) == GPIO_PIN_SET; }
+static void bb_scl_high(void)
+{
+    bb_set(bb_scl, true);
+    for (int t = 0; t < 200 && !bb_get(bb_scl); t++) i2c_delay();   /* slave kéo dài xung (clock stretching) */
+}
+static bool bb_probe(uint8_t addr)
+{
+    uint8_t b = (uint8_t)(addr << 1);                 /* lệnh GHI */
+    bool ack;
+    bb_set(bb_sda, true); bb_scl_high();
+    bb_set(bb_sda, false); bb_set(bb_scl, false);     /* START */
+    for (int i = 7; i >= 0; i--) {
+        bb_set(bb_sda, (b >> i) & 1u);
+        bb_scl_high(); bb_set(bb_scl, false);
+    }
+    bb_set(bb_sda, true);                             /* nhả SDA, đọc ACK */
+    bb_scl_high();
+    ack = !bb_get(bb_sda);
+    bb_set(bb_scl, false);
+    bb_set(bb_sda, false); bb_scl_high(); bb_set(bb_sda, true);     /* STOP */
+    return ack;
+}
+static uint8_t bb_scan(uint16_t scl, uint16_t sda, uint8_t *out)
+{
+    uint8_t n = 0;
+    bb_scl = scl; bb_sda = sda;
+    for (uint8_t a = 0x08; a <= 0x77; a++)
+        if (bb_probe(a) && n < BOARD_I2C_SCAN_MAX) out[n++] = a;
+    return n;
+}
+
+void Board_I2cScan(board_i2c_scan_t *r)
+{
+    const uint16_t P10 = GPIO_PIN_10, P11 = GPIO_PIN_11;
+    GPIO_InitTypeDef g = {0};
+
+    memset(r, 0, sizeof(*r));
+    HAL_I2C_DeInit(&hi2c2);
+    g.Pin = P10 | P11;
+    g.Mode = GPIO_MODE_OUTPUT_OD;
+    g.Pull = GPIO_NOPULL;
+    g.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_WritePin(GPIOB, P10 | P11, GPIO_PIN_SET);
+    HAL_GPIO_Init(GPIOB, &g);
+    for (int i = 0; i < 20; i++) i2c_delay();
+    r->scl_high = bb_get(P10);
+    r->sda_high = bb_get(P11);
+    if (r->scl_high && r->sda_high) {
+        r->n_found   = bb_scan(P10, P11, r->found);
+        r->n_swapped = bb_scan(P11, P10, r->swapped);
+    }
+    Board_I2cRecover();
 }

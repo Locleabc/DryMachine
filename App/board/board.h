@@ -43,5 +43,16 @@ void     Board_LcdBacklight(bool on);   /* đèn nền TFT (chân LED của modu
 void     Board_LogWrite(const char *data, uint16_t len);
 void     Board_I2cRecover(void);        /* gỡ treo bus I2C của SHT45 */
 
+/* Quét bus I2C2 bằng GPIO (bit-bang, ~10 kHz), dùng cho chẩn đoán đấu dây cảm biến.
+ * Quét 2 lần: đúng chiều (SCL=PB10, SDA=PB11) và ĐẢO chiều (SCL=PB11, SDA=PB10).
+ * Xong tự gọi Board_I2cRecover() để trả chân về I2C phần cứng. */
+#define BOARD_I2C_SCAN_MAX 4
+typedef struct {
+    uint8_t scl_high, sda_high;                     /* mức chân lúc rảnh: 1 = cao (có pull-up) */
+    uint8_t n_found;   uint8_t found[BOARD_I2C_SCAN_MAX];     /* địa chỉ trả ACK, đúng chiều */
+    uint8_t n_swapped; uint8_t swapped[BOARD_I2C_SCAN_MAX];   /* địa chỉ trả ACK khi đảo SCL/SDA */
+} board_i2c_scan_t;
+void     Board_I2cScan(board_i2c_scan_t *r);
+
 
 #endif

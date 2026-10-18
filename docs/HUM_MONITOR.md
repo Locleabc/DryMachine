@@ -61,3 +61,17 @@ HUM khoi phuc bus I2C + init lai (lan 1)
 
 `sh tools/host_check/check.sh` – bước 6 chạy chương trình này với cảm biến giả (đọc đều, lỗi NACK → khôi phục,
 nút bấm, không đóng relay) và lưu ảnh màn hình `tools/build/ui/hum_ok.ppm`, `hum_err.ppm`.
+
+## Quét bus I2C (chẩn đoán đấu dây)
+
+Lúc khởi động và mỗi lần bấm **EXIT**, chương trình quét bus I2C bằng GPIO (bit-bang) theo **cả 2 chiều dây**
+rồi hiện kết quả ở dòng gần cuối màn hình (và log UART `HUM quet I2C: ...`, Keil Watch `g_hum.scan_*`):
+
+| Màn hình | Nghĩa | Cách xử lý |
+|---|---|---|
+| `Quét I2C thấy: 0x44` | Cảm biến trả lời, đấu đúng | Nếu vẫn lỗi đọc → nhiễu/dây dài, thử dây ngắn hơn |
+| `ĐẢO DÂY! Đổi SCL/SDA` | Chỉ trả lời khi đảo 2 dây | Đổi chỗ 2 dây: SCL → PB10, SDA → PB11 |
+| `Quét I2C: không có thiết bị nào` | Không ai trả lời | Kiểm tra GND chung, VIN, chân ADDR, cảm biến hỏng |
+| `SCL/SDA bị kéo thấp` | Chân bị giữ ở 0 V | Chập dây, module chưa cấp nguồn, thiếu trở kéo lên |
+
+Module SHT31 ghi `SCL/T` và `SDA/RH`: bản I2C (SHT31-DIS) dùng như SCL/SDA bình thường.

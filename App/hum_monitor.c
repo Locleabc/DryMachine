@@ -58,9 +58,42 @@ static void stats_reset(void)
     memset(s.hist_temp, 0, sizeof(s.hist_temp));
 }
 
+static void bus_scan(void)
+{
+    board_i2c_scan_t r;
+    char a[40];
+    Board_I2cScan(&r);
+    s.scl_high = r.scl_high; s.sda_high = r.sda_high;
+    s.scan_n = r.n_found;  memcpy(s.scan_addr, r.found, sizeof(s.scan_addr));
+    s.scan_swap_n = r.n_swapped; memcpy(s.scan_swap_addr, r.swapped, sizeof(s.scan_swap_addr));
+    a[0] = '\0';
+    for (uint8_t i = 0; i < s.scan_n; i++) { size_t l = strlen(a); snprintf(a + l, sizeof(a) - l, " 0x%02X", (unsigned)s.scan_addr[i]); }
+    Log_Printf("HUM quet I2C: SCL(PB10)=%s SDA(PB11)=%s, thay:%s%s", s.scl_high ? "cao" : "THAP",
+               s.sda_high ? "cao" : "THAP", s.scan_n ? a : " khong co", s.scan_swap_n ? " | DAO DAY moi thay!" : "");
+}
+
+/* dòng kết quả quét bus cho màn hình */
+static void scan_text(char *a, size_t n, uint16_t *color)
+{
+    *color = RGB565(235, 60, 50);
+    if (!s.scl_high || !s.sda_high) {
+        snprintf(a, n, "%s%s bị kéo thấp – chập dây?", s.scl_high ? "" : "SCL ",
+                 s.sda_high ? "" : "SDA");
+    } else if (s.scan_n) {
+        size_t l;
+        snprintf(a, n, "Quét I2C thấy:");
+        for (uint8_t i = 0; i < s.scan_n; i++) { l = strlen(a); snprintf(a + l, n - l, " 0x%02X", (unsigned)s.scan_addr[i]); }
+        *color = RGB565(60, 210, 90);
+    } else if (s.scan_swap_n) {
+        snprintf(a, n, "ĐẢO DÂY! Đổi SCL/SDA (thấy 0x%02X)", (unsigned)s.scan_swap_addr[0]);
+    } else {
+        snprintf(a, n, "Quét I2C: không có thiết bị nào");
+    }
+}
+
 static void sensor_init(void)
 {
-    Board_I2cRecover();                                  /* gỡ cờ BUSY kẹt của I2C F1 */
+    bus_scan();                                          /* quét + gỡ cờ BUSY kẹt của I2C F1 */
     sht4x_status_t st = SHT4X_Init(&s_dev, &board_sht45);
     s.status = (uint8_t)st;
     s.status_text = status_text(s.status);
@@ -160,8 +193,8 @@ static void draw_values(void)
              (unsigned long)(s.n_read - s.n_ok), (unsigned long)s.n_recover);
     Text_Box(8, 140, TFT_WIDTH - 16, a, F_TXT, UC_LABEL, C_BLACK, TEXT_LEFT);
 
-    /* 6 lần đọc gần nhất (mới nhất bên trái), 2 dòng × 3 */
-    for (uint8_t row = 0; row < 2; row++) {
+    /* 3 lần đọc gần nhất (mới nhất bên trái) */
+    for (uint8_t row = 0; row < 1; row++) {
         a[0] = '\0';
         for (uint8_t k = 0; k < 3; k++) {
             uint8_t n = (uint8_t)(row * 3 + k);
@@ -172,6 +205,12 @@ static void draw_values(void)
                      Fmt_Float(b, sizeof(b), s.hist_rh[idx], 1));
         }
         Text_Box(8, (int16_t)(166 + row * 23), TFT_WIDTH - 16, a, F_TXT, UC_HUM, C_BLACK, TEXT_LEFT);
+    }
+
+    {
+        uint16_t col;
+        scan_text(a, sizeof(a), &col);
+        Text_Box(8, 189, TFT_WIDTH - 16, a, F_TXT, col, C_BLACK, TEXT_LEFT);
     }
 
     snprintf(a, sizeof(a), "ENTER xoá TK · EXIT init · UP/DN %s s",

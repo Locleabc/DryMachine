@@ -22,6 +22,7 @@ void Board_LedToggle(void) {}
 void Board_LcdBacklight(bool on) { (void)on; }
 void Board_LogWrite(const char *d, uint16_t n) { fwrite(d, 1, n, stdout); }
 void Board_I2cRecover(void) { recover_cnt++; }
+void Board_I2cScan(board_i2c_scan_t *r) { memset(r, 0, sizeof(*r)); r->scl_high = r->sda_high = 1; r->n_found = 1; r->found[0] = 0x44; Board_I2cRecover(); }
 void Relay_Init(const relay_hw_t *t, uint8_t n) { (void)t; (void)n; }
 void Relay_Set(uint8_t id, bool on) { (void)id; if (on) relay_on++; }
 void Button_Init(const button_hw_t *t, uint8_t n) { (void)t; (void)n; }

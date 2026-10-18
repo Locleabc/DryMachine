@@ -10,6 +10,7 @@
  *      g_hum.hist_rh[] = 32 lần đọc gần nhất (vòng tròn, hist_pos = ô sẽ ghi tiếp).
  *   2. Màn hình TFT: độ ẩm / nhiệt độ lớn, trạng thái, min/max/TB, số lần đọc + lỗi, 6 lần đọc gần nhất.
  *   3. UART1 (PA9, 115200): 1 dòng log mỗi lần đọc.
+ *  Lúc khởi động và mỗi lần bấm EXIT: quét bus I2C (cả 2 chiều dây) → dòng "Quét" trên màn hình.
  *  Nút: ENTER = xoá min/max/thống kê · EXIT = khởi tạo lại cảm biến · UP/DOWN = chu kỳ đọc 0.5..10 s.
  */
 #ifndef HUM_MONITOR_H
@@ -38,6 +39,12 @@ typedef struct {
     uint32_t n_err[5];         /* theo mã lỗi (chỉ số = status) */
     uint32_t n_recover;        /* số lần khôi phục bus I2C + init lại */
     uint8_t  consec_err;       /* lỗi liên tiếp */
+    /* quét bus I2C bằng GPIO (lúc init và mỗi lần bấm EXIT) */
+    uint8_t  scl_high, sda_high;       /* mức chân lúc rảnh: 1 = cao (pull-up OK) */
+    uint8_t  scan_n;                   /* số địa chỉ trả lời, đấu đúng chiều */
+    uint8_t  scan_addr[4];
+    uint8_t  scan_swap_n;              /* >0 = cảm biến trả lời khi ĐẢO SCL/SDA → đấu ngược dây */
+    uint8_t  scan_swap_addr[4];
     /* lịch sử */
     float    hist_rh[HUM_HIST_LEN];
     float    hist_temp[HUM_HIST_LEN];
