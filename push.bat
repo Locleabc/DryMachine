@@ -7,6 +7,8 @@ set "REPO=%REPO:~0,-1%"
 set "REPO=%REPO:\=/%"
 git config --global --get-all safe.directory | findstr /x /c:"%REPO%" >nul || git config --global --add safe.directory "%REPO%"
 git remote get-url origin >nul 2>&1 || git remote add origin https://github.com/Locleabc/DryMachine.git
-git push -u origin main
+for /f "delims=" %%b in ('git branch --show-current') do set "BR=%%b"
+echo Day nhanh: %BR%
+git push -u origin %BR%
 echo.
 pause
