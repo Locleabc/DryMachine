@@ -9,6 +9,7 @@
  *   UI ──ui_cmd_t──> ctrl / settings / fault_log
  */
 #include "app.h"
+#include "hum_monitor.h"
 #include "board.h"
 #include "relay.h"
 #include "button.h"
@@ -645,7 +646,7 @@ static sched_task_t s_tasks[] = {
 #define TASK_COUNT  ((uint8_t)(sizeof(s_tasks) / sizeof(s_tasks[0])))
 
 /* ================= Entry ================= */
-void App_Init(void)
+static void app_init_dryer(void)
 {
     Relay_Init(board_relays, RLY_ID_COUNT);          /* relay OFF trước tiên */
     Button_Init(board_buttons, BTN_ID_COUNT);
@@ -689,9 +690,29 @@ void App_Init(void)
                (unsigned)FaultLog_Count());
 }
 
-void App_Loop(void)
+static void app_loop_dryer(void)
 {
     uint32_t now = Board_Millis();
     Sensors_Process(now);
     Sched_Run(s_tasks, TASK_COUNT, now);
+}
+
+/* ================= Điểm vào =================
+ * APP_HUM_MONITOR (app.h) = 1 → chương trình thử cảm biến độ ẩm; 0 → bộ điều khiển máy sấy. */
+void App_Init(void)
+{
+#if APP_HUM_MONITOR
+    HumMon_Init();
+#else
+    app_init_dryer();
+#endif
+}
+
+void App_Loop(void)
+{
+#if APP_HUM_MONITOR
+    HumMon_Loop();
+#else
+    app_loop_dryer();
+#endif
 }

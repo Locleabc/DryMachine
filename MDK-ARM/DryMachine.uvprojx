@@ -547,6 +547,11 @@
               <FileType>1</FileType>
               <FilePath>../App/app.c</FilePath>
             </File>
+            <File>
+              <FileName>hum_monitor.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../App/hum_monitor.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

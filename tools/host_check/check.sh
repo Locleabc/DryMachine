@@ -54,4 +54,12 @@ gcc -std=c11 -IApp/control -IApp/services tools/host_check/sim_cycle.c App/contr
     App/services/sim_plant.c -o "$OUT/sim_cycle"
 "$OUT/sim_cycle" || fail=1
 "$OUT/sim_cycle" quanhiet || fail=1
+
+echo "== 6. Chuong trinh thu do am (App/hum_monitor.c) =="
+gcc -std=c11 -Wall -Wno-unused-parameter -Itools/host_check -IApp -IApp/board -IApp/services -IApp/control \
+    $(for d in App/drivers/*/; do printf -- "-I%s " "$d"; done) \
+    App/hum_monitor.c tools/host_check/hum_sim.c tools/host_check/ui_sim/ili9341_sim.c \
+    App/drivers/ili9341/font5x7.c App/drivers/ili9341/fonts_vn.c App/drivers/ili9341/ili9341_text.c \
+    App/services/util_fmt.c -o "$OUT/hum_sim"
+"$OUT/hum_sim" "$OUT/ui" | grep -E "^(FAIL|ok  |HUM PASS|HUM CO LOI)" || fail=1
 exit $fail
